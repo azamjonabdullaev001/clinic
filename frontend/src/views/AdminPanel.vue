@@ -205,11 +205,34 @@
     <!-- Product Modal -->
     <div v-if="showProductModal" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showProductModal = false"></div>
-      <div class="relative bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+      <div class="relative bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
         <h3 class="text-xl font-bold text-gray-800 mb-5">
           {{ editingProduct ? 'Изменить препарат' : 'Добавить препарат' }}
         </h3>
         <form @submit.prevent="saveProduct" class="space-y-4">
+          <!-- Image Upload -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Фото препарата</label>
+            <div class="flex items-center gap-4">
+              <div class="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300 flex-shrink-0">
+                <img v-if="imagePreview || (editingProduct && editingProduct.image_path)" 
+                  :src="imagePreview || editingProduct.image_path" 
+                  class="w-full h-full object-cover" />
+                <svg v-else class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div class="flex-1">
+                <label class="cursor-pointer inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg hover:bg-blue-100 transition font-medium text-sm border border-blue-200">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Выбрать фото
+                  <input type="file" accept="image/*" class="hidden" @change="onModalImageSelect" />
+                </label>
+                <p class="text-xs text-gray-400 mt-1.5">JPG, PNG, WEBP до 10 МБ</p>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Название <span class="text-red-400">*</span></label>
             <input v-model="productForm.name" type="text" required
@@ -249,16 +272,16 @@
               class="flex-1 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium">
               Отмена
             </button>
-            <button type="submit"
-              class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium">
-              {{ editingProduct ? 'Сохранить' : 'Добавить' }}
+            <button type="submit" :disabled="savingProduct"
+              class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">
+              {{ savingProduct ? 'Сохранение...' : (editingProduct ? 'Сохранить' : 'Добавить') }}
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Image upload hidden input -->
+    <!-- Image upload hidden input (for table button) -->
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
   </div>
 </template>
@@ -289,8 +312,11 @@ const productForm = reactive({
   price_per_pill: 6500
 })
 const productError = ref('')
+const savingProduct = ref(false)
 const imageInput = ref(null)
 const imageUploadProductId = ref(null)
+const modalImageFile = ref(null)
+const imagePreview = ref(null)
 
 // Orders
 const orders = ref([])
@@ -359,6 +385,8 @@ async function loadProfile() {
 
 function openProductModal(product = null) {
   editingProduct.value = product
+  modalImageFile.value = null
+  imagePreview.value = null
   if (product) {
     productForm.name = product.name
     productForm.description = product.description || ''
@@ -374,18 +402,47 @@ function openProductModal(product = null) {
   showProductModal.value = true
 }
 
+function onModalImageSelect(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  modalImageFile.value = file
+  imagePreview.value = URL.createObjectURL(file)
+  e.target.value = ''
+}
+
+async function uploadImageForProduct(productId) {
+  if (!modalImageFile.value) return
+  const formData = new FormData()
+  formData.append('image', modalImageFile.value)
+  await authStore.api.post(`/admin/products/${productId}/image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
 async function saveProduct() {
   productError.value = ''
+  savingProduct.value = true
   try {
+    let savedProduct
     if (editingProduct.value) {
-      await authStore.api.put(`/admin/products/${editingProduct.value.id}`, productForm)
+      const res = await authStore.api.put(`/admin/products/${editingProduct.value.id}`, productForm)
+      savedProduct = res.data
     } else {
-      await authStore.api.post('/admin/products', productForm)
+      const res = await authStore.api.post('/admin/products', productForm)
+      savedProduct = res.data
+    }
+    // Upload image if selected
+    if (modalImageFile.value && savedProduct?.id) {
+      await uploadImageForProduct(savedProduct.id)
     }
     showProductModal.value = false
+    modalImageFile.value = null
+    imagePreview.value = null
     await loadProducts()
   } catch (e) {
     productError.value = e.response?.data?.error || 'Ошибка'
+  } finally {
+    savingProduct.value = false
   }
 }
 
