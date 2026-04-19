@@ -94,7 +94,17 @@ func UpdateProduct(c *gin.Context) {
 
 func DeleteProduct(c *gin.Context) {
 	id := c.Param("id")
-	if err := database.DB.Delete(&models.Product{}, id).Error; err != nil {
+
+	var product models.Product
+	if err := database.DB.First(&product, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Препарат не найден"})
+		return
+	}
+
+	// Delete related order items first to avoid foreign key constraint
+	database.DB.Where("product_id = ?", id).Delete(&models.OrderItem{})
+
+	if err := database.DB.Delete(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении"})
 		return
 	}
