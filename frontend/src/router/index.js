@@ -1,0 +1,35 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import Landing from '../views/Landing.vue'
+import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
+import AdminLogin from '../views/AdminLogin.vue'
+import AdminPanel from '../views/AdminPanel.vue'
+
+const routes = [
+  { path: '/', name: 'Landing', component: Landing },
+  { path: '/login', name: 'Login', component: Login },
+  { path: '/register', name: 'Register', component: Register },
+  { path: '/admin/login', name: 'AdminLogin', component: AdminLogin },
+  { path: '/admin', name: 'AdminPanel', component: AdminPanel, meta: { requiresAdmin: true } },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+  scrollBehavior() {
+    return { top: 0 }
+  }
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAdmin) {
+    const token = localStorage.getItem('adminToken')
+    if (!token) {
+      next('/admin/login')
+      return
+    }
+  }
+  next()
+})
+
+export default router
