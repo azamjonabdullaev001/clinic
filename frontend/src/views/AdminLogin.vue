@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-stone-100 flex items-center justify-center px-4 relative overflow-hidden">
-    <div class="absolute top-1/3 -right-32 w-96 h-96 bg-brand-200/20 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-1/4 -left-32 w-72 h-72 bg-brand-100/20 rounded-full blur-[80px]"></div>
+  <div class="min-h-screen bg-surface flex items-center justify-center px-4 relative overflow-hidden">
+    <div class="absolute top-1/3 -right-32 w-96 h-96 bg-brand-200/15 rounded-full blur-[100px] animate-pulse-soft"></div>
+    <div class="absolute bottom-1/4 -left-32 w-72 h-72 bg-brand-100/15 rounded-full blur-[80px] animate-pulse-soft" style="animation-delay: 2s"></div>
 
     <div class="relative w-full max-w-md">
-      <div class="bg-white rounded-3xl shadow-xl shadow-stone-200/50 p-8 md:p-10">
+      <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl shadow-stone-200/40 p-8 md:p-10 animate-fade-up" style="animation-delay: 0.1s; opacity: 0">
         <div class="text-center mb-8">
-          <div class="w-14 h-14 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-600/20">
+          <div class="w-14 h-14 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-600/20 hover:scale-110 transition-transform duration-300">
             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>

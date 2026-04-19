@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-stone-100 flex items-center justify-center px-4 py-10 relative overflow-hidden">
+  <div class="min-h-screen bg-surface flex items-center justify-center px-4 py-10 relative overflow-hidden">
     <!-- Background decoration -->
-    <div class="absolute top-1/4 -right-32 w-96 h-96 bg-brand-200/20 rounded-full blur-[100px]"></div>
-    <div class="absolute bottom-1/3 -left-32 w-72 h-72 bg-brand-100/20 rounded-full blur-[80px]"></div>
+    <div class="absolute top-1/4 -right-32 w-96 h-96 bg-brand-200/15 rounded-full blur-[100px] animate-pulse-soft"></div>
+    <div class="absolute bottom-1/3 -left-32 w-72 h-72 bg-brand-100/15 rounded-full blur-[80px] animate-pulse-soft" style="animation-delay: 2s"></div>
 
     <div class="relative w-full max-w-md">
       <!-- Back link -->
@@ -12,9 +12,9 @@
       </router-link>
 
       <!-- Card -->
-      <div class="bg-white rounded-3xl shadow-xl shadow-stone-200/50 p-8 md:p-10">
+      <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl shadow-stone-200/40 p-8 md:p-10 animate-fade-up" style="animation-delay: 0.1s; opacity: 0">
         <div class="flex items-center gap-3 mb-8">
-          <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
+          <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center hover:scale-110 transition-transform duration-300">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 007.92 12.446A9 9 0 1112 2.992z" />
             </svg>

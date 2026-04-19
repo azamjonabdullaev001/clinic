@@ -24,24 +24,59 @@ export default {
           900: '#134e4a',
           950: '#042f2e',
         },
+        surface: {
+          DEFAULT: '#f8faf9',
+          warm: '#fafaf8',
+          muted: '#f3f5f4',
+        },
       },
       animation: {
-        'fade-up': 'fadeUp 0.7s ease-out forwards',
-        'scale-in': 'scaleIn 0.3s ease-out forwards',
-        'slide-right': 'slideRight 0.35s cubic-bezier(0.16,1,0.3,1)',
+        'fade-up': 'fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) forwards',
+        'fade-in': 'fadeIn 0.6s ease-out forwards',
+        'scale-in': 'scaleIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards',
+        'slide-right': 'slideRight 0.4s cubic-bezier(0.16,1,0.3,1)',
+        'slide-up': 'slideUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards',
+        'slide-left': 'slideLeft 0.7s cubic-bezier(0.16,1,0.3,1) forwards',
+        'count-up': 'countUp 0.5s ease-out forwards',
+        'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
+        'float': 'float 6s ease-in-out infinite',
       },
       keyframes: {
         fadeUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '0%': { opacity: '0', transform: 'translateY(30px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
         scaleIn: {
-          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '0%': { opacity: '0', transform: 'scale(0.9)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
         },
         slideRight: {
           '0%': { transform: 'translateX(100%)' },
           '100%': { transform: 'translateX(0)' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(40px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideLeft: {
+          '0%': { opacity: '0', transform: 'translateX(40px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        countUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.7' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-12px)' },
         },
       },
     },

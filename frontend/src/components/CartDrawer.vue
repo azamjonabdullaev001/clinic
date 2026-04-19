@@ -2,14 +2,14 @@
   <Teleport to="body">
     <div v-if="cartStore.isOpen" class="fixed inset-0 z-50">
       <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="cartStore.toggle()"></div>
-      <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-right">
+      <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white/95 backdrop-blur-2xl shadow-2xl flex flex-col animate-slide-right">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-5 border-b border-stone-100">
           <div>
             <h2 class="text-xl font-serif text-stone-900">Корзина</h2>
             <p v-if="cartStore.totalItems > 0" class="text-xs text-stone-400 mt-0.5">{{ cartStore.totalItems }} товаров</p>
           </div>
-          <button @click="cartStore.toggle()" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
+          <button @click="cartStore.toggle()" class="p-2 hover:bg-stone-100 rounded-xl hover:rotate-90 transition-all duration-300">
             <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -32,7 +32,7 @@
           <div
             v-for="item in cartStore.items"
             :key="item.product_id"
-            class="bg-stone-50 rounded-2xl p-4 border border-stone-100"
+            class="bg-stone-50 rounded-2xl p-4 border border-stone-100 hover:border-brand-100 transition-colors duration-300"
           >
             <div class="flex gap-3">
               <div class="w-14 h-14 bg-stone-200 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
