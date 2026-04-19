@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, markRaw } from 'vue'
 import axios from 'axios'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => !!adminToken.value)
 
-  const api = axios.create({ baseURL: '/api' })
+  const api = markRaw(axios.create({ baseURL: '/api' }))
 
   api.interceptors.request.use(config => {
     if (config.url?.startsWith('/admin') && adminToken.value) {

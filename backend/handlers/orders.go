@@ -1,16 +1,23 @@
 package handlers
 
 import (
+	"bytes"
+	"clinic-backend/config"
 	"clinic-backend/database"
 	"clinic-backend/models"
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 type OrderItemInput struct {
-	ProductID uint `json:"product_id" binding:"required"`
-	Quantity  int  `json:"quantity" binding:"required,min=1"`
+	ProductID uint   `json:"product_id" binding:"required"`
+	Quantity  int    `json:"quantity" binding:"required,min=1"`
+	UnitType  string `json:"unit_type"`
 }
 
 type CreateOrderInput struct {
@@ -50,11 +57,25 @@ func CreateOrder(c *gin.Context) {
 		}
 
 		product.ComputePackPrice()
+
+		unitType := item.UnitType
+		if unitType == "" {
+			unitType = "pack"
+		}
+
+		var price float64
+		if unitType == "piece" {
+			price = product.PricePerPill * float64(item.Quantity)
+		} else {
+			price = product.PricePerPack * float64(item.Quantity)
+		}
+
 		orderItem := models.OrderItem{
 			OrderID:   order.ID,
 			ProductID: item.ProductID,
 			Quantity:  item.Quantity,
-			Price:     product.PricePerPack * float64(item.Quantity),
+			UnitType:  unitType,
+			Price:     price,
 		}
 
 		if err := tx.Create(&orderItem).Error; err != nil {
@@ -70,6 +91,8 @@ func CreateOrder(c *gin.Context) {
 	for i := range order.Items {
 		order.Items[i].Product.ComputePackPrice()
 	}
+
+	go sendTelegramNotification(order)
 
 	c.JSON(http.StatusCreated, order)
 }
@@ -143,4 +166,72 @@ func UpdateOrderStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, order)
+}
+
+func formatNumber(n float64) string {
+	s := fmt.Sprintf("%.0f", n)
+	if len(s) <= 3 {
+		return s
+	}
+	var result strings.Builder
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			result.WriteRune(' ')
+		}
+		result.WriteRune(c)
+	}
+	return result.String()
+}
+
+func sendTelegramNotification(order models.Order) {
+	cfg := config.Load()
+	if cfg.TelegramBotToken == "" || cfg.TelegramChatID == "" {
+		return
+	}
+
+	var sb strings.Builder
+	sb.WriteString("🔔 НОВЫЙ ЗАКАЗ\n\n")
+
+	var totalSum float64
+	for _, item := range order.Items {
+		item.Product.ComputePackPrice()
+		unitLabel := "коробка"
+		if item.UnitType == "piece" {
+			unitLabel = "шт"
+		}
+		sb.WriteString(fmt.Sprintf("💊 Лекарство: %s\n", item.Product.Name))
+		sb.WriteString(fmt.Sprintf("📦 Количество: %d %s\n", item.Quantity, unitLabel))
+		sb.WriteString(fmt.Sprintf("💰 Сумма: %s сум\n\n", formatNumber(item.Price)))
+		totalSum += item.Price
+	}
+
+	if len(order.Items) > 1 {
+		sb.WriteString(fmt.Sprintf("💰 Общая сумма: %s сум\n\n", formatNumber(totalSum)))
+	}
+
+	sb.WriteString(fmt.Sprintf("👤 Имя: %s\n", order.User.FirstName))
+	sb.WriteString(fmt.Sprintf("👨 Фамилия: %s\n", order.User.LastName))
+	if order.User.MiddleName != "" {
+		sb.WriteString(fmt.Sprintf("👤 Отчество: %s\n", order.User.MiddleName))
+	}
+	sb.WriteString(fmt.Sprintf("📱 Телефон: +%s\n", order.Phone))
+	sb.WriteString("🌍 Страна: O'zbekiston")
+
+	payload := map[string]string{
+		"chat_id": cfg.TelegramChatID,
+		"text":    sb.String(),
+	}
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Telegram marshal error: %v", err)
+		return
+	}
+
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", cfg.TelegramBotToken)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Printf("Telegram send error: %v", err)
+		return
+	}
+	defer resp.Body.Close()
 }

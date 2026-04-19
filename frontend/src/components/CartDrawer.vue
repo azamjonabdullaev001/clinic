@@ -40,7 +40,23 @@
             </div>
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-gray-800 text-sm truncate">{{ item.name }}</h4>
-              <p class="text-teal-600 font-semibold text-sm">{{ formatPrice(item.price_per_pack) }} сўм</p>
+              <p class="text-teal-600 font-semibold text-sm">
+                {{ formatPrice(item.unit_type === 'piece' ? item.price_per_pill : item.price_per_pack) }} сўм
+                <span class="text-gray-400 font-normal">/ {{ item.unit_type === 'piece' ? 'шт' : 'упак' }}</span>
+              </p>
+              <!-- Unit type selector -->
+              <div class="flex items-center gap-1 mt-1.5">
+                <button
+                  @click="cartStore.updateUnitType(item.product_id, 'piece')"
+                  :class="item.unit_type === 'piece' ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'"
+                  class="px-2 py-0.5 rounded text-xs font-medium transition"
+                >шт</button>
+                <button
+                  @click="cartStore.updateUnitType(item.product_id, 'pack')"
+                  :class="(item.unit_type || 'pack') === 'pack' ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'"
+                  class="px-2 py-0.5 rounded text-xs font-medium transition"
+                >коробка</button>
+              </div>
               <div class="flex items-center gap-2 mt-1.5">
                 <button
                   @click="cartStore.updateQuantity(item.product_id, item.quantity - 1)"
@@ -51,6 +67,7 @@
                   @click="cartStore.updateQuantity(item.product_id, item.quantity + 1)"
                   class="w-7 h-7 rounded-md bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-sm font-medium transition"
                 >+</button>
+                <span class="text-xs text-gray-400 ml-1">= {{ formatPrice(itemTotal(item)) }} сўм</span>
                 <button
                   @click="cartStore.removeItem(item.product_id)"
                   class="ml-auto text-red-400 hover:text-red-600 transition p-1"
@@ -95,6 +112,11 @@ const emit = defineEmits(['checkout'])
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price))
+}
+
+function itemTotal(item) {
+  const unitPrice = item.unit_type === 'piece' ? item.price_per_pill : item.price_per_pack
+  return unitPrice * item.quantity
 }
 
 function checkout() {

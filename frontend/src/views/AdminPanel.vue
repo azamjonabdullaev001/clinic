@@ -140,7 +140,7 @@
 
             <div class="border-t pt-4 space-y-2">
               <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm py-1">
-                <span class="text-gray-600">{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} упак.</span></span>
+                <span class="text-gray-600">{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'упак.' }}</span></span>
                 <span class="font-medium text-gray-700">{{ formatPrice(item.price) }} сўм</span>
               </div>
               <div class="flex justify-between font-bold text-base pt-3 border-t mt-2">

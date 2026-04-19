@@ -157,7 +157,8 @@ async function placeOrder() {
   try {
     const items = cartStore.items.map(item => ({
       product_id: item.product_id,
-      quantity: item.quantity
+      quantity: item.quantity,
+      unit_type: item.unit_type || 'pack'
     }))
 
     await authStore.api.post('/orders', {
