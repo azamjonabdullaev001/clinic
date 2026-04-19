@@ -10,64 +10,42 @@
   }
 
   ::selection {
-    background-color: #166534;
+    background-color: #0d9488;
     color: white;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-brand-800 text-white px-7 py-3.5 rounded-full font-semibold
-           hover:bg-brand-900 active:scale-[0.98] transition-all duration-200
-           shadow-lg shadow-brand-800/20;
+    @apply bg-brand-700 text-white px-7 py-3.5 rounded-full font-semibold
+           hover:bg-brand-800 active:scale-[0.98] transition-all duration-200
+           shadow-lg shadow-brand-700/25;
   }
 
   .btn-outline {
-    @apply border-2 border-white/30 text-white px-7 py-3.5 rounded-full font-semibold
-           hover:bg-white/10 hover:border-white/50 active:scale-[0.98] transition-all duration-200;
-  }
-
-  .btn-gold {
-    @apply bg-gradient-to-r from-gold-400 to-gold-500 text-brand-950 px-7 py-3.5 rounded-full font-bold
-           hover:from-gold-300 hover:to-gold-400 active:scale-[0.98] transition-all duration-200
-           shadow-lg shadow-gold-400/25;
-  }
-
-  .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
+    @apply border-2 border-brand-700 text-brand-700 px-7 py-3.5 rounded-full font-semibold
+           hover:bg-brand-50 active:scale-[0.98] transition-all duration-200;
   }
 
   .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-brand-900/5;
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-stone-200/80;
   }
 
   .section-label {
-    @apply inline-flex items-center gap-2 text-sm font-semibold tracking-wide uppercase;
+    @apply inline-flex items-center gap-2.5 text-sm font-semibold tracking-wider uppercase text-brand-600;
   }
 
   .heading-xl {
-    @apply font-serif text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight;
+    @apply font-serif text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight text-stone-900;
   }
 
   .heading-lg {
-    @apply font-serif text-3xl md:text-4xl leading-tight tracking-tight;
+    @apply font-serif text-3xl md:text-4xl leading-tight tracking-tight text-stone-900;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
-  }
-
-  .grain {
-    position: relative;
-  }
-  .grain::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-    pointer-events: none;
   }
 }
