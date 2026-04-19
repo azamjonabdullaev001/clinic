@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: clinic
       POSTGRES_PASSWORD: clinic_secret_2024
     ports:
-      - "5174:5432"
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8083:8080"
+      - "8084:8080"
     environment:
       DB_HOST: db
       DB_PORT: "5432"
