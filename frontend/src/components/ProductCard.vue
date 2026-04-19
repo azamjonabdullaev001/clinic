@@ -1,41 +1,51 @@
 <template>
-  <div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow border border-gray-100 group">
-    <div class="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+  <div class="group bg-white rounded-2xl overflow-hidden card-hover border border-gray-100/80">
+    <!-- Image -->
+    <div class="aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
       <img
         v-if="product.image_path"
         :src="product.image_path"
         :alt="product.name"
-        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
-      <div v-else class="text-center">
-        <svg class="w-16 h-16 text-gray-200 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-        </svg>
-        <p class="text-xs text-gray-300 mt-2">Нет фото</p>
+      <div v-else class="w-full h-full flex flex-col items-center justify-center">
+        <div class="w-14 h-14 rounded-2xl bg-gray-200/60 flex items-center justify-center mb-2">
+          <svg class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+          </svg>
+        </div>
+        <span class="text-xs text-gray-300 font-medium">Нет фото</span>
       </div>
+      <!-- Overlay gradient -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
     </div>
 
-    <div class="p-4">
-      <h3 class="font-semibold text-gray-800 text-lg mb-1 truncate">{{ product.name }}</h3>
-      <p v-if="product.description" class="text-gray-400 text-sm mb-3 line-clamp-2 leading-relaxed">{{ product.description }}</p>
+    <!-- Content -->
+    <div class="p-5">
+      <h3 class="font-semibold text-gray-900 text-base mb-1 truncate">{{ product.name }}</h3>
+      <p v-if="product.description" class="text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed">{{ product.description }}</p>
 
-      <div class="space-y-1.5 mb-4">
-        <div class="flex justify-between text-sm">
-          <span class="text-gray-400">1 таблетка:</span>
-          <span class="font-medium text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</span>
+      <!-- Prices -->
+      <div class="space-y-2 mb-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">1 таблетка</span>
+          <span class="text-sm font-semibold text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</span>
         </div>
-        <div class="flex justify-between items-baseline">
-          <span class="text-gray-400 text-sm">Упаковка ({{ product.quantity_per_pack }} шт):</span>
-          <span class="font-bold text-teal-600 text-lg">{{ formatPrice(product.price_per_pack) }} сўм</span>
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Упаковка <span class="normal-case">({{ product.quantity_per_pack }} шт)</span></span>
+          <span class="text-lg font-bold text-brand-800">{{ formatPrice(product.price_per_pack) }} сўм</span>
         </div>
       </div>
 
+      <!-- Add to cart -->
       <button
         @click="$emit('add-to-cart', product)"
-        class="w-full bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 active:bg-teal-800 transition font-medium flex items-center justify-center gap-2"
+        class="w-full bg-brand-800 text-white py-3 rounded-xl hover:bg-brand-900 active:scale-[0.98]
+               transition-all duration-200 font-medium flex items-center justify-center gap-2
+               shadow-lg shadow-brand-800/10 hover:shadow-brand-800/20"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
         </svg>
         В корзину
       </button>

@@ -1,59 +1,64 @@
 <template>
-  <div class="min-h-screen bg-gray-900 flex items-center justify-center px-4">
-    <div class="bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md border border-gray-700">
-      <div class="text-center mb-8">
-        <div class="w-16 h-16 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h1 class="text-2xl font-bold text-white">Админ-панель</h1>
-        <p class="text-gray-400 text-sm mt-2">Введите данные для входа</p>
-      </div>
+  <div class="min-h-screen bg-brand-950 flex items-center justify-center px-4 relative overflow-hidden">
+    <div class="absolute top-1/3 -right-32 w-96 h-96 bg-brand-800/20 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-1/4 -left-32 w-72 h-72 bg-gold-500/5 rounded-full blur-[80px]"></div>
 
-      <form @submit.prevent="handleLogin" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1.5">Номер телефона</label>
-          <div class="flex">
-            <span class="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-gray-600 bg-gray-700 text-gray-400 text-sm font-medium">+998</span>
+    <div class="relative w-full max-w-md">
+      <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
+        <div class="text-center mb-8">
+          <div class="w-14 h-14 bg-brand-800 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-800/20">
+            <svg class="w-7 h-7 text-gold-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+          </div>
+          <h1 class="text-xl font-serif text-gray-900">Админ-панель</h1>
+          <p class="text-gray-400 text-xs mt-1">Введите данные для входа</p>
+        </div>
+
+        <form @submit.prevent="handleLogin" class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Номер телефона</label>
+            <div class="flex">
+              <span class="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-gray-200 bg-gray-50 text-gray-400 text-sm font-medium">+998</span>
+              <input
+                v-model="phone"
+                type="tel"
+                maxlength="9"
+                placeholder="901234567"
+                class="flex-1 border border-gray-200 rounded-r-xl px-4 py-3 text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Пароль</label>
             <input
-              v-model="phone"
-              type="tel"
-              maxlength="9"
-              placeholder="901234567"
-              class="flex-1 bg-gray-700 border border-gray-600 rounded-r-lg px-3 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+              v-model="password"
+              type="password"
+              placeholder="••••••••"
+              class="w-full border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-600 transition-all"
               required
             />
           </div>
+
+          <div v-if="error" class="bg-red-50 text-red-600 text-sm p-3.5 rounded-xl border border-red-100">{{ error }}</div>
+
+          <button
+            type="submit"
+            :disabled="loading"
+            class="w-full btn-primary py-3.5 rounded-xl disabled:opacity-50"
+          >
+            {{ loading ? 'Вход...' : 'Войти' }}
+          </button>
+        </form>
+
+        <div class="mt-8 text-center">
+          <router-link to="/" class="text-gray-400 text-sm hover:text-brand-700 inline-flex items-center gap-1.5 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            Вернуться на сайт
+          </router-link>
         </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-1.5">Пароль</label>
-          <input
-            v-model="password"
-            type="password"
-            placeholder="••••••••"
-            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
-            required
-          />
-        </div>
-
-        <div v-if="error" class="bg-red-900/50 text-red-400 text-sm p-3 rounded-lg border border-red-800">{{ error }}</div>
-
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 transition font-semibold disabled:opacity-50"
-        >
-          {{ loading ? 'Вход...' : 'Войти' }}
-        </button>
-      </form>
-
-      <div class="mt-6 text-center">
-        <router-link to="/" class="text-gray-400 text-sm hover:text-teal-400 inline-flex items-center gap-1">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-          Вернуться на сайт
-        </router-link>
       </div>
     </div>
   </div>
