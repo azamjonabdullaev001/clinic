@@ -25,9 +25,9 @@ export default {
           950: '#042f2e',
         },
         surface: {
-          DEFAULT: '#f8faf9',
-          warm: '#fafaf8',
-          muted: '#f3f5f4',
+          DEFAULT: '#f0f2f1',
+          warm: '#f2f1ef',
+          muted: '#e8eae9',
         },
       },
       animation: {
