@@ -289,7 +289,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore, api } from '../stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -358,7 +358,7 @@ function statusClass(status) {
 
 async function loadProducts() {
   try {
-    const res = await authStore.api.get('/admin/products')
+    const res = await api.get('/admin/products')
     products.value = res.data || []
   } catch (e) {
     console.error(e)
@@ -367,7 +367,7 @@ async function loadProducts() {
 
 async function loadOrders() {
   try {
-    const res = await authStore.api.get('/admin/orders')
+    const res = await api.get('/admin/orders')
     orders.value = res.data || []
   } catch (e) {
     console.error(e)
@@ -376,7 +376,7 @@ async function loadOrders() {
 
 async function loadProfile() {
   try {
-    const res = await authStore.api.get('/admin/profile')
+    const res = await api.get('/admin/profile')
     settings.phone = res.data.phone.replace('998', '')
   } catch (e) {
     console.error(e)
@@ -414,7 +414,7 @@ async function uploadImageForProduct(productId) {
   if (!modalImageFile.value) return
   const formData = new FormData()
   formData.append('image', modalImageFile.value)
-  await authStore.api.post(`/admin/products/${productId}/image`, formData, {
+  await api.post(`/admin/products/${productId}/image`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }
@@ -425,10 +425,10 @@ async function saveProduct() {
   try {
     let savedProduct
     if (editingProduct.value) {
-      const res = await authStore.api.put(`/admin/products/${editingProduct.value.id}`, productForm)
+      const res = await api.put(`/admin/products/${editingProduct.value.id}`, productForm)
       savedProduct = res.data
     } else {
-      const res = await authStore.api.post('/admin/products', productForm)
+      const res = await api.post('/admin/products', productForm)
       savedProduct = res.data
     }
     // Upload image if selected
@@ -449,7 +449,7 @@ async function saveProduct() {
 async function deleteProduct(id) {
   if (!confirm('Удалить этот препарат?')) return
   try {
-    await authStore.api.delete(`/admin/products/${id}`)
+    await api.delete(`/admin/products/${id}`)
     await loadProducts()
   } catch (e) {
     alert('Ошибка при удалении')
@@ -468,7 +468,7 @@ async function handleImageUpload(e) {
   formData.append('image', file)
 
   try {
-    await authStore.api.post(`/admin/products/${imageUploadProductId.value}/image`, formData, {
+    await api.post(`/admin/products/${imageUploadProductId.value}/image`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     await loadProducts()
@@ -480,7 +480,7 @@ async function handleImageUpload(e) {
 
 async function updateOrderStatus(id, status) {
   try {
-    await authStore.api.put(`/admin/orders/${id}/status`, { status })
+    await api.put(`/admin/orders/${id}/status`, { status })
     await loadOrders()
   } catch (e) {
     alert('Ошибка при обновлении статуса')
@@ -503,7 +503,7 @@ async function saveSettings() {
   }
 
   try {
-    await authStore.api.put('/admin/settings', data)
+    await api.put('/admin/settings', data)
     settingsSuccess.value = 'Настройки успешно сохранены'
     settings.old_password = ''
     settings.new_password = ''

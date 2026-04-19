@@ -1,6 +1,22 @@
 import { defineStore } from 'pinia'
-import { ref, computed, markRaw } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
+
+// Create axios instance OUTSIDE of Pinia store to avoid reactive proxy wrapping
+const api = axios.create({ baseURL: '/api' })
+
+api.interceptors.request.use(config => {
+  const adminToken = localStorage.getItem('adminToken') || ''
+  const userToken = localStorage.getItem('userToken') || ''
+  if (config.url?.startsWith('/admin') && adminToken) {
+    config.headers.Authorization = `Bearer ${adminToken}`
+  } else if (userToken) {
+    config.headers.Authorization = `Bearer ${userToken}`
+  }
+  return config
+})
+
+export { api }
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('userToken') || '')
@@ -10,17 +26,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => !!adminToken.value)
-
-  const api = markRaw(axios.create({ baseURL: '/api' }))
-
-  api.interceptors.request.use(config => {
-    if (config.url?.startsWith('/admin') && adminToken.value) {
-      config.headers.Authorization = `Bearer ${adminToken.value}`
-    } else if (token.value) {
-      config.headers.Authorization = `Bearer ${token.value}`
-    }
-    return config
-  })
 
   async function register(data) {
     const res = await api.post('/auth/register', data)
@@ -66,6 +71,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token, user, adminToken, admin,
     isLoggedIn, isAdmin,
-    api, register, login, adminLogin, logout, adminLogout
+    register, login, adminLogin, logout, adminLogout
   }
 })

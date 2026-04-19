@@ -134,7 +134,7 @@ import ProductCard from '../components/ProductCard.vue'
 import CartDrawer from '../components/CartDrawer.vue'
 import Footer from '../components/Footer.vue'
 import { useCartStore } from '../stores/cart'
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore, api } from '../stores/auth'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
@@ -161,7 +161,7 @@ async function placeOrder() {
       unit_type: item.unit_type || 'pack'
     }))
 
-    await authStore.api.post('/orders', {
+    await api.post('/orders', {
       items,
       phone: authStore.user.phone
     })
