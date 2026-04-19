@@ -5,7 +5,7 @@
         <div class="relative">
           <div class="absolute -top-4 -left-4 w-72 h-72 bg-teal-100 rounded-full blur-3xl opacity-50"></div>
           <img
-            src="/images/doctor.jpg"
+            src="/images/doctor.png"
             alt="Директор клиники"
             class="relative rounded-2xl shadow-2xl w-full max-w-lg mx-auto object-cover"
           />
