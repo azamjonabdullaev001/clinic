@@ -30,9 +30,9 @@
             </div>
           </div>
 
-          <div class="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-white rounded-2xl shadow-xl shadow-stone-900/10 p-4 border border-stone-100 hover:shadow-2xl hover:-translate-y-1 transition-all duration-500">
-            <div class="text-2xl font-serif text-brand-700">40<span class="text-brand-300">+</span></div>
-            <div class="text-xs font-medium text-stone-500 mt-0.5">{{ t.hero_years }}</div>
+          <div class="absolute top-4 right-4 md:top-6 md:right-6 z-30 bg-white/95 border border-stone-200/70 shadow-2xl shadow-brand-900/10 rounded-3xl px-5 py-4 w-40 hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-500">
+            <div class="text-3xl font-bold text-brand-700">40<span class="text-brand-500">+</span></div>
+            <div class="text-[10px] uppercase tracking-[0.25em] text-stone-500 mt-1">{{ t.hero_years }}</div>
           </div>
         </div>
 

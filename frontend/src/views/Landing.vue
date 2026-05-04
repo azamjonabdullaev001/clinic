@@ -56,10 +56,6 @@
             <div class="relative w-full max-w-md">
               <!-- Decorative ring -->
               <div class="absolute -inset-4 rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 z-10"></div>
-              <div class="absolute top-6 left-6 z-30 bg-white/95 border border-stone-200/70 shadow-2xl shadow-brand-900/10 rounded-3xl px-5 py-4 w-40">
-                <div class="text-3xl font-bold text-brand-700">40<span class="text-brand-500">+</span></div>
-                <div class="text-[10px] uppercase tracking-[0.25em] text-stone-500 mt-1">{{ t.hero_years }}</div>
-              </div>
               <img
                 src="/images/patients/3%20landing.jpg"
                 alt="Специалист клиники"
