@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: clinic
+      POSTGRES_USER: clinic
+      POSTGRES_PASSWORD: clinic_secret_2024
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinic"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "8082:8080"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: clinic
+      DB_PASSWORD: clinic_secret_2024
+      DB_NAME: clinic
+      JWT_SECRET: clinic-jwt-secret-key-2024-change-me
+      ADMIN_PHONE: "998914751330"
+      ADMIN_PASSWORD: "123456789"
+      TELEGRAM_BOT_TOKEN: "8457926068:AAHfwvTDRdE0yRZW6udncvEPqmOvt5zB1E8"
+      TELEGRAM_CHAT_ID: "5234758651"
+      PORT: "8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3002:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  uploads:

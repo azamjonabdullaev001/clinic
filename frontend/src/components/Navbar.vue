@@ -1,0 +1,218 @@
+<template>
+  <nav class="fixed inset-x-0 top-0 z-50 transition-all duration-500"
+       :class="scrolled ? 'bg-white/95 backdrop-blur-2xl shadow-lg shadow-stone-900/[0.04] border-b border-stone-200/50' : 'bg-white/80 backdrop-blur-xl'">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-[72px]">
+        <!-- Logo -->
+        <router-link to="/" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 overflow-hidden">
+            <img src="/images/patients/Jalilov.jpg" alt="Doctor Jalilov logotipi" class="w-full h-full object-contain p-0.5" />
+          </div>
+          <div class="leading-tight">
+            <span class="text-lg font-bold tracking-tight text-stone-900 group-hover:text-brand-700 transition-colors duration-300">Doctor Jalilov</span>
+            <span class="block text-[10px] font-medium tracking-widest uppercase text-brand-600">{{ t.footer_trich }}</span>
+          </div>
+        </router-link>
+
+        <!-- Center nav (desktop) -->
+        <div class="hidden md:flex items-center gap-1">
+          <a href="#doctor" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+            {{ t.nav_specialist }}
+            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
+          </a>
+          <a href="#patients" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+            {{ t.nav_patients }}
+            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
+          </a>
+          <a href="#products" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+            {{ t.nav_products }}
+            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
+          </a>
+          <a href="#contacts" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+            {{ t.nav_contacts }}
+            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
+          </a>
+          <router-link to="/support" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+            {{ t.nav_support }}
+            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
+          </router-link>
+        </div>
+
+        <!-- Right side -->
+        <div class="flex items-center gap-2">
+          <!-- Language switcher -->
+          <div class="flex items-center bg-stone-100 rounded-xl p-1 gap-0.5">
+            <button
+              @click="langStore.setLang('ru')"
+              class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
+              :class="langStore.current === 'ru' ? 'bg-brand-600 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'"
+            >RU</button>
+            <button
+              @click="langStore.setLang('uz')"
+              class="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
+              :class="langStore.current === 'uz' ? 'bg-brand-600 text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'"
+            >UZ</button>
+          </div>
+          <!-- Cart -->
+          <button @click="cartStore.toggle()"
+                  class="relative p-2.5 rounded-xl text-stone-500 hover:text-brand-700 hover:bg-brand-50/60 transition-all duration-300 group">
+            <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+            <span v-if="cartStore.totalItems > 0"
+                  :class="['absolute -top-0.5 -right-0.5 bg-brand-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-scale-in', countPulse ? 'animate-bump' : '']">
+              {{ cartStore.totalItems }}
+            </span>
+          </button>
+
+          <!-- Auth -->
+          <template v-if="authStore.isLoggedIn">
+            <div class="hidden sm:flex items-center gap-2 ml-1 group cursor-default">
+              <div class="w-9 h-9 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center font-semibold text-xs group-hover:bg-brand-200 transition-colors duration-300">
+                {{ authStore.user?.first_name?.charAt(0) }}
+              </div>
+              <span class="text-sm font-medium text-stone-700">
+                {{ authStore.user?.first_name }}
+              </span>
+            </div>
+            <button @click="authStore.logout()"
+                    class="text-xs font-medium text-stone-400 hover:text-red-500 transition-colors duration-300">
+              {{ t.nav_logout }}
+            </button>
+          </template>
+          <template v-else>
+            <router-link to="/login"
+                         class="hidden sm:block text-sm font-medium px-4 py-2 rounded-xl text-stone-600 hover:text-brand-700 hover:bg-brand-50/60 transition-all duration-300">
+              {{ t.nav_login }}
+            </router-link>
+            <router-link to="/register"
+                         class="hidden sm:block text-sm font-semibold px-5 py-2.5 rounded-xl bg-brand-700 text-white hover:bg-brand-800 hover:shadow-lg hover:shadow-brand-700/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 shadow-sm shadow-brand-700/20">
+              {{ t.nav_register }}
+            </router-link>
+          </template>
+
+          <!-- Hamburger (mobile only) -->
+          <button
+            @click="mobileMenuOpen = !mobileMenuOpen"
+            class="md:hidden p-2.5 rounded-xl text-stone-500 hover:text-brand-700 hover:bg-brand-50/60 transition-all duration-300"
+            :aria-expanded="mobileMenuOpen"
+          >
+            <svg v-if="!mobileMenuOpen" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile menu dropdown -->
+    <div
+      v-if="mobileMenuOpen"
+      class="md:hidden border-t border-stone-200/50 bg-white/98 backdrop-blur-2xl px-4 py-4 flex flex-col gap-1"
+    >
+      <a href="#doctor" @click="mobileMenuOpen = false"
+         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+        {{ t.nav_specialist }}
+      </a>
+      <a href="#patients" @click="mobileMenuOpen = false"
+         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+        {{ t.nav_patients }}
+      </a>
+      <a href="#products" @click="mobileMenuOpen = false"
+         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+        {{ t.nav_products }}
+      </a>
+      <a href="#contacts" @click="mobileMenuOpen = false"
+         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+        {{ t.nav_contacts }}
+      </a>
+      <router-link to="/support" @click="mobileMenuOpen = false"
+                   class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+        {{ t.nav_support }}
+      </router-link>
+      <div class="border-t border-stone-100 mt-2 pt-3 flex flex-col gap-2">
+        <template v-if="authStore.isLoggedIn">
+          <div class="flex items-center gap-3 px-4 py-2">
+            <div class="w-8 h-8 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center font-semibold text-xs">
+              {{ authStore.user?.first_name?.charAt(0) }}
+            </div>
+            <span class="text-sm font-medium text-stone-700">{{ authStore.user?.first_name }}</span>
+          </div>
+          <button @click="authStore.logout(); mobileMenuOpen = false"
+                  class="text-sm font-medium text-red-500 hover:text-red-600 px-4 py-3 rounded-xl hover:bg-red-50 transition-all duration-200 text-left">
+            {{ t.nav_logout }}
+          </button>
+        </template>
+        <template v-else>
+          <router-link to="/login" @click="mobileMenuOpen = false"
+                       class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+            {{ t.nav_login }}
+          </router-link>
+          <router-link to="/register" @click="mobileMenuOpen = false"
+                       class="text-sm font-semibold px-4 py-3 rounded-xl bg-brand-700 text-white hover:bg-brand-800 transition-all duration-200 text-center">
+            {{ t.nav_register }}
+          </router-link>
+        </template>
+      </div>
+    </div>
+  </nav>
+</template>
+
+<script setup>
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
+import { useCartStore } from '../stores/cart'
+import { useLangStore } from '../stores/lang'
+
+const authStore = useAuthStore()
+const cartStore = useCartStore()
+const langStore = useLangStore()
+const t = computed(() => langStore.t)
+const scrolled = ref(false)
+const mobileMenuOpen = ref(false)
+const countPulse = ref(false)
+
+watch(() => cartStore.totalItems, (newValue, oldValue) => {
+  if (newValue > oldValue) {
+    countPulse.value = true
+    setTimeout(() => {
+      countPulse.value = false
+    }, 400)
+  }
+})
+
+function handleScroll() {
+  scrolled.value = window.scrollY > 40
+  if (mobileMenuOpen.value) mobileMenuOpen.value = false
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+</script>
+
+<style scoped>
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-bump {
+  animation: bump 0.35s ease;
+}
+</style>
+

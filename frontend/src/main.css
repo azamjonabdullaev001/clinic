@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #f0f2f1;
+  }
+
+  ::selection {
+    background-color: #0d9488;
+    color: white;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-700 text-white px-7 py-3.5 rounded-full font-semibold
+           hover:bg-brand-800 hover:shadow-xl hover:shadow-brand-700/20 hover:-translate-y-0.5
+           active:scale-[0.97] active:translate-y-0 transition-all duration-300 ease-out
+           shadow-lg shadow-brand-700/25;
+  }
+
+  .btn-outline {
+    @apply border-2 border-brand-600/30 text-brand-700 px-7 py-3.5 rounded-full font-semibold
+           hover:bg-brand-50 hover:border-brand-600/50 hover:-translate-y-0.5
+           active:scale-[0.97] active:translate-y-0 transition-all duration-300 ease-out;
+  }
+
+  .card-hover {
+    @apply transition-all duration-500 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-stone-300/40;
+  }
+
+  .section-label {
+    @apply inline-flex items-center gap-2.5 text-sm font-semibold tracking-wider uppercase text-brand-600;
+  }
+
+  .heading-xl {
+    @apply font-serif text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight text-stone-900;
+  }
+
+  .heading-lg {
+    @apply font-serif text-3xl md:text-4xl leading-tight tracking-tight text-stone-900;
+  }
+
+  /* Scroll reveal - elements start hidden, JS adds .is-visible */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-left {
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-left.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .reveal-right {
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-right.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .reveal-scale {
+    opacity: 0;
+    transform: scale(0.92);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal-scale.is-visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Staggered children reveal */
+  .stagger-children .reveal {
+    transition-delay: calc(var(--stagger, 0) * 100ms);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
