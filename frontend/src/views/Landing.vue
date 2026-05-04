@@ -45,7 +45,7 @@
                 <div class="text-sm text-blue-200 mt-1">{{ t.hero_years }}</div>
               </div>
               <div>
-                <div class="text-3xl md:text-4xl font-bold text-white">150000<span class="text-brand-300">+</span></div>
+                <div class="text-3xl md:text-4xl font-bold text-white">500000<span class="text-brand-300">+</span></div>
                 <div class="text-sm text-blue-200 mt-1">{{ t.hero_patients }}</div>
               </div>
             </div>
