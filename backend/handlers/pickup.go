@@ -78,6 +78,7 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 
 	if input.Status == "delivered" {
 		go sendTelegramNotification(order)
+		decrementStockForOrder(order)
 	}
 
 	c.JSON(http.StatusOK, order)

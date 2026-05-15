@@ -20,6 +20,93 @@
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-12 space-y-6">
 
+      <!-- Offline sale section -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <button
+          @click="offlineOpen = !offlineOpen"
+          class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <span class="font-semibold text-gray-800">Офлайн продажа</span>
+          </div>
+          <svg class="w-5 h-5 text-gray-400 transition-transform" :class="offlineOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div v-if="offlineOpen" class="border-t px-6 py-5 space-y-4">
+          <!-- Add item row -->
+          <div class="flex gap-2 flex-wrap items-end">
+            <div class="flex-1 min-w-[180px]">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Препарат</label>
+              <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="">Выберите препарат</option>
+                <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+              </select>
+            </div>
+            <div class="w-24">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во</label>
+              <input v-model.number="offlineQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <div class="w-28">
+              <label class="block text-xs font-medium text-gray-500 mb-1">Ед.</label>
+              <select v-model="offlineUnit" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="pack">упак.</option>
+                <option value="piece">шт</option>
+              </select>
+            </div>
+            <button
+              @click="addOfflineItem"
+              :disabled="!offlineProductId || offlineQty < 1"
+              class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium disabled:opacity-40"
+            >+ Добавить</button>
+          </div>
+
+          <!-- Items list -->
+          <div v-if="offlineItems.length" class="border rounded-xl overflow-hidden">
+            <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
+              <div>
+                <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
+                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'pack' ? 'упак.' : 'шт' }}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(item.price) }} сўм</span>
+                <button @click="offlineItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between px-4 py-2 bg-white">
+              <span class="text-sm font-semibold text-gray-700">Итого:</span>
+              <span class="font-bold text-emerald-600">{{ formatPrice(offlineItems.reduce((s,i)=>s+i.price,0)) }} сўм</span>
+            </div>
+          </div>
+
+          <!-- Note + submit -->
+          <div class="flex gap-2 flex-wrap">
+            <input
+              v-model="offlineNote"
+              placeholder="Имя покупателя (необязательно)"
+              class="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              @click="submitOfflineSale"
+              :disabled="!offlineItems.length || offlineSubmitting"
+              class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-40"
+            >{{ offlineSubmitting ? 'Запись...' : 'Записать продажу' }}</button>
+          </div>
+
+          <div v-if="offlineSuccess" class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">
+            Продажа записана. Код: <strong>{{ offlineSuccess }}</strong>
+          </div>
+        </div>
+      </div>
+
       <!-- Search by code -->
       <div class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4">Поиск заказа по коду</h2>
@@ -95,7 +182,7 @@
               🚚 Передан в доставку
             </button>
             <button
-              v-if="foundOrder.status !== 'delivered' && foundOrder.status !== 'cancelled'"
+              v-if="foundOrder.status === 'in_transit'"
               @click="updateStatus(foundOrder, 'delivered')"
               class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition font-medium text-sm"
             >
@@ -185,36 +272,28 @@
               </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Actions (sequential flow) -->
             <div class="mt-3 flex gap-2 flex-wrap">
-              <template v-if="order.status !== 'delivered' && order.status !== 'cancelled'">
-                <button
-                  v-if="order.status === 'pending'"
-                  @click="updateStatus(order, 'confirmed')"
-                  class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                >
-                  Подтвердить
-                </button>
-                <button
-                  v-if="order.status === 'confirmed' || order.status === 'shipped'"
-                  @click="updateStatus(order, 'in_transit')"
-                  class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium"
-                >
-                  🚚 В пути
-                </button>
-                <button
-                  @click="updateStatus(order, 'delivered')"
-                  class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium"
-                >
-                  ✓ Выдать
-                </button>
-                <button
-                  @click="updateStatus(order, 'cancelled')"
-                  class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium"
-                >
-                  Отменить
-                </button>
-              </template>
+              <button
+                v-if="order.status === 'pending'"
+                @click="updateStatus(order, 'confirmed')"
+                class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+              >Подтвердить</button>
+              <button
+                v-if="order.status === 'confirmed' || order.status === 'shipped'"
+                @click="updateStatus(order, 'in_transit')"
+                class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium"
+              >🚚 В пути</button>
+              <button
+                v-if="order.status === 'in_transit'"
+                @click="updateStatus(order, 'delivered')"
+                class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              >✓ Выдать</button>
+              <button
+                v-if="order.status !== 'cancelled' && order.status !== 'delivered'"
+                @click="updateStatus(order, 'cancelled')"
+                class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+              >Отменить</button>
               <button
                 @click="openChat(order)"
                 class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1"
@@ -468,7 +547,72 @@ async function sendWorkerMessage() {
   }
 }
 
+// Offline sale
+const offlineOpen = ref(false)
+const allProducts = ref([])
+const offlineProductId = ref('')
+const offlineQty = ref(1)
+const offlineUnit = ref('pack')
+const offlineItems = ref([])
+const offlineNote = ref('')
+const offlineSubmitting = ref(false)
+const offlineSuccess = ref('')
+
+async function loadProducts() {
+  try {
+    const res = await api.get('/products')
+    allProducts.value = res.data || []
+    for (const p of allProducts.value) {
+      p.price_per_pack = p.price_per_pill * p.quantity_per_pack
+    }
+  } catch (e) { console.error(e) }
+}
+
+function addOfflineItem() {
+  if (!offlineProductId.value || offlineQty.value < 1) return
+  const product = allProducts.value.find(p => p.id === offlineProductId.value)
+  if (!product) return
+  const price = offlineUnit.value === 'piece'
+    ? product.price_per_pill * offlineQty.value
+    : product.price_per_pack * offlineQty.value
+  offlineItems.value.push({
+    product_id: product.id,
+    name: product.name,
+    quantity: offlineQty.value,
+    unit_type: offlineUnit.value,
+    price,
+  })
+  offlineProductId.value = ''
+  offlineQty.value = 1
+  offlineUnit.value = 'pack'
+}
+
+async function submitOfflineSale() {
+  if (!offlineItems.value.length) return
+  offlineSubmitting.value = true
+  offlineSuccess.value = ''
+  try {
+    const res = await api.post('/pickup/offline-sale', {
+      items: offlineItems.value.map(i => ({
+        product_id: i.product_id,
+        quantity: i.quantity,
+        unit_type: i.unit_type,
+      })),
+      offline_note: offlineNote.value,
+    })
+    offlineSuccess.value = res.data.order_code
+    offlineItems.value = []
+    offlineNote.value = ''
+    loadOrders()
+  } catch (e) {
+    alert(e.response?.data?.error || 'Ошибка при записи')
+  } finally {
+    offlineSubmitting.value = false
+  }
+}
+
 onMounted(() => {
   loadOrders()
+  loadProducts()
 })
 </script>

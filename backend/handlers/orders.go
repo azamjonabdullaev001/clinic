@@ -55,8 +55,9 @@ func CreateOrder(c *gin.Context) {
 		}
 	}
 
+	uid := userID.(uint)
 	order := models.Order{
-		UserID:          userID.(uint),
+		UserID:          &uid,
 		Status:          "pending",
 		Phone:           input.Phone,
 		OrderCode:       generateOrderCode(),

@@ -65,6 +65,7 @@ func main() {
 				protected.GET("/support/threads/:id", handlers.GetSupportThreadByID)
 				protected.POST("/support/threads/:id/reply", handlers.ReplySupportThread)
 				protected.GET("/analytics", handlers.GetAnalytics)
+				protected.POST("/offline-sale", handlers.CreateOfflineSale)
 			}
 		}
 
@@ -99,6 +100,7 @@ func main() {
 			pickup.GET("/orders", handlers.GetPickupOrders)
 			pickup.GET("/orders/code/:code", handlers.GetOrderByCode)
 			pickup.PUT("/orders/:id/status", handlers.UpdatePickupOrderStatus)
+			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)

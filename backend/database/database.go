@@ -28,6 +28,9 @@ func Connect(cfg *config.Config) {
 }
 
 func Migrate() {
+	// Make orders.user_id nullable to support offline sales (no registered user)
+	DB.Exec("ALTER TABLE orders ALTER COLUMN user_id DROP NOT NULL")
+
 	err := DB.AutoMigrate(
 		&models.User{},
 		&models.Admin{},
