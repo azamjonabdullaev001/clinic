@@ -17,6 +17,7 @@ type ProductInput struct {
 	Description     string  `json:"description"`
 	QuantityPerPack int     `json:"quantity_per_pack" binding:"required,min=1"`
 	PricePerPill    float64 `json:"price_per_pill" binding:"required,min=0"`
+	StockQuantity   int     `json:"stock_quantity"`
 }
 
 func GetProducts(c *gin.Context) {
@@ -53,6 +54,7 @@ func CreateProduct(c *gin.Context) {
 		Description:     input.Description,
 		QuantityPerPack: input.QuantityPerPack,
 		PricePerPill:    input.PricePerPill,
+		StockQuantity:   input.StockQuantity,
 	}
 
 	if err := database.DB.Create(&product).Error; err != nil {
@@ -82,6 +84,7 @@ func UpdateProduct(c *gin.Context) {
 	product.Description = input.Description
 	product.QuantityPerPack = input.QuantityPerPack
 	product.PricePerPill = input.PricePerPill
+	product.StockQuantity = input.StockQuantity
 
 	if err := database.DB.Save(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})

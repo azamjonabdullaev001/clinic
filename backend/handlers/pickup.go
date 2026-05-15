@@ -56,11 +56,12 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 	}
 
 	validStatuses := map[string]bool{
-		"pending":   true,
-		"confirmed": true,
-		"shipped":   true,
-		"delivered": true,
-		"cancelled": true,
+		"pending":    true,
+		"confirmed":  true,
+		"shipped":    true,
+		"in_transit": true,
+		"delivered":  true,
+		"cancelled":  true,
 	}
 	if !validStatuses[input.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный статус"})

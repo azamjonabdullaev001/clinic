@@ -18,6 +18,7 @@ type RegisterInput struct {
 	Phone           string `json:"phone" binding:"required"`
 	Password        string `json:"password" binding:"required,min=6"`
 	ConfirmPassword string `json:"confirm_password" binding:"required"`
+	DeliveryAddress string `json:"delivery_address"`
 }
 
 type LoginInput struct {
@@ -57,11 +58,12 @@ func Register(c *gin.Context) {
 	}
 
 	user := models.User{
-		FirstName:  input.FirstName,
-		LastName:   input.LastName,
-		MiddleName: input.MiddleName,
-		Phone:      input.Phone,
-		Password:   string(hash),
+		FirstName:       input.FirstName,
+		LastName:        input.LastName,
+		MiddleName:      input.MiddleName,
+		Phone:           input.Phone,
+		Password:        string(hash),
+		DeliveryAddress: input.DeliveryAddress,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -78,11 +80,12 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"token": token,
 		"user": gin.H{
-			"id":          user.ID,
-			"first_name":  user.FirstName,
-			"last_name":   user.LastName,
-			"middle_name": user.MiddleName,
-			"phone":       user.Phone,
+			"id":               user.ID,
+			"first_name":       user.FirstName,
+			"last_name":        user.LastName,
+			"middle_name":      user.MiddleName,
+			"phone":            user.Phone,
+			"delivery_address": user.DeliveryAddress,
 		},
 	})
 }
@@ -114,11 +117,12 @@ func Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 		"user": gin.H{
-			"id":          user.ID,
-			"first_name":  user.FirstName,
-			"last_name":   user.LastName,
-			"middle_name": user.MiddleName,
-			"phone":       user.Phone,
+			"id":               user.ID,
+			"first_name":       user.FirstName,
+			"last_name":        user.LastName,
+			"middle_name":      user.MiddleName,
+			"phone":            user.Phone,
+			"delivery_address": user.DeliveryAddress,
 		},
 	})
 }

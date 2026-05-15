@@ -22,8 +22,9 @@ type OrderItemInput struct {
 }
 
 type CreateOrderInput struct {
-	Items []OrderItemInput `json:"items" binding:"required,min=1"`
-	Phone string           `json:"phone" binding:"required"`
+	Items           []OrderItemInput `json:"items" binding:"required,min=1"`
+	Phone           string           `json:"phone" binding:"required"`
+	DeliveryAddress string           `json:"delivery_address"`
 }
 
 func generateOrderCode() string {
@@ -46,11 +47,20 @@ func CreateOrder(c *gin.Context) {
 		return
 	}
 
+	deliveryAddress := input.DeliveryAddress
+	if deliveryAddress == "" {
+		var user models.User
+		if err := database.DB.First(&user, userID.(uint)).Error; err == nil {
+			deliveryAddress = user.DeliveryAddress
+		}
+	}
+
 	order := models.Order{
-		UserID:    userID.(uint),
-		Status:    "pending",
-		Phone:     input.Phone,
-		OrderCode: generateOrderCode(),
+		UserID:          userID.(uint),
+		Status:          "pending",
+		Phone:           input.Phone,
+		OrderCode:       generateOrderCode(),
+		DeliveryAddress: deliveryAddress,
 	}
 
 	tx := database.DB.Begin()
@@ -157,11 +167,12 @@ func UpdateOrderStatus(c *gin.Context) {
 	}
 
 	validStatuses := map[string]bool{
-		"pending":   true,
-		"confirmed": true,
-		"shipped":   true,
-		"delivered": true,
-		"cancelled": true,
+		"pending":    true,
+		"confirmed":  true,
+		"shipped":    true,
+		"in_transit": true,
+		"delivered":  true,
+		"cancelled":  true,
 	}
 	if !validStatuses[input.Status] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный статус"})

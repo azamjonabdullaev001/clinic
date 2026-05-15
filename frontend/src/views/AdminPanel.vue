@@ -56,6 +56,7 @@
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Фото</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Название</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">В упаковке</th>
+                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">На складе</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/шт</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/упак.</th>
                   <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
@@ -76,6 +77,11 @@
                     <div v-if="product.description" class="text-xs text-gray-400 truncate max-w-xs mt-0.5">{{ product.description }}</div>
                   </td>
                   <td class="px-5 py-3 text-gray-600">{{ product.quantity_per_pack }} шт</td>
+                  <td class="px-5 py-3">
+                    <span :class="product.stock_quantity > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2 py-0.5 rounded text-sm font-semibold">
+                      {{ product.stock_quantity }} упак.
+                    </span>
+                  </td>
                   <td class="px-5 py-3 text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</td>
                   <td class="px-5 py-3 font-semibold text-teal-600">{{ formatPrice(product.price_per_pack) }} сўм</td>
                   <td class="px-5 py-3 text-right">
@@ -122,9 +128,17 @@
                 </div>
                 <h3 class="font-semibold text-gray-800 text-lg">
                   {{ order.user?.first_name }} {{ order.user?.last_name }}
+                  <span v-if="order.user?.middle_name" class="font-normal text-gray-600 text-base"> {{ order.user.middle_name }}</span>
                 </h3>
                 <p class="text-sm text-gray-500">+{{ order.phone }}</p>
                 <p class="text-xs text-gray-400 mt-1">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
+                <div v-if="order.delivery_address" class="mt-1.5 flex items-start gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-teal-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  <span class="text-xs text-teal-700">{{ order.delivery_address }}</span>
+                </div>
               </div>
               <select
                 :value="order.status"
@@ -134,6 +148,7 @@
                 <option value="pending">Ожидает</option>
                 <option value="confirmed">Подтверждён</option>
                 <option value="shipped">Отправлен</option>
+                <option value="in_transit">В пути</option>
                 <option value="delivered">Доставлен</option>
                 <option value="cancelled">Отменён</option>
               </select>
@@ -199,6 +214,89 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ===== Analytics Tab ===== -->
+      <div v-if="activeTab === 'analytics'">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Аналитика продаж</h2>
+
+        <!-- Period selector -->
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-5 flex flex-wrap gap-3 items-center">
+          <div class="flex gap-2 flex-wrap">
+            <button
+              v-for="p in analyticsPeriods"
+              :key="p.value"
+              @click="selectPeriod(p.value)"
+              :class="analyticsPeriod === p.value ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition"
+            >{{ p.label }}</button>
+          </div>
+          <div v-if="analyticsPeriod === 'custom'" class="flex items-center gap-2">
+            <input
+              v-model="analyticsCustomDate"
+              type="date"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              @change="loadAnalytics"
+            />
+          </div>
+          <button @click="loadAnalytics" class="ml-auto text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Обновить
+          </button>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="grid grid-cols-2 gap-4 mb-5" v-if="analyticsData">
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <p class="text-sm text-gray-500 mb-1">Выручка за период</p>
+            <p class="text-3xl font-bold text-teal-600">{{ formatPrice(analyticsData.total_revenue) }} <span class="text-base font-normal text-gray-500">сўм</span></p>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm p-5">
+            <p class="text-sm text-gray-500 mb-1">Заказов за период</p>
+            <p class="text-3xl font-bold text-blue-600">{{ analyticsData.total_orders }}</p>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-5">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            {{ analyticsPeriods.find(p => p.value === analyticsPeriod)?.label }} — динамика продаж
+          </h3>
+          <div v-show="analyticsLoading" class="h-64 flex items-center justify-center text-gray-400">Загрузка...</div>
+          <canvas v-show="!analyticsLoading" ref="analyticsCanvas" style="width:100%;height:320px;display:block"></canvas>
+        </div>
+
+        <!-- Top 10 products -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden" v-if="analyticsData && analyticsData.top_products?.length">
+          <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-800">Топ-10 товаров по выручке</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Препарат</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Упаковок</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Штук</th>
+                  <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Выручка</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="(p, i) in analyticsData.top_products" :key="p.product_id" class="hover:bg-gray-50 transition">
+                  <td class="px-5 py-3 text-gray-400 font-medium">{{ i + 1 }}</td>
+                  <td class="px-5 py-3 font-medium text-gray-800">{{ p.product_name }}</td>
+                  <td class="px-5 py-3 text-gray-600">{{ p.total_packs }} упак.</td>
+                  <td class="px-5 py-3 text-gray-600">{{ p.total_qty }} шт</td>
+                  <td class="px-5 py-3 text-right font-bold text-teal-600">{{ formatPrice(p.revenue) }} сўм</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div v-else-if="analyticsData && !analyticsData.top_products?.length" class="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">
+          Нет данных о продажах за выбранный период
         </div>
       </div>
 
@@ -488,6 +586,19 @@
             </div>
           </div>
 
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (упаковок)</label>
+            <input v-model.number="productForm.stock_quantity" type="number" min="0"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+              placeholder="0" />
+            <p class="text-xs text-gray-400 mt-1">
+              <span v-if="productForm.stock_quantity > 0 && productForm.quantity_per_pack > 0">
+                = {{ productForm.stock_quantity * productForm.quantity_per_pack }} шт на складе
+              </span>
+              <span v-else>Считается в упаковках</span>
+            </p>
+          </div>
+
           <div v-if="productForm.quantity_per_pack > 0 && productForm.price_per_pill > 0" class="bg-teal-50 rounded-lg p-3.5 border border-teal-100">
             <div class="text-sm text-teal-800">
               <span class="text-teal-600">Цена за упаковку ({{ productForm.quantity_per_pack }} шт):</span>
@@ -556,9 +667,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -568,6 +681,7 @@ const tabs = [
   { id: 'products', label: 'Препараты' },
   { id: 'orders', label: 'Заказы' },
   { id: 'workers', label: 'Работники' },
+  { id: 'analytics', label: 'Аналитика' },
   { id: 'faq', label: 'FAQ' },
   { id: 'support', label: 'Поддержка' },
   { id: 'settings', label: 'Настройки' },
@@ -581,7 +695,8 @@ const productForm = reactive({
   name: '',
   description: '',
   quantity_per_pack: 60,
-  price_per_pill: 6500
+  price_per_pill: 6500,
+  stock_quantity: 0
 })
 const productError = ref('')
 const savingProduct = ref(false)
@@ -599,6 +714,21 @@ const showWorkerModal = ref(false)
 const workerForm = reactive({ name: '', phoneDigits: '', password: '' })
 const workerError = ref('')
 const savingWorker = ref(false)
+
+// Analytics
+const analyticsPeriod = ref('daily')
+const analyticsCustomDate = ref(new Date().toISOString().split('T')[0])
+const analyticsData = ref(null)
+const analyticsLoading = ref(false)
+const analyticsCanvas = ref(null)
+let analyticsChart = null
+
+const analyticsPeriods = [
+  { value: 'daily', label: 'День' },
+  { value: 'weekly', label: 'Неделя' },
+  { value: 'monthly', label: 'Месяц' },
+  { value: 'custom', label: 'Выбрать дату' },
+]
 
 // FAQ
 const faqs = ref([])
@@ -633,6 +763,7 @@ function statusLabel(status) {
     pending: 'Ожидает',
     confirmed: 'Подтверждён',
     shipped: 'Отправлен',
+    in_transit: 'В пути',
     delivered: 'Доставлен',
     cancelled: 'Отменён'
   }
@@ -644,6 +775,7 @@ function statusClass(status) {
     pending: 'bg-yellow-100 text-yellow-700',
     confirmed: 'bg-blue-100 text-blue-700',
     shipped: 'bg-purple-100 text-purple-700',
+    in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-700'
   }
@@ -684,6 +816,109 @@ async function loadWorkers() {
   } catch (e) {
     console.error(e)
   }
+}
+
+function selectPeriod(period) {
+  analyticsPeriod.value = period
+  loadAnalytics()
+}
+
+async function loadAnalytics() {
+  analyticsLoading.value = true
+  try {
+    const params = new URLSearchParams({ period: analyticsPeriod.value })
+    if (analyticsPeriod.value === 'custom' && analyticsCustomDate.value) {
+      params.set('date', analyticsCustomDate.value)
+    }
+    const res = await api.get(`/admin/analytics?${params}`)
+    analyticsData.value = res.data
+    analyticsLoading.value = false
+    await nextTick()
+    renderAnalyticsChart(res.data)
+  } catch (e) {
+    console.error(e)
+    analyticsLoading.value = false
+  }
+}
+
+function renderAnalyticsChart(data) {
+  if (!analyticsCanvas.value) return
+  if (analyticsChart) {
+    analyticsChart.destroy()
+    analyticsChart = null
+  }
+  const points = data.points || []
+  const labels = points.map(p => p.label)
+  const revenues = points.map(p => p.revenue)
+  const ordersData = points.map(p => p.orders)
+
+  analyticsChart = new Chart(analyticsCanvas.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Выручка (сўм)',
+          data: revenues,
+          borderColor: '#0d9488',
+          backgroundColor: 'rgba(13,148,136,0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          yAxisID: 'yRevenue',
+        },
+        {
+          label: 'Заказы',
+          data: ordersData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59,130,246,0.08)',
+          fill: false,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          yAxisID: 'yOrders',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              if (ctx.datasetIndex === 0) return ` Выручка: ${new Intl.NumberFormat('ru-RU').format(Math.round(ctx.raw))} сўм`
+              return ` Заказов: ${ctx.raw}`
+            }
+          }
+        }
+      },
+      scales: {
+        yRevenue: {
+          type: 'linear',
+          position: 'left',
+          beginAtZero: true,
+          ticks: {
+            callback: v => new Intl.NumberFormat('ru-RU', { notation: 'compact' }).format(v)
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        yOrders: {
+          type: 'linear',
+          position: 'right',
+          beginAtZero: true,
+          grid: { drawOnChartArea: false },
+          ticks: { stepSize: 1 },
+        },
+        x: {
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          ticks: { maxRotation: 45, font: { size: 11 } }
+        }
+      },
+    },
+  })
 }
 
 async function loadFaqs() {
@@ -851,11 +1086,13 @@ function openProductModal(product = null) {
     productForm.description = product.description || ''
     productForm.quantity_per_pack = product.quantity_per_pack
     productForm.price_per_pill = product.price_per_pill
+    productForm.stock_quantity = product.stock_quantity || 0
   } else {
     productForm.name = ''
     productForm.description = ''
     productForm.quantity_per_pack = 60
     productForm.price_per_pill = 6500
+    productForm.stock_quantity = 0
   }
   productError.value = ''
   showProductModal.value = true
@@ -975,6 +1212,12 @@ function logout() {
   authStore.adminLogout()
   router.push('/admin/login')
 }
+
+watch(activeTab, (tab) => {
+  if (tab === 'analytics' && !analyticsData.value) {
+    loadAnalytics()
+  }
+})
 
 onMounted(() => {
   loadProducts()

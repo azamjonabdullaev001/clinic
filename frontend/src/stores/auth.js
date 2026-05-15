@@ -51,6 +51,13 @@ export const useAuthStore = defineStore('auth', () => {
     return res.data
   }
 
+  async function updateDeliveryAddress(address) {
+    if (user.value) {
+      user.value = { ...user.value, delivery_address: address }
+      localStorage.setItem('user', JSON.stringify(user.value))
+    }
+  }
+
   async function adminLogin(data) {
     const res = await api.post('/admin/login', data)
     if (res.data.role === 'worker') {
@@ -91,6 +98,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     token, user, adminToken, admin, workerToken, worker,
     isLoggedIn, isAdmin, isWorker,
-    register, login, adminLogin, logout, adminLogout, workerLogout
+    register, login, adminLogin, logout, adminLogout, workerLogout, updateDeliveryAddress
   }
 })

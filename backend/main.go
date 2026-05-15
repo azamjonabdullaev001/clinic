@@ -64,6 +64,7 @@ func main() {
 				protected.GET("/support/threads", handlers.GetSupportThreads)
 				protected.GET("/support/threads/:id", handlers.GetSupportThreadByID)
 				protected.POST("/support/threads/:id/reply", handlers.ReplySupportThread)
+				protected.GET("/analytics", handlers.GetAnalytics)
 			}
 		}
 
@@ -89,6 +90,7 @@ func main() {
 		{
 			support.GET("/thread", handlers.GetUserSupportThread)
 			support.POST("/messages", handlers.SendUserSupportMessage)
+			support.GET("/unread-count", handlers.GetUserUnreadCount)
 		}
 
 		pickup := api.Group("/pickup")
@@ -97,6 +99,9 @@ func main() {
 			pickup.GET("/orders", handlers.GetPickupOrders)
 			pickup.GET("/orders/code/:code", handlers.GetOrderByCode)
 			pickup.PUT("/orders/:id/status", handlers.UpdatePickupOrderStatus)
+			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
+			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
+			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)
 		}
 	}
 

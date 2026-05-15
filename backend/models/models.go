@@ -3,13 +3,14 @@ package models
 import "time"
 
 type User struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	FirstName  string    `gorm:"not null" json:"first_name"`
-	LastName   string    `gorm:"not null" json:"last_name"`
-	MiddleName string    `json:"middle_name"`
-	Phone      string    `gorm:"uniqueIndex;not null" json:"phone"`
-	Password   string    `gorm:"not null" json:"-"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID              uint      `gorm:"primaryKey" json:"id"`
+	FirstName       string    `gorm:"not null" json:"first_name"`
+	LastName        string    `gorm:"not null" json:"last_name"`
+	MiddleName      string    `json:"middle_name"`
+	Phone           string    `gorm:"uniqueIndex;not null" json:"phone"`
+	Password        string    `gorm:"not null" json:"-"`
+	DeliveryAddress string    `json:"delivery_address"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type Admin struct {
@@ -33,6 +34,7 @@ type Product struct {
 	PricePerPill    float64   `gorm:"not null" json:"price_per_pill"`
 	PricePerPack    float64   `gorm:"-" json:"price_per_pack"`
 	ImagePath       string    `json:"image_path"`
+	StockQuantity   int       `gorm:"default:0" json:"stock_quantity"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 
@@ -76,14 +78,15 @@ func (p *Product) ComputePackPrice() {
 }
 
 type Order struct {
-	ID        uint        `gorm:"primaryKey" json:"id"`
-	UserID    uint        `gorm:"not null" json:"user_id"`
-	User      User        `json:"user"`
-	Items     []OrderItem `json:"items"`
-	Status    string      `gorm:"default:'pending';not null" json:"status"`
-	Phone     string      `gorm:"not null" json:"phone"`
-	OrderCode string      `gorm:"uniqueIndex;size:6" json:"order_code"`
-	CreatedAt time.Time   `json:"created_at"`
+	ID              uint        `gorm:"primaryKey" json:"id"`
+	UserID          uint        `gorm:"not null" json:"user_id"`
+	User            User        `json:"user"`
+	Items           []OrderItem `json:"items"`
+	Status          string      `gorm:"default:'pending';not null" json:"status"`
+	Phone           string      `gorm:"not null" json:"phone"`
+	OrderCode       string      `gorm:"uniqueIndex;size:6" json:"order_code"`
+	DeliveryAddress string      `json:"delivery_address"`
+	CreatedAt       time.Time   `json:"created_at"`
 }
 
 type OrderItem struct {

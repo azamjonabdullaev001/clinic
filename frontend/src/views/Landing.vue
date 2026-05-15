@@ -414,7 +414,8 @@ async function placeOrder() {
 
     const res = await api.post('/orders', {
       items,
-      phone: authStore.user.phone
+      phone: authStore.user.phone,
+      delivery_address: authStore.user?.delivery_address || ''
     })
 
     lastOrderCode.value = res.data.order_code || ''

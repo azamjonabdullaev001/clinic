@@ -65,6 +65,19 @@
             </span>
           </button>
 
+          <!-- Chat notification (logged-in users only) -->
+          <button v-if="authStore.isLoggedIn"
+                  @click="toggleChat"
+                  class="relative p-2.5 rounded-xl text-stone-500 hover:text-brand-700 hover:bg-brand-50/60 transition-all duration-300 group">
+            <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <span v-if="unreadCount > 0"
+                  class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+              {{ unreadCount > 9 ? '9+' : unreadCount }}
+            </span>
+          </button>
+
           <!-- Auth -->
           <template v-if="authStore.isLoggedIn">
             <div class="hidden sm:flex items-center gap-2 ml-1 group cursor-default">
@@ -107,6 +120,73 @@
         </div>
       </div>
     </div>
+
+    <!-- Mini-chat drawer (50% screen height, fixed bottom) -->
+    <teleport to="body">
+      <div v-if="chatOpen" class="fixed inset-0 z-[200] flex flex-col justify-end pointer-events-none">
+        <div class="pointer-events-auto w-full max-w-lg mx-auto bg-white rounded-t-2xl shadow-2xl flex flex-col" style="height:50vh">
+          <!-- Chat header -->
+          <div class="flex items-center justify-between px-4 py-3 border-b bg-brand-700 rounded-t-2xl flex-shrink-0">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              <span class="text-white font-semibold text-sm">Поддержка</span>
+            </div>
+            <button @click="chatOpen = false" class="text-white/70 hover:text-white transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <!-- Messages -->
+          <div ref="chatMsgContainer" class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+            <div v-if="chatLoading" class="flex justify-center pt-6 text-gray-400 text-sm">Загрузка...</div>
+            <template v-else>
+              <div v-if="chatMessages.length === 0" class="text-center text-gray-400 text-sm pt-6">
+                Напишите нам — мы ответим как можно скорее
+              </div>
+              <div
+                v-for="msg in chatMessages"
+                :key="msg.id"
+                class="flex"
+                :class="msg.sender_role === 'user' ? 'justify-end' : 'justify-start'"
+              >
+                <div
+                  class="max-w-[75%] px-3 py-2 rounded-xl text-sm"
+                  :class="msg.sender_role === 'user'
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-white text-gray-800 shadow-sm'"
+                >
+                  {{ msg.message }}
+                  <p class="text-[10px] mt-0.5 opacity-50 text-right">
+                    {{ new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }}
+                  </p>
+                </div>
+              </div>
+            </template>
+          </div>
+          <!-- Input -->
+          <div class="px-3 py-3 border-t flex gap-2 flex-shrink-0">
+            <input
+              v-model="chatNewMsg"
+              @keyup.enter="sendUserMessage"
+              placeholder="Написать сообщение..."
+              class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <button
+              @click="sendUserMessage"
+              :disabled="!chatNewMsg.trim() || chatSending"
+              class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition disabled:opacity-40"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
 
     <!-- Mobile menu dropdown -->
     <div
@@ -162,8 +242,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { useAuthStore } from '../stores/auth'
+import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { useAuthStore, api } from '../stores/auth'
 import { useCartStore } from '../stores/cart'
 import { useLangStore } from '../stores/lang'
 
@@ -174,6 +254,80 @@ const t = computed(() => langStore.t)
 const scrolled = ref(false)
 const mobileMenuOpen = ref(false)
 const countPulse = ref(false)
+
+// Chat
+const chatOpen = ref(false)
+const chatMessages = ref([])
+const chatNewMsg = ref('')
+const chatSending = ref(false)
+const chatLoading = ref(false)
+const unreadCount = ref(0)
+const chatMsgContainer = ref(null)
+let unreadTimer = null
+
+async function loadUnreadCount() {
+  if (!authStore.isLoggedIn) return
+  try {
+    const res = await api.get('/support/unread-count')
+    unreadCount.value = res.data.count || 0
+  } catch (e) { /* ignore */ }
+}
+
+async function loadChatThread() {
+  chatLoading.value = true
+  try {
+    const res = await api.get('/support/thread')
+    chatMessages.value = res.data.messages || []
+    unreadCount.value = 0
+  } catch (e) {
+    chatMessages.value = []
+  } finally {
+    chatLoading.value = false
+    await nextTick()
+    scrollChatBottom()
+  }
+}
+
+function scrollChatBottom() {
+  if (chatMsgContainer.value) {
+    chatMsgContainer.value.scrollTop = chatMsgContainer.value.scrollHeight
+  }
+}
+
+async function toggleChat() {
+  chatOpen.value = !chatOpen.value
+  if (chatOpen.value) {
+    await loadChatThread()
+  }
+}
+
+async function sendUserMessage() {
+  if (!chatNewMsg.value.trim() || chatSending.value) return
+  const text = chatNewMsg.value.trim()
+  chatSending.value = true
+  try {
+    const res = await api.post('/support/messages', { message: text })
+    chatMessages.value.push(res.data)
+    chatNewMsg.value = ''
+    await nextTick()
+    scrollChatBottom()
+  } catch (e) {
+    alert(e.response?.data?.error || 'Ошибка при отправке')
+  } finally {
+    chatSending.value = false
+  }
+}
+
+watch(() => authStore.isLoggedIn, (loggedIn) => {
+  if (loggedIn) {
+    loadUnreadCount()
+    unreadTimer = setInterval(loadUnreadCount, 30000)
+  } else {
+    clearInterval(unreadTimer)
+    unreadCount.value = 0
+    chatOpen.value = false
+  }
+}, { immediate: true })
 
 watch(() => cartStore.totalItems, (newValue, oldValue) => {
   if (newValue > oldValue) {
@@ -196,6 +350,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  clearInterval(unreadTimer)
 })
 </script>
 
