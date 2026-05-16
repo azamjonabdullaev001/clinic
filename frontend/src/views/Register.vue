@@ -60,50 +60,6 @@
             </div>
           </div>
 
-          <!-- Delivery Address -->
-          <div>
-            <label class="block text-sm font-medium text-stone-700 mb-2">
-              Адрес доставки <span class="text-red-400">*</span>
-            </label>
-            <div class="relative">
-              <input
-                v-model="form.delivery_address"
-                type="text"
-                placeholder="Например: Андижанская область, Кургантепинский район, г. Карасу"
-                class="w-full border rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-stone-900"
-                :class="addressError ? 'border-red-400 bg-red-50/30' : 'border-stone-200'"
-              />
-              <button
-                type="button"
-                @click="detectLocation"
-                :disabled="locating"
-                ref="geoBtn"
-                class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-stone-400 hover:text-brand-600 hover:bg-brand-50 transition-all disabled:opacity-40"
-                title="Определить моё местоположение"
-              >
-                <svg v-if="!locating" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                </svg>
-                <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-            </div>
-            <p v-if="locationError" class="text-xs text-red-500 mt-1">{{ locationError }}</p>
-            <p v-else-if="addressError" class="text-xs text-red-500 mt-1">{{ addressError }}</p>
-            <p v-else class="text-xs text-stone-400 mt-1.5 flex items-center gap-1.5">
-              <span class="inline-flex items-center gap-1">
-                Не знаете свой адрес?
-                <span class="relative inline-flex items-center gap-1 text-brand-600 font-medium">
-                  Нажмите на значок
-                  <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                  <span class="animate-hint-arrow absolute -right-6 top-0 text-brand-500 font-bold">→</span>
-                </span>
-              </span>
-            </p>
-          </div>
-
           <div>
             <label class="block text-sm font-medium text-stone-700 mb-2">Пароль <span class="text-red-400">*</span></label>
             <input v-model="form.password" type="password" minlength="6" required
@@ -139,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -151,92 +107,14 @@ const form = reactive({
   first_name: '',
   last_name: '',
   middle_name: '',
-  delivery_address: '',
   password: '',
   confirm_password: ''
 })
 const error = ref('')
 const loading = ref(false)
-const locating = ref(false)
-const locationError = ref('')
-const addressError = ref('')
-const geoBtn = ref(null)
-
-async function detectLocation() {
-  if (!navigator.geolocation) {
-    locationError.value = 'Геолокация не поддерживается вашим браузером'
-    return
-  }
-  locating.value = true
-  locationError.value = ''
-  navigator.geolocation.getCurrentPosition(
-    async (pos) => {
-      try {
-        const { latitude, longitude } = pos.coords
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ru`,
-          { headers: { 'Accept-Language': 'ru' } }
-        )
-        const data = await res.json()
-        if (data && data.address) {
-          const a = data.address
-          const parts = []
-          if (a.state) parts.push(a.state)
-          if (a.county || a.district) parts.push(a.county || a.district)
-          if (a.city || a.town || a.village) parts.push(a.city || a.town || a.village)
-          if (a.road) parts.push(a.road)
-          form.delivery_address = parts.join(', ') || data.display_name
-        }
-      } catch {
-        locationError.value = 'Не удалось определить адрес по координатам'
-      } finally {
-        locating.value = false
-      }
-    },
-    (err) => {
-      locating.value = false
-      if (err.code === 1) {
-        locationError.value = 'Доступ к геолокации запрещён'
-      } else {
-        locationError.value = 'Не удалось получить местоположение'
-      }
-    },
-    { timeout: 10000 }
-  )
-}
-
-onMounted(() => {
-  // Auto-request location on page load
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-            { headers: { 'Accept-Language': 'ru' } }
-          )
-          const data = await res.json()
-          if (data && data.address && !form.delivery_address) {
-            const a = data.address
-            const parts = []
-            if (a.state) parts.push(a.state)
-            if (a.county || a.district) parts.push(a.county || a.district)
-            if (a.city || a.town || a.village) parts.push(a.city || a.town || a.village)
-            if (a.road) parts.push(a.road)
-            form.delivery_address = parts.join(', ') || data.display_name
-          }
-        } catch { /* silently ignore */ }
-      },
-      () => { /* silently ignore denial */ },
-      { timeout: 8000 }
-    )
-  }
-})
 
 async function handleRegister() {
   error.value = ''
-  addressError.value = ''
 
   if (form.password !== form.confirm_password) {
     error.value = 'Пароли не совпадают'
@@ -245,12 +123,6 @@ async function handleRegister() {
 
   if (phone.value.length !== 9) {
     error.value = 'Введите 9 цифр номера телефона'
-    return
-  }
-
-  if (!form.delivery_address.trim()) {
-    addressError.value = 'Укажите адрес доставки. Нажмите на значок геолокации для автоматического определения.'
-    geoBtn.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     return
   }
 
@@ -268,13 +140,3 @@ async function handleRegister() {
   }
 }
 </script>
-
-<style scoped>
-@keyframes hint-arrow {
-  0%, 100% { transform: translateX(0); opacity: 1; }
-  50% { transform: translateX(5px); opacity: 0.5; }
-}
-.animate-hint-arrow {
-  animation: hint-arrow 1s ease-in-out infinite;
-}
-</style>

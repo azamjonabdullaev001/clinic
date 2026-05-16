@@ -23,11 +23,18 @@ type TopProduct struct {
 	Revenue     float64 `json:"revenue"`
 }
 
+type DoctorReferral struct {
+	DoctorName  string  `json:"doctor_name"`
+	OrderCount  int     `json:"order_count"`
+	TotalRevenue float64 `json:"total_revenue"`
+}
+
 type AnalyticsResponse struct {
-	Points      []AnalyticsPoint `json:"points"`
-	TopProducts []TopProduct     `json:"top_products"`
-	TotalRevenue float64         `json:"total_revenue"`
-	TotalOrders int              `json:"total_orders"`
+	Points          []AnalyticsPoint `json:"points"`
+	TopProducts     []TopProduct     `json:"top_products"`
+	DoctorReferrals []DoctorReferral `json:"doctor_referrals"`
+	TotalRevenue    float64          `json:"total_revenue"`
+	TotalOrders     int              `json:"total_orders"`
 }
 
 func GetAnalytics(c *gin.Context) {
@@ -199,10 +206,39 @@ func GetAnalytics(c *gin.Context) {
 		totalRevenue += p.Revenue
 	}
 
+	// Doctor referral stats
+	doctorMap := make(map[string]*DoctorReferral)
+	for _, order := range orders {
+		if order.ReferredBy == "" {
+			continue
+		}
+		d, ok := doctorMap[order.ReferredBy]
+		if !ok {
+			d = &DoctorReferral{DoctorName: order.ReferredBy}
+			doctorMap[order.ReferredBy] = d
+		}
+		d.OrderCount++
+		for _, item := range order.Items {
+			d.TotalRevenue += item.Price
+		}
+	}
+	var doctorSlice []DoctorReferral
+	for _, d := range doctorMap {
+		doctorSlice = append(doctorSlice, *d)
+	}
+	for i := 0; i < len(doctorSlice)-1; i++ {
+		for j := i + 1; j < len(doctorSlice); j++ {
+			if doctorSlice[j].TotalRevenue > doctorSlice[i].TotalRevenue {
+				doctorSlice[i], doctorSlice[j] = doctorSlice[j], doctorSlice[i]
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, AnalyticsResponse{
-		Points:       points,
-		TopProducts:  topSlice,
-		TotalRevenue: totalRevenue,
-		TotalOrders:  len(orders),
+		Points:          points,
+		TopProducts:     topSlice,
+		DoctorReferrals: doctorSlice,
+		TotalRevenue:    totalRevenue,
+		TotalOrders:     len(orders),
 	})
 }

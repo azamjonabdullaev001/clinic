@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gradient-to-b from-sky-50 via-white to-stone-50">
     <Navbar />
 
-    <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+    <section class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-12 lg:pb-16">
       <div class="text-center mb-12">
         <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-semibold tracking-widest uppercase mb-4">
           <span class="w-8 h-px bg-brand-400"></span>
@@ -27,16 +27,24 @@
         <p class="text-stone-400 text-lg font-medium">{{ t.news_empty }}</p>
       </div>
 
-      <div v-else class="grid md:grid-cols-2 gap-6">
+      <div v-else class="grid sm:grid-cols-2 gap-6">
         <article
           v-for="post in posts"
           :key="post.id"
           class="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
         >
-          <div v-if="post.image_path" class="h-52 overflow-hidden">
+          <!-- Multiple images carousel (if images exist) -->
+          <div v-if="post.images && post.images.length > 0" class="h-52 overflow-hidden relative">
+            <img :src="post.images[0].image_path" :alt="post.title" class="w-full h-full object-cover" />
+            <span v-if="post.images.length > 1" class="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              +{{ post.images.length - 1 }}
+            </span>
+          </div>
+          <!-- Fallback single image -->
+          <div v-else-if="post.image_path" class="h-52 overflow-hidden">
             <img :src="post.image_path" :alt="post.title" class="w-full h-full object-cover" />
           </div>
-
+          <!-- Video -->
           <div v-else-if="post.video_url" class="aspect-video">
             <iframe
               :src="toEmbedUrl(post.video_url)"
@@ -47,10 +55,21 @@
             ></iframe>
           </div>
 
-          <div class="p-6">
+          <div class="p-5 sm:p-6">
             <p class="text-xs text-stone-400 mb-2">{{ formatDate(post.created_at) }}</p>
-            <h2 class="text-lg font-bold text-stone-900 mb-2 leading-snug">{{ post.title }}</h2>
+            <h2 class="text-base sm:text-lg font-bold text-stone-900 mb-2 leading-snug">{{ post.title }}</h2>
             <p v-if="post.description" class="text-stone-500 text-sm leading-relaxed line-clamp-4">{{ post.description }}</p>
+
+            <!-- Additional images grid -->
+            <div v-if="post.images && post.images.length > 1" class="grid grid-cols-3 gap-1.5 mt-3">
+              <div
+                v-for="img in post.images.slice(1, 4)"
+                :key="img.id"
+                class="aspect-square rounded-lg overflow-hidden"
+              >
+                <img :src="img.image_path" class="w-full h-full object-cover" />
+              </div>
+            </div>
           </div>
         </article>
       </div>

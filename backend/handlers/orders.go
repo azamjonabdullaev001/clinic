@@ -25,6 +25,9 @@ type CreateOrderInput struct {
 	Items           []OrderItemInput `json:"items" binding:"required,min=1"`
 	Phone           string           `json:"phone" binding:"required"`
 	DeliveryAddress string           `json:"delivery_address"`
+	Latitude        float64          `json:"latitude"`
+	Longitude       float64          `json:"longitude"`
+	ReferredBy      string           `json:"referred_by"`
 }
 
 func generateOrderCode() string {
@@ -48,11 +51,14 @@ func CreateOrder(c *gin.Context) {
 	}
 
 	deliveryAddress := input.DeliveryAddress
-	if deliveryAddress == "" {
-		var user models.User
-		if err := database.DB.First(&user, userID.(uint)).Error; err == nil {
-			deliveryAddress = user.DeliveryAddress
-		}
+	// Require location: either an address text or coordinates
+	if deliveryAddress == "" && (input.Latitude == 0 || input.Longitude == 0) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите адрес доставки или выберите точку на карте"})
+		return
+	}
+	// If coordinates provided but no text address, generate a label
+	if deliveryAddress == "" && input.Latitude != 0 && input.Longitude != 0 {
+		deliveryAddress = fmt.Sprintf("%.6f, %.6f", input.Latitude, input.Longitude)
 	}
 
 	uid := userID.(uint)
@@ -62,6 +68,9 @@ func CreateOrder(c *gin.Context) {
 		Phone:           input.Phone,
 		OrderCode:       generateOrderCode(),
 		DeliveryAddress: deliveryAddress,
+		Latitude:        input.Latitude,
+		Longitude:       input.Longitude,
+		ReferredBy:      input.ReferredBy,
 	}
 
 	tx := database.DB.Begin()

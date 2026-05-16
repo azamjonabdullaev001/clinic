@@ -92,6 +92,9 @@
                       <button @click="openProductModal(product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" title="Редактировать">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
+                      <button v-if="product.description" @click="deleteProductComment(product.id)" class="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition" title="Удалить комментарий">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                      </button>
                       <button @click="deleteProduct(product.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
@@ -150,6 +153,21 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
                   <span class="text-xs text-teal-700">{{ order.delivery_address }}</span>
+                </div>
+                <div v-if="order.latitude && order.longitude" class="mt-1">
+                  <a
+                    :href="`https://www.openstreetmap.org/?mlat=${order.latitude}&mlon=${order.longitude}#map=15/${order.latitude}/${order.longitude}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    Открыть на карте
+                  </a>
+                </div>
+                <div v-if="order.referred_by" class="mt-1 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  <span class="text-xs text-purple-700">Рекомендовал: {{ order.referred_by }}</span>
                 </div>
               </div>
               <select
@@ -222,6 +240,50 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   Нет работников
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== Doctors Tab ===== -->
+      <div v-if="activeTab === 'doctors'">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">Доктора</h2>
+          <button @click="showDoctorModal = true" class="bg-purple-600 text-white px-5 py-2.5 rounded-lg hover:bg-purple-700 transition font-medium flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Добавить доктора
+          </button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-gray-50 border-b">
+              <tr>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Имя доктора</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Добавлен</th>
+                <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="doc in doctors" :key="doc.id" class="hover:bg-gray-50 transition">
+                <td class="px-5 py-3 font-medium text-gray-800 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  {{ doc.name }}
+                </td>
+                <td class="px-5 py-3 text-gray-500 text-sm">{{ new Date(doc.created_at).toLocaleDateString('ru-RU') }}</td>
+                <td class="px-5 py-3 text-right">
+                  <button @click="deleteDoctor(doc.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="doctors.length === 0">
+                <td colspan="3" class="px-5 py-12 text-center text-gray-400">
+                  <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Нет добавленных докторов
                 </td>
               </tr>
             </tbody>
@@ -311,6 +373,37 @@
         </div>
         <div v-else-if="analyticsData && !analyticsData.top_products?.length" class="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">
           Нет данных о продажах за выбранный период
+        </div>
+
+        <!-- Doctor Referral Stats -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5" v-if="analyticsData && analyticsData.doctor_referrals?.length">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <h3 class="text-lg font-semibold text-gray-800">Реферальная статистика</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Кто рекомендовал</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Заказов</th>
+                  <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Выручка</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="(d, i) in analyticsData.doctor_referrals" :key="d.doctor_name" class="hover:bg-gray-50 transition">
+                  <td class="px-5 py-3 text-gray-400 font-medium">{{ i + 1 }}</td>
+                  <td class="px-5 py-3 font-medium text-gray-800 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    {{ d.doctor_name }}
+                  </td>
+                  <td class="px-5 py-3 text-gray-600">{{ d.order_count }}</td>
+                  <td class="px-5 py-3 text-right font-bold text-purple-600">{{ formatPrice(d.total_revenue) }} сўм</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -554,15 +647,37 @@
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Описание</label>
               <textarea v-model="newsForm.description" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-none"></textarea>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Изображение</label>
-              <input type="file" accept="image/*" ref="newsImageInput" @change="onNewsImageSelect" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-50 file:text-teal-700 file:font-medium" />
-              <div v-if="newsImagePreview || (editingNews && editingNews.image_path && !newsImagePreview)" class="mt-2">
-                <img :src="newsImagePreview || editingNews?.image_path" class="h-32 rounded-lg object-cover" />
+
+            <!-- Existing images (when editing) -->
+            <div v-if="editingNews && editingNews.images && editingNews.images.length > 0">
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Текущие изображения</label>
+              <div class="flex flex-wrap gap-2">
+                <div v-for="img in editingNews.images" :key="img.id" class="relative group">
+                  <img :src="img.image_path" class="h-20 w-20 object-cover rounded-lg border border-gray-200" />
+                  <button
+                    type="button"
+                    @click="deleteNewsImg(img.id)"
+                    class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >×</button>
+                </div>
               </div>
             </div>
+            <!-- Single image (legacy) -->
+            <div v-else-if="editingNews && editingNews.image_path && !newsImagePreview">
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Текущее изображение</label>
+              <img :src="editingNews.image_path" class="h-24 rounded-lg object-cover border border-gray-200" />
+            </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Ссылка на видео (YouTube)</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Добавить фотографии (несколько)</label>
+              <input type="file" accept="image/*" multiple ref="newsImagesInput" @change="onNewsImagesSelect" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-50 file:text-teal-700 file:font-medium" />
+              <div v-if="newsImagePreviews.length > 0" class="flex flex-wrap gap-2 mt-2">
+                <img v-for="(src, i) in newsImagePreviews" :key="i" :src="src" class="h-20 w-20 object-cover rounded-lg border border-gray-200" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Ссылка на видео (YouTube, Instagram, Facebook, Twitter)</label>
               <input v-model="newsForm.video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
             <div v-if="newsError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ newsError }}</div>
@@ -575,6 +690,30 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Doctor Modal -->
+      <div v-if="showDoctorModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showDoctorModal = false"></div>
+        <div class="relative bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+          <h3 class="text-xl font-bold text-gray-800 mb-5">Добавить доктора</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Имя доктора <span class="text-red-400">*</span></label>
+              <input v-model="doctorName" type="text" required placeholder="Например: Абдурахман Каримов"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
+            </div>
+            <div v-if="doctorError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ doctorError }}</div>
+            <div class="flex gap-3">
+              <button type="button" @click="showDoctorModal = false"
+                class="flex-1 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium">Отмена</button>
+              <button @click="saveDoctor" :disabled="savingDoctor"
+                class="flex-1 bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition font-medium disabled:opacity-50">
+                {{ savingDoctor ? 'Сохранение...' : 'Добавить' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -844,6 +983,7 @@ const tabs = [
   { id: 'products', label: 'Препараты' },
   { id: 'orders', label: 'Заказы' },
   { id: 'workers', label: 'Работники' },
+  { id: 'doctors', label: 'Доктора' },
   { id: 'analytics', label: 'Аналитика' },
   { id: 'faq', label: 'FAQ' },
   { id: 'support', label: 'Поддержка' },
@@ -1432,14 +1572,60 @@ async function aSubmitOfflineSale() {
   }
 }
 
+// Doctors
+const doctors = ref([])
+const showDoctorModal = ref(false)
+const doctorName = ref('')
+const doctorError = ref('')
+const savingDoctor = ref(false)
+
+async function loadDoctors() {
+  try {
+    const res = await api.get('/admin/doctors')
+    doctors.value = res.data || []
+  } catch { doctors.value = [] }
+}
+
+async function saveDoctor() {
+  if (!doctorName.value.trim()) return
+  doctorError.value = ''
+  savingDoctor.value = true
+  try {
+    await api.post('/admin/doctors', { name: doctorName.value.trim() })
+    showDoctorModal.value = false
+    doctorName.value = ''
+    await loadDoctors()
+  } catch (e) {
+    doctorError.value = e.response?.data?.error || 'Ошибка'
+  } finally {
+    savingDoctor.value = false
+  }
+}
+
+async function deleteDoctor(id) {
+  if (!confirm('Удалить этого доктора?')) return
+  try {
+    await api.delete(`/admin/doctors/${id}`)
+    await loadDoctors()
+  } catch { alert('Ошибка при удалении') }
+}
+
+async function deleteProductComment(id) {
+  if (!confirm('Удалить комментарий (описание) этого препарата?')) return
+  try {
+    await api.delete(`/admin/products/${id}/comment`)
+    await loadProducts()
+  } catch { alert('Ошибка при удалении комментария') }
+}
+
 // News
 const newsPosts = ref([])
 const showNewsModal = ref(false)
 const editingNews = ref(null)
 const newsForm = reactive({ title: '', description: '', video_url: '' })
-const newsImageInput = ref(null)
-const newsImageFile = ref(null)
-const newsImagePreview = ref(null)
+const newsImagesInput = ref(null)
+const newsImageFiles = ref([])
+const newsImagePreviews = ref([])
 const newsError = ref('')
 const savingNews = ref(false)
 
@@ -1455,18 +1641,28 @@ function openNewsModal(post = null) {
   newsForm.title = post?.title || ''
   newsForm.description = post?.description || ''
   newsForm.video_url = post?.video_url || ''
-  newsImageFile.value = null
-  newsImagePreview.value = null
+  newsImageFiles.value = []
+  newsImagePreviews.value = []
   newsError.value = ''
   showNewsModal.value = true
 }
 
-function onNewsImageSelect(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  newsImageFile.value = file
-  newsImagePreview.value = URL.createObjectURL(file)
+function onNewsImagesSelect(e) {
+  const files = Array.from(e.target.files)
+  newsImageFiles.value = files
+  newsImagePreviews.value = files.map(f => URL.createObjectURL(f))
   e.target.value = ''
+}
+
+async function deleteNewsImg(imgId) {
+  if (!confirm('Удалить это изображение?')) return
+  try {
+    await api.delete(`/admin/news/images/${imgId}`)
+    if (editingNews.value) {
+      editingNews.value = { ...editingNews.value, images: editingNews.value.images.filter(i => i.id !== imgId) }
+    }
+    await loadNews()
+  } catch { alert('Ошибка при удалении изображения') }
 }
 
 async function saveNews() {
@@ -1477,7 +1673,10 @@ async function saveNews() {
     formData.append('title', newsForm.title)
     formData.append('description', newsForm.description)
     formData.append('video_url', newsForm.video_url)
-    if (newsImageFile.value) formData.append('image', newsImageFile.value)
+    // Append multiple images
+    for (const file of newsImageFiles.value) {
+      formData.append('images', file)
+    }
 
     if (editingNews.value) {
       await api.put(`/admin/news/${editingNews.value.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
@@ -1507,6 +1706,9 @@ watch(activeTab, (tab) => {
   }
   if (tab === 'news') {
     loadNews()
+  }
+  if (tab === 'doctors') {
+    loadDoctors()
   }
 })
 

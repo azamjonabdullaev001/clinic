@@ -43,6 +43,8 @@ func Migrate() {
 		&models.Order{},
 		&models.OrderItem{},
 		&models.NewsPost{},
+		&models.NewsImage{},
+		&models.Doctor{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)

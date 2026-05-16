@@ -70,6 +70,11 @@ func main() {
 				protected.POST("/news", handlers.CreateNewsPost)
 				protected.PUT("/news/:id", handlers.UpdateNewsPost)
 				protected.DELETE("/news/:id", handlers.DeleteNewsPost)
+				protected.DELETE("/news/images/:id", handlers.DeleteNewsImage)
+				protected.DELETE("/products/:id/comment", handlers.DeleteProductComment)
+				protected.GET("/doctors", handlers.GetDoctors)
+				protected.POST("/doctors", handlers.CreateDoctor)
+				protected.DELETE("/doctors/:id", handlers.DeleteDoctor)
 			}
 		}
 
@@ -82,6 +87,8 @@ func main() {
 		api.GET("/faqs", handlers.GetFAQs)
 
 		api.GET("/news", handlers.GetNewsPosts)
+
+		api.GET("/doctors", handlers.GetDoctors)
 
 		api.POST("/contact", handlers.SendContactMessage)
 

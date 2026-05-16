@@ -3,14 +3,19 @@ package models
 import "time"
 
 type User struct {
-	ID              uint      `gorm:"primaryKey" json:"id"`
-	FirstName       string    `gorm:"not null" json:"first_name"`
-	LastName        string    `gorm:"not null" json:"last_name"`
-	MiddleName      string    `json:"middle_name"`
-	Phone           string    `gorm:"uniqueIndex;not null" json:"phone"`
-	Password        string    `gorm:"not null" json:"-"`
-	DeliveryAddress string    `json:"delivery_address"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	FirstName string    `gorm:"not null" json:"first_name"`
+	LastName  string    `gorm:"not null" json:"last_name"`
+	MiddleName string   `json:"middle_name"`
+	Phone     string    `gorm:"uniqueIndex;not null" json:"phone"`
+	Password  string    `gorm:"not null" json:"-"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type Doctor struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Name      string    `gorm:"not null" json:"name"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Admin struct {
@@ -74,13 +79,22 @@ type SupportMessage struct {
 }
 
 type NewsPost struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	Title       string    `gorm:"not null" json:"title"`
-	Description string    `gorm:"type:text" json:"description"`
-	ImagePath   string    `json:"image_path"`
-	VideoURL    string    `json:"video_url"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uint        `gorm:"primaryKey" json:"id"`
+	Title       string      `gorm:"not null" json:"title"`
+	Description string      `gorm:"type:text" json:"description"`
+	ImagePath   string      `json:"image_path"`
+	VideoURL    string      `json:"video_url"`
+	Images      []NewsImage `gorm:"foreignKey:NewsPostID;constraint:OnDelete:CASCADE" json:"images"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
+type NewsImage struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	NewsPostID uint      `gorm:"index;not null" json:"news_post_id"`
+	ImagePath  string    `gorm:"not null" json:"image_path"`
+	Position   int       `gorm:"default:0" json:"position"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func (p *Product) ComputePackPrice() {
@@ -96,6 +110,9 @@ type Order struct {
 	Phone           string      `gorm:"not null" json:"phone"`
 	OrderCode       string      `gorm:"uniqueIndex;size:6" json:"order_code"`
 	DeliveryAddress string      `json:"delivery_address"`
+	Latitude        float64     `json:"latitude"`
+	Longitude       float64     `json:"longitude"`
+	ReferredBy      string      `json:"referred_by"`
 	IsOffline       bool        `gorm:"default:false" json:"is_offline"`
 	OfflineNote     string      `json:"offline_note"`
 	CreatedAt       time.Time   `json:"created_at"`

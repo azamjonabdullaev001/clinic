@@ -1,7 +1,7 @@
 <template>
   <div class="bg-surface">
     <Navbar />
-    <CartDrawer ref="cartDrawerRef" @checkout="placeOrder" />
+    <CartDrawer ref="cartDrawerRef" />
     <OrdersDrawer />
 
     <!-- Hero -->
@@ -215,7 +215,7 @@
 
     <Footer />
 
-    <!-- Order success modal -->
+    <!-- Order success modal (kept for reference, not used) -->
     <Teleport to="body">
       <div v-if="showSuccess" class="fixed inset-0 z-[60] flex items-center justify-center">
         <div class="absolute inset-0 bg-black/50 backdrop-blur-md animate-fade-in" @click="showSuccess = false"></div>
@@ -404,26 +404,4 @@ function onDragEnd() {
   pauseAutoScroll()
 }
 
-async function placeOrder() {
-  try {
-    const items = cartStore.items.map(item => ({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      unit_type: item.unit_type || 'pack'
-    }))
-
-    const res = await api.post('/orders', {
-      items,
-      phone: authStore.user.phone,
-      delivery_address: authStore.user?.delivery_address || ''
-    })
-
-    lastOrderCode.value = res.data.order_code || ''
-    cartStore.clear()
-    showSuccess.value = true
-    cartDrawerRef.value?.showOrders()
-  } catch (e) {
-    alert(e.response?.data?.error || 'Ошибка при оформлении заказа')
-  }
-}
 </script>

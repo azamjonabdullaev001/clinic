@@ -2,14 +2,14 @@
   <div class="min-h-screen bg-gradient-to-b from-sky-50 via-white to-stone-50">
     <Navbar />
 
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-10 lg:pb-14">
       <div class="grid lg:grid-cols-5 gap-6 lg:gap-8">
         <div class="lg:col-span-2 bg-white border border-stone-200 rounded-3xl p-5 sm:p-6 shadow-sm">
           <h1 class="text-2xl sm:text-3xl font-black text-stone-900 mb-2">{{ t.support_title }}</h1>
           <p class="text-stone-500 text-sm sm:text-base mb-5">{{ t.support_subtitle }}</p>
 
           <h2 class="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">{{ t.support_faq_title }}</h2>
-          <div class="space-y-2 max-h-[62vh] overflow-y-auto pr-1">
+          <div class="space-y-2 max-h-48 lg:max-h-[62vh] overflow-y-auto pr-1">
             <div v-for="faq in faqs" :key="faq.id" class="rounded-2xl border border-stone-200 overflow-hidden">
               <button
                 @click="openFaqId = openFaqId === faq.id ? null : faq.id"
@@ -31,7 +31,7 @@
           </div>
         </div>
 
-        <div class="lg:col-span-3 bg-white border border-stone-200 rounded-3xl shadow-sm flex flex-col h-[78vh]">
+        <div class="lg:col-span-3 bg-white border border-stone-200 rounded-3xl shadow-sm flex flex-col" style="height: min(78vh, 600px)">
           <div class="px-5 sm:px-6 py-4 border-b border-stone-200 flex items-center justify-between">
             <div>
               <h2 class="text-lg sm:text-xl font-bold text-stone-900">{{ t.support_chat_title }}</h2>
