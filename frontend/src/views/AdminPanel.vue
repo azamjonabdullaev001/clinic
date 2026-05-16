@@ -502,6 +502,82 @@
       </div>
 
       <!-- ===== Settings Tab ===== -->
+      <!-- ===== News Tab ===== -->
+      <div v-if="activeTab === 'news'">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold text-gray-800">Новости</h2>
+          <button @click="openNewsModal()" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Добавить новость
+          </button>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div v-for="post in newsPosts" :key="post.id" class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+            <div v-if="post.image_path" class="h-44 overflow-hidden">
+              <img :src="post.image_path" :alt="post.title" class="w-full h-full object-cover" />
+            </div>
+            <div v-else-if="post.video_url" class="h-44 bg-gray-100 flex items-center justify-center text-gray-400">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"/></svg>
+            </div>
+            <div class="p-4">
+              <p class="text-xs text-gray-400 mb-1">{{ new Date(post.created_at).toLocaleDateString('ru-RU') }}</p>
+              <h3 class="font-semibold text-gray-800 mb-1.5">{{ post.title }}</h3>
+              <p v-if="post.description" class="text-sm text-gray-500 line-clamp-3">{{ post.description }}</p>
+              <div class="flex gap-2 mt-3">
+                <button @click="openNewsModal(post)" class="text-teal-600 text-sm font-medium hover:text-teal-800 transition">Редактировать</button>
+                <button @click="deleteNews(post.id)" class="text-red-500 text-sm font-medium hover:text-red-700 transition">Удалить</button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="newsPosts.length === 0" class="col-span-3 text-center py-20 text-gray-400">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+            </svg>
+            Новостей пока нет
+          </div>
+        </div>
+      </div>
+
+      <!-- News Modal -->
+      <div v-if="showNewsModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showNewsModal = false"></div>
+        <div class="relative bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <h3 class="text-xl font-bold text-gray-800 mb-5">{{ editingNews ? 'Редактировать новость' : 'Добавить новость' }}</h3>
+          <form @submit.prevent="saveNews" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Заголовок <span class="text-red-400">*</span></label>
+              <input v-model="newsForm.title" required class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Описание</label>
+              <textarea v-model="newsForm.description" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-none"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Изображение</label>
+              <input type="file" accept="image/*" ref="newsImageInput" @change="onNewsImageSelect" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-teal-50 file:text-teal-700 file:font-medium" />
+              <div v-if="newsImagePreview || (editingNews && editingNews.image_path && !newsImagePreview)" class="mt-2">
+                <img :src="newsImagePreview || editingNews?.image_path" class="h-32 rounded-lg object-cover" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Ссылка на видео (YouTube)</label>
+              <input v-model="newsForm.video_url" type="url" placeholder="https://www.youtube.com/watch?v=..." class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+            </div>
+            <div v-if="newsError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ newsError }}</div>
+            <div class="flex gap-3 pt-2">
+              <button type="submit" :disabled="savingNews" class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">
+                {{ savingNews ? 'Сохранение...' : 'Сохранить' }}
+              </button>
+              <button type="button" @click="showNewsModal = false" class="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg hover:bg-gray-200 transition font-medium">
+                Отмена
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div v-if="activeTab === 'settings'">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Настройки</h2>
         <div class="bg-white rounded-xl shadow-sm p-6 max-w-lg">
@@ -771,6 +847,7 @@ const tabs = [
   { id: 'analytics', label: 'Аналитика' },
   { id: 'faq', label: 'FAQ' },
   { id: 'support', label: 'Поддержка' },
+  { id: 'news', label: 'Новости' },
   { id: 'settings', label: 'Настройки' },
 ]
 
@@ -1355,9 +1432,81 @@ async function aSubmitOfflineSale() {
   }
 }
 
+// News
+const newsPosts = ref([])
+const showNewsModal = ref(false)
+const editingNews = ref(null)
+const newsForm = reactive({ title: '', description: '', video_url: '' })
+const newsImageInput = ref(null)
+const newsImageFile = ref(null)
+const newsImagePreview = ref(null)
+const newsError = ref('')
+const savingNews = ref(false)
+
+async function loadNews() {
+  try {
+    const res = await api.get('/admin/news')
+    newsPosts.value = res.data || []
+  } catch { newsPosts.value = [] }
+}
+
+function openNewsModal(post = null) {
+  editingNews.value = post
+  newsForm.title = post?.title || ''
+  newsForm.description = post?.description || ''
+  newsForm.video_url = post?.video_url || ''
+  newsImageFile.value = null
+  newsImagePreview.value = null
+  newsError.value = ''
+  showNewsModal.value = true
+}
+
+function onNewsImageSelect(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  newsImageFile.value = file
+  newsImagePreview.value = URL.createObjectURL(file)
+  e.target.value = ''
+}
+
+async function saveNews() {
+  newsError.value = ''
+  savingNews.value = true
+  try {
+    const formData = new FormData()
+    formData.append('title', newsForm.title)
+    formData.append('description', newsForm.description)
+    formData.append('video_url', newsForm.video_url)
+    if (newsImageFile.value) formData.append('image', newsImageFile.value)
+
+    if (editingNews.value) {
+      await api.put(`/admin/news/${editingNews.value.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    } else {
+      await api.post('/admin/news', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    }
+    showNewsModal.value = false
+    await loadNews()
+  } catch (e) {
+    newsError.value = e.response?.data?.error || 'Ошибка при сохранении'
+  } finally {
+    savingNews.value = false
+  }
+}
+
+async function deleteNews(id) {
+  if (!confirm('Удалить эту новость?')) return
+  try {
+    await api.delete(`/admin/news/${id}`)
+    await loadNews()
+  } catch { alert('Ошибка при удалении') }
+}
+
 watch(activeTab, (tab) => {
   if (tab === 'analytics' && !analyticsData.value) {
     loadAnalytics()
+  }
+  if (tab === 'news') {
+    loadNews()
   }
 })
 

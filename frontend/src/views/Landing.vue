@@ -419,6 +419,7 @@ async function placeOrder() {
     })
 
     lastOrderCode.value = res.data.order_code || ''
+    cartStore.clear()
     showSuccess.value = true
     cartDrawerRef.value?.showOrders()
   } catch (e) {

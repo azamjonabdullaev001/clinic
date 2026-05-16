@@ -21,6 +21,7 @@ const translations = {
     nav_patients: 'Пациенты',
     nav_products: 'Препараты',
     nav_contacts: 'Контакты',
+    nav_news: 'Новости',
     nav_support: 'Поддержка',
     nav_login: 'Войти',
     nav_register: 'Регистрация',
@@ -161,6 +162,22 @@ const translations = {
     status_confirmed: 'Одобрено',
     status_delivered: 'Выдано',
     status_cancelled: 'Отменено',
+
+    // News
+    news_title: 'Новости',
+    news_subtitle: 'Последние новости и публикации нашей клиники',
+    news_empty: 'Новостей пока нет',
+    news_loading: 'Загрузка...',
+    news_admin_title: 'Новости',
+    news_admin_add: 'Добавить новость',
+    news_admin_edit: 'Редактировать',
+    news_admin_delete: 'Удалить',
+    news_field_title: 'Заголовок',
+    news_field_desc: 'Описание',
+    news_field_image: 'Изображение',
+    news_field_video: 'Ссылка на видео (YouTube)',
+    news_save: 'Сохранить',
+    news_cancel: 'Отмена',
   },
   uz: {
     // Navbar
@@ -168,6 +185,7 @@ const translations = {
     nav_patients: 'Bemorlar',
     nav_products: 'Dorilar',
     nav_contacts: 'Aloqa',
+    nav_news: 'Yangiliklar',
     nav_support: 'Yordam',
     nav_login: 'Kirish',
     nav_register: "Ro'yxatdan o'tish",
@@ -308,5 +326,21 @@ const translations = {
     status_confirmed: 'Tasdiqlandi',
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
+
+    // News
+    news_title: 'Yangiliklar',
+    news_subtitle: 'Klinikamizning so\'nggi yangiliklari va nashrlar',
+    news_empty: 'Hozircha yangiliklar yo\'q',
+    news_loading: 'Yuklanmoqda...',
+    news_admin_title: 'Yangiliklar',
+    news_admin_add: 'Yangilik qo\'shish',
+    news_admin_edit: 'Tahrirlash',
+    news_admin_delete: 'O\'chirish',
+    news_field_title: 'Sarlavha',
+    news_field_desc: 'Tavsif',
+    news_field_image: 'Rasm',
+    news_field_video: 'Video havolasi (YouTube)',
+    news_save: 'Saqlash',
+    news_cancel: 'Bekor qilish',
   }
 }

@@ -16,22 +16,22 @@
 
         <!-- Center nav (desktop) -->
         <div class="hidden md:flex items-center gap-1">
-          <a href="#doctor" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+          <a href="/#doctor" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_specialist }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <a href="#patients" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+          <a href="/#patients" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_patients }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <a href="#products" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+          <a href="/#products" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_products }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <a href="#contacts" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
-            {{ t.nav_contacts }}
+          <router-link to="/news" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+            {{ t.nav_news }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
-          </a>
+          </router-link>
           <router-link to="/support" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_support }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
@@ -121,69 +121,74 @@
       </div>
     </div>
 
-    <!-- Mini-chat drawer (50% screen height, fixed bottom) -->
+    <!-- Mini-chat widget fixed bottom-right -->
     <teleport to="body">
-      <div v-if="chatOpen" class="fixed inset-0 z-[200] flex flex-col justify-end pointer-events-none">
-        <div class="pointer-events-auto w-full max-w-lg mx-auto bg-white rounded-t-2xl shadow-2xl flex flex-col" style="height:50vh">
-          <!-- Chat header -->
-          <div class="flex items-center justify-between px-4 py-3 border-b bg-brand-700 rounded-t-2xl flex-shrink-0">
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+      <div
+        v-if="chatOpen"
+        class="fixed z-[200] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
+        style="bottom:80px;right:16px;width:360px;height:480px"
+      >
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 bg-brand-700 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+            </svg>
+            <span class="text-white font-semibold text-sm">{{ t.nav_support }}</span>
+          </div>
+          <button @click="chatOpen = false" class="text-white/70 hover:text-white transition p-1 rounded-lg hover:bg-white/10">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <!-- Messages -->
+        <div ref="chatMsgContainer" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50" style="min-height:0">
+          <div v-if="chatLoading" class="flex justify-center pt-8 text-gray-400 text-sm">{{ t.products_loading }}</div>
+          <template v-else>
+            <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-full text-center text-gray-400 text-sm py-8">
+              <svg class="w-10 h-10 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
-              <span class="text-white font-semibold text-sm">Поддержка</span>
+              {{ t.support_no_messages }}
             </div>
-            <button @click="chatOpen = false" class="text-white/70 hover:text-white transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-          <!-- Messages -->
-          <div ref="chatMsgContainer" class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
-            <div v-if="chatLoading" class="flex justify-center pt-6 text-gray-400 text-sm">Загрузка...</div>
-            <template v-else>
-              <div v-if="chatMessages.length === 0" class="text-center text-gray-400 text-sm pt-6">
-                Напишите нам — мы ответим как можно скорее
-              </div>
-              <div
-                v-for="msg in chatMessages"
-                :key="msg.id"
-                class="flex"
-                :class="msg.sender_role === 'user' ? 'justify-end' : 'justify-start'"
-              >
-                <div
-                  class="max-w-[75%] px-3 py-2 rounded-xl text-sm"
-                  :class="msg.sender_role === 'user'
-                    ? 'bg-brand-600 text-white'
-                    : 'bg-white text-gray-800 shadow-sm'"
-                >
-                  {{ msg.message }}
-                  <p class="text-[10px] mt-0.5 opacity-50 text-right">
-                    {{ new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }}
-                  </p>
-                </div>
-              </div>
-            </template>
-          </div>
-          <!-- Input -->
-          <div class="px-3 py-3 border-t flex gap-2 flex-shrink-0">
-            <input
-              v-model="chatNewMsg"
-              @keyup.enter="sendUserMessage"
-              placeholder="Написать сообщение..."
-              class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
-            <button
-              @click="sendUserMessage"
-              :disabled="!chatNewMsg.trim() || chatSending"
-              class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition disabled:opacity-40"
+            <div
+              v-for="msg in chatMessages"
+              :key="msg.id"
+              class="flex"
+              :class="msg.sender_role === 'user' ? 'justify-end' : 'justify-start'"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
-          </div>
+              <div
+                class="max-w-[78%] px-3 py-2 rounded-2xl text-sm"
+                :class="msg.sender_role === 'user'
+                  ? 'bg-brand-600 text-white rounded-br-sm'
+                  : 'bg-white text-gray-800 shadow-sm rounded-bl-sm'"
+              >
+                {{ msg.message }}
+                <p class="text-[10px] mt-0.5 opacity-50 text-right">
+                  {{ new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }}
+                </p>
+              </div>
+            </div>
+          </template>
+        </div>
+        <!-- Input -->
+        <div class="px-3 py-3 border-t bg-white flex gap-2 flex-shrink-0">
+          <input
+            v-model="chatNewMsg"
+            @keyup.enter="sendUserMessage"
+            :placeholder="t.support_input_placeholder"
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-gray-50"
+          />
+          <button
+            @click="sendUserMessage"
+            :disabled="!chatNewMsg.trim() || chatSending"
+            class="bg-brand-600 text-white w-10 h-10 rounded-xl flex items-center justify-center hover:bg-brand-700 transition disabled:opacity-40 flex-shrink-0"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
         </div>
       </div>
     </teleport>
@@ -193,22 +198,22 @@
       v-if="mobileMenuOpen"
       class="md:hidden border-t border-stone-200/50 bg-white/98 backdrop-blur-2xl px-4 py-4 flex flex-col gap-1"
     >
-      <a href="#doctor" @click="mobileMenuOpen = false"
+      <a href="/#doctor" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_specialist }}
       </a>
-      <a href="#patients" @click="mobileMenuOpen = false"
+      <a href="/#patients" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_patients }}
       </a>
-      <a href="#products" @click="mobileMenuOpen = false"
+      <a href="/#products" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_products }}
       </a>
-      <a href="#contacts" @click="mobileMenuOpen = false"
-         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
-        {{ t.nav_contacts }}
-      </a>
+      <router-link to="/news" @click="mobileMenuOpen = false"
+                   class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+        {{ t.nav_news }}
+      </router-link>
       <router-link to="/support" @click="mobileMenuOpen = false"
                    class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_support }}

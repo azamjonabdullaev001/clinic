@@ -66,6 +66,10 @@ func main() {
 				protected.POST("/support/threads/:id/reply", handlers.ReplySupportThread)
 				protected.GET("/analytics", handlers.GetAnalytics)
 				protected.POST("/offline-sale", handlers.CreateOfflineSale)
+				protected.GET("/news", handlers.GetNewsPosts)
+				protected.POST("/news", handlers.CreateNewsPost)
+				protected.PUT("/news/:id", handlers.UpdateNewsPost)
+				protected.DELETE("/news/:id", handlers.DeleteNewsPost)
 			}
 		}
 
@@ -76,6 +80,8 @@ func main() {
 		}
 
 		api.GET("/faqs", handlers.GetFAQs)
+
+		api.GET("/news", handlers.GetNewsPosts)
 
 		api.POST("/contact", handlers.SendContactMessage)
 

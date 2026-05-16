@@ -47,70 +47,6 @@
           </div>
         </div>
 
-        <!-- Form + Sidebar -->
-        <div class="grid md:grid-cols-2 gap-8 mb-16">
-          <!-- Form -->
-          <div class="bg-white rounded-3xl shadow-xl shadow-stone-900/[0.07] p-8 border border-stone-100">
-            <h3 class="text-2xl font-bold text-stone-900 mb-8">{{ t.contacts_form_title }}</h3>
-            <form @submit.prevent="sendMessage" class="space-y-5">
-              <input
-                v-model="form.name"
-                :placeholder="t.contacts_name"
-                required
-                class="w-full px-5 py-4 rounded-xl border border-stone-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all duration-200"
-              />
-              <input
-                v-model="form.phone"
-                :placeholder="t.contacts_phone_field"
-                required
-                class="w-full px-5 py-4 rounded-xl border border-stone-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all duration-200"
-              />
-              <textarea
-                v-model="form.message"
-                :placeholder="t.contacts_message"
-                rows="5"
-                class="w-full px-5 py-4 rounded-xl border border-stone-200 text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all duration-200 resize-none"
-              ></textarea>
-              <button type="submit" :disabled="sending"
-                class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-4 rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-600/30 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed">
-                {{ sending ? t.contacts_sending : t.contacts_send }}
-              </button>
-              <p v-if="statusMessage" class="text-sm" :class="statusOk ? 'text-emerald-600' : 'text-red-500'">
-                {{ statusMessage }}
-              </p>
-            </form>
-          </div>
-
-          <!-- Blue sidebar -->
-          <div class="bg-brand-600 rounded-3xl p-8 text-white flex flex-col gap-6">
-            <h3 class="text-2xl font-bold">{{ t.contacts_sidebar_title }}</h3>
-            <div class="flex items-start gap-4">
-              <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
-                </svg>
-              </div>
-              <div>
-                <div class="text-white/70 text-sm mb-1">{{ t.contacts_phone_label }}</div>
-                <div class="font-semibold text-lg">{{ t.contacts_phone }}</div>
-                <div class="font-semibold text-lg">{{ t.contacts_phone2 }}</div>
-              </div>
-            </div>
-            <div class="flex items-start gap-4">
-              <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                </svg>
-              </div>
-              <div>
-                <div class="text-white/70 text-sm mb-1">{{ t.contacts_address_label }}</div>
-                <div class="font-semibold text-lg">{{ t.contacts_address }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Map section -->
         <div class="mb-6">
           <div class="text-center mb-10">
@@ -256,39 +192,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import axios from 'axios'
+import { computed } from 'vue'
 import { useLangStore } from '../stores/lang'
 
 const langStore = useLangStore()
 const t = computed(() => langStore.t)
-
-const form = ref({ name: '', phone: '', message: '' })
-const sending = ref(false)
-const statusMessage = ref('')
-const statusOk = ref(false)
-
-async function sendMessage() {
-  if (!form.value.name || !form.value.phone) return
-
-  sending.value = true
-  statusMessage.value = ''
-
-  try {
-    await axios.post('/api/contact', {
-      name: form.value.name,
-      phone: form.value.phone,
-      message: form.value.message,
-    })
-
-    statusOk.value = true
-    statusMessage.value = t.value.contacts_success
-    form.value = { name: '', phone: '', message: '' }
-  } catch (e) {
-    statusOk.value = false
-    statusMessage.value = e.response?.data?.error || t.value.contacts_error
-  } finally {
-    sending.value = false
-  }
-}
 </script>

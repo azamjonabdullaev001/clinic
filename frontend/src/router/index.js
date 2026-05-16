@@ -6,11 +6,13 @@ import AdminLogin from '../views/AdminLogin.vue'
 import AdminPanel from '../views/AdminPanel.vue'
 import PickupPanel from '../views/PickupPanel.vue'
 import Support from '../views/Support.vue'
+import News from '../views/News.vue'
 
 const routes = [
   { path: '/', name: 'Landing', component: Landing },
   { path: '/login', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
+  { path: '/news', name: 'News', component: News },
   { path: '/admin/login', name: 'AdminLogin', component: AdminLogin },
   { path: '/admin', name: 'AdminPanel', component: AdminPanel, meta: { requiresAdmin: true } },
   { path: '/pickup', name: 'PickupPanel', component: PickupPanel, meta: { requiresWorker: true } },
