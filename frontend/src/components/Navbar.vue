@@ -28,10 +28,10 @@
             {{ t.nav_products }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <router-link to="/news" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
+          <a href="/#news" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_news }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
-          </router-link>
+          </a>
           <router-link to="/support" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_support }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
@@ -210,10 +210,10 @@
          class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_products }}
       </a>
-      <router-link to="/news" @click="mobileMenuOpen = false"
-                   class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
+      <a href="/#news" @click="mobileMenuOpen = false"
+         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_news }}
-      </router-link>
+      </a>
       <router-link to="/support" @click="mobileMenuOpen = false"
                    class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_support }}

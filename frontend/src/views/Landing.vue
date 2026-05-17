@@ -146,7 +146,7 @@
       </div>
     </section>
 
-    <!-- Latest News -->
+    <!-- Latest News Carousel -->
     <section id="news" class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 reveal">
@@ -172,31 +172,112 @@
           <p class="text-base font-medium">Новостей пока нет</p>
         </div>
 
-        <!-- News grid -->
-        <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <article
-            v-for="post in latestNews"
-            :key="post.id"
-            class="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 reveal"
-          >
-            <div v-if="post.images && post.images.length > 0" class="h-48 overflow-hidden">
-              <img :src="post.images[0].image_path" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+        <!-- Carousel -->
+        <div v-else class="relative select-none">
+          <div class="relative overflow-hidden rounded-3xl bg-stone-900 shadow-2xl h-[360px] md:h-[420px]">
+
+            <div
+              v-for="(post, idx) in latestNews"
+              :key="post.id"
+              v-show="newsSlide === idx"
+              class="absolute inset-0 flex flex-col md:flex-row"
+            >
+              <!-- === VIDEO SLIDE === -->
+              <template v-if="post.video_url && getYouTubeId(post.video_url)">
+                <div class="relative flex-shrink-0 w-full md:w-2/3 h-[55%] md:h-full overflow-hidden">
+                  <iframe
+                    v-if="newsSlide === idx"
+                    :key="`yt-${post.id}-${newsMuted[idx] !== false}`"
+                    :src="getNewsEmbedUrl(post.video_url, idx)"
+                    class="w-full h-full"
+                    frameborder="0"
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                  <button
+                    @click.stop="toggleNewsMute(idx)"
+                    class="absolute top-3 right-3 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors"
+                  >
+                    <svg v-if="newsMuted[idx] !== false" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+                    </svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M12 6v12M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="flex-1 p-5 md:p-7 flex flex-col justify-between bg-stone-900 cursor-pointer overflow-hidden" @click="openNewsUrl(post)">
+                  <div>
+                    <p class="text-xs text-stone-400 mb-2">{{ formatNewsDate(post.created_at) }}</p>
+                    <h3 class="font-bold text-white text-base md:text-lg leading-snug mb-3 line-clamp-3">{{ post.title }}</h3>
+                    <p v-if="post.description" class="text-stone-400 text-sm leading-relaxed line-clamp-4">{{ post.description }}</p>
+                  </div>
+                  <span class="mt-4 text-brand-400 text-xs font-semibold flex items-center gap-1">
+                    {{ t.news_watch || 'Смотреть' }}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </span>
+                </div>
+              </template>
+
+              <!-- === IMAGE / TEXT SLIDE === -->
+              <template v-else>
+                <div class="flex-shrink-0 w-full md:w-2/3 h-[55%] md:h-full overflow-hidden cursor-pointer" @click="openNewsUrl(post)">
+                  <img v-if="post.images && post.images.length > 0" :src="post.images[0].image_path" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                  <img v-else-if="post.image_path" :src="post.image_path" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                  <div v-else class="w-full h-full bg-stone-800 flex flex-col items-center justify-center text-stone-500">
+                    <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" /></svg>
+                    <span class="text-sm">Новость</span>
+                  </div>
+                </div>
+                <div class="flex-1 p-5 md:p-7 flex flex-col justify-between bg-stone-900 cursor-pointer overflow-hidden" @click="openNewsUrl(post)">
+                  <div>
+                    <p class="text-xs text-stone-400 mb-2">{{ formatNewsDate(post.created_at) }}</p>
+                    <h3 class="font-bold text-white text-base md:text-lg leading-snug mb-3 line-clamp-3">{{ post.title }}</h3>
+                    <p v-if="post.description" class="text-stone-400 text-sm leading-relaxed line-clamp-4">{{ post.description }}</p>
+                  </div>
+                  <span v-if="post.video_url" class="mt-4 text-brand-400 text-xs font-semibold flex items-center gap-1">
+                    {{ t.news_watch || 'Открыть' }}
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </span>
+                </div>
+              </template>
             </div>
-            <div v-else-if="post.image_path" class="h-48 overflow-hidden">
-              <img :src="post.image_path" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+
+            <!-- Left arrow -->
+            <button
+              v-if="latestNews.length > 1"
+              @click="prevNewsSlide"
+              class="absolute left-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+
+            <!-- Right arrow -->
+            <button
+              v-if="latestNews.length > 1"
+              @click="nextNewsSlide"
+              class="absolute right-3 top-1/2 -translate-y-1/2 z-20 bg-black/40 hover:bg-black/60 text-white rounded-full w-9 h-9 flex items-center justify-center transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+
+            <!-- Progress bar -->
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-white/10">
+              <div class="h-full bg-brand-500/80 transition-all duration-500" :style="{ width: `${((newsSlide + 1) / latestNews.length) * 100}%` }"></div>
             </div>
-            <div v-else-if="post.video_url" class="h-48 bg-brand-50 flex items-center justify-center">
-              <svg class="w-12 h-12 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"/>
-              </svg>
-            </div>
-            <div class="p-5">
-              <p class="text-xs text-stone-400 mb-2">{{ new Date(post.created_at).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
-              <h3 class="font-bold text-stone-900 mb-2 leading-snug text-base">{{ post.title }}</h3>
-              <p v-if="post.description" class="text-stone-500 text-sm leading-relaxed line-clamp-3">{{ post.description }}</p>
-            </div>
-          </article>
+          </div>
+
+          <!-- Dot indicators -->
+          <div v-if="latestNews.length > 1" class="flex items-center justify-center gap-2 mt-5">
+            <button
+              v-for="(_, i) in latestNews"
+              :key="i"
+              @click="goToNewsSlide(i)"
+              class="rounded-full transition-all duration-300 focus:outline-none"
+              :class="newsSlide === i ? 'w-6 h-2 bg-brand-600' : 'w-2 h-2 bg-stone-300 hover:bg-stone-400'"
+            ></button>
+          </div>
         </div>
 
         <div class="text-center mt-10">
@@ -330,6 +411,65 @@ const showSuccess = ref(false)
 const lastOrderCode = ref('')
 const latestNews = ref([])
 const newsLoading = ref(true)
+const newsSlide = ref(0)
+const newsMuted = ref({})
+let newsTimer = null
+
+function getYouTubeId(url) {
+  if (!url) return null
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&?#\n]+)/)
+  return m ? m[1] : null
+}
+
+function getNewsEmbedUrl(videoUrl, idx) {
+  const id = getYouTubeId(videoUrl)
+  if (!id) return ''
+  const muted = newsMuted.value[idx] !== false ? 1 : 0
+  return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muted}&enablejsapi=1&playsinline=1&rel=0`
+}
+
+function toggleNewsMute(idx) {
+  const currentlyMuted = newsMuted.value[idx] !== false
+  newsMuted.value = { ...newsMuted.value, [idx]: !currentlyMuted }
+}
+
+function openNewsUrl(post) {
+  if (post.video_url) window.open(post.video_url, '_blank', 'noopener,noreferrer')
+}
+
+function formatNewsDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function nextNewsSlide() {
+  if (!latestNews.value.length) return
+  newsSlide.value = (newsSlide.value + 1) % latestNews.value.length
+  restartNewsTimer()
+}
+
+function prevNewsSlide() {
+  if (!latestNews.value.length) return
+  newsSlide.value = (newsSlide.value - 1 + latestNews.value.length) % latestNews.value.length
+  restartNewsTimer()
+}
+
+function goToNewsSlide(idx) {
+  newsSlide.value = idx
+  restartNewsTimer()
+}
+
+function startNewsTimer() {
+  if (newsTimer) clearInterval(newsTimer)
+  newsTimer = setInterval(() => {
+    if (latestNews.value.length > 1) {
+      newsSlide.value = (newsSlide.value + 1) % latestNews.value.length
+    }
+  }, 10000)
+}
+
+function restartNewsTimer() {
+  startNewsTimer()
+}
 
 const patientPhotos = [
   'photo_2026-04-21_23-34-03.jpg',
@@ -436,7 +576,8 @@ onMounted(async () => {
 
   try {
     const newsRes = await axios.get('/api/news')
-    latestNews.value = (newsRes.data || []).slice(0, 3)
+    latestNews.value = newsRes.data || []
+    if (latestNews.value.length > 1) startNewsTimer()
   } catch { /* ignore */ } finally {
     newsLoading.value = false
   }
@@ -450,6 +591,7 @@ onUnmounted(() => {
   if (observer) observer.disconnect()
   if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf)
   if (autoScrollResumeTimer) clearTimeout(autoScrollResumeTimer)
+  if (newsTimer) clearInterval(newsTimer)
 })
 
 function getClientX(event) {

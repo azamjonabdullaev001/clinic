@@ -69,61 +69,60 @@
         class="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
         @click.self="closeDescription"
       >
-        <div class="w-[96vw] max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-stone-100 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-        <div class="flex items-start justify-between gap-4 mb-5">
-          <h4 class="text-base sm:text-lg font-bold text-stone-900">{{ t.product_description }}</h4>
-          <button
-            @click="closeDescription"
-            class="text-xs font-semibold text-stone-500 hover:text-stone-700 flex-shrink-0"
-          >
-            {{ t.product_close }}
-          </button>
-        </div>
-
-        <div class="grid lg:grid-cols-2 gap-5 lg:gap-8">
-          <div
-            class="rounded-2xl overflow-hidden bg-stone-100 transition-all duration-700 ease-out"
-            :class="animatePanel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'"
-            style="height: 260px;"
-          >
-            <img
-              v-if="product.image_path"
-              :src="product.image_path"
-              :alt="product.name"
-              class="w-full h-full object-contain"
-            />
-            <div v-else class="w-full h-full flex items-center justify-center text-stone-400 text-sm">
-              {{ t.no_photo }}
-            </div>
-          </div>
-
-          <div
-            class="flex flex-col transition-all duration-700 ease-out"
-            :class="animatePanel ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'"
-          >
-            <h5 class="text-3xl lg:text-4xl font-black text-stone-900 mb-2 uppercase tracking-wide">{{ product.name }}</h5>
-            <p class="text-brand-700 text-2xl lg:text-3xl font-extrabold mb-5 uppercase tracking-wide">{{ formatPrice(product.price_per_pack) }} {{ t.currency }}</p>
-
-            <div class="space-y-3 overflow-auto pr-1 mb-6">
-              <p
-                v-for="(line, index) in animatedLines"
-                :key="`${index}-${line}`"
-                class="text-base lg:text-lg font-semibold text-stone-700 leading-relaxed opacity-0 translate-y-2 animate-line-in uppercase"
-                :style="{ animationDelay: `${index * 140}ms` }"
-              >
-                {{ line }}
-              </p>
-            </div>
-
+        <div class="w-[96vw] max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-stone-100 p-4 sm:p-6 lg:p-8 overflow-y-auto lg:overflow-hidden lg:flex lg:flex-col lg:h-[88vh]">
+          <div class="flex items-start justify-between gap-4 mb-5 flex-shrink-0">
+            <h4 class="text-base sm:text-lg font-bold text-stone-900">{{ t.product_description }}</h4>
             <button
-              @click="$emit('add-to-cart', product); closeDescription()"
-              class="mt-auto w-full sm:w-auto sm:min-w-64 bg-brand-700 text-white py-3.5 px-7 rounded-2xl hover:bg-brand-800 hover:shadow-xl hover:shadow-brand-700/20 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 font-bold text-sm uppercase tracking-wide"
+              @click="closeDescription"
+              class="text-xs font-semibold text-stone-500 hover:text-stone-700 flex-shrink-0"
             >
-              {{ t.add_to_cart }}
+              {{ t.product_close }}
             </button>
           </div>
+
+          <div class="grid lg:grid-cols-2 gap-5 lg:gap-8 lg:flex-1 lg:min-h-0">
+            <div
+              class="rounded-2xl overflow-hidden bg-stone-100 transition-all duration-700 ease-out h-56 sm:h-64 lg:h-full"
+              :class="animatePanel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'"
+            >
+              <img
+                v-if="product.image_path"
+                :src="product.image_path"
+                :alt="product.name"
+                class="w-full h-full object-contain"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-stone-400 text-sm">
+                {{ t.no_photo }}
+              </div>
+            </div>
+
+            <div
+              class="flex flex-col transition-all duration-700 ease-out lg:overflow-y-auto lg:h-full"
+              :class="animatePanel ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'"
+            >
+              <h5 class="text-3xl lg:text-4xl font-black text-stone-900 mb-2 uppercase tracking-wide">{{ product.name }}</h5>
+              <p class="text-brand-700 text-2xl lg:text-3xl font-extrabold mb-5 uppercase tracking-wide">{{ formatPrice(product.price_per_pack) }} {{ t.currency }}</p>
+
+              <div class="space-y-3 pr-1 mb-6">
+                <p
+                  v-for="(line, index) in animatedLines"
+                  :key="`${index}-${line}`"
+                  class="text-base lg:text-lg font-semibold text-stone-700 leading-relaxed opacity-0 translate-y-2 animate-line-in uppercase"
+                  :style="{ animationDelay: `${index * 140}ms` }"
+                >
+                  {{ line }}
+                </p>
+              </div>
+
+              <button
+                @click="$emit('add-to-cart', product); closeDescription()"
+                class="mt-auto w-full sm:w-auto sm:min-w-64 bg-brand-700 text-white py-3.5 px-7 rounded-2xl hover:bg-brand-800 hover:shadow-xl hover:shadow-brand-700/20 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 font-bold text-sm uppercase tracking-wide"
+              >
+                {{ t.add_to_cart }}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
       </div>
     </Teleport>
   </div>
