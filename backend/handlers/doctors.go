@@ -17,14 +17,15 @@ func GetDoctors(c *gin.Context) {
 
 func CreateDoctor(c *gin.Context) {
 	var input struct {
-		Name string `json:"name" binding:"required"`
+		Name      string `json:"name" binding:"required"`
+		Specialty string `json:"specialty"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Имя доктора обязательно"})
 		return
 	}
 
-	doctor := models.Doctor{Name: input.Name}
+	doctor := models.Doctor{Name: input.Name, Specialty: input.Specialty}
 	if err := database.DB.Create(&doctor).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при добавлении доктора"})
 		return

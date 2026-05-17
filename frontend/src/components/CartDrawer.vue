@@ -218,7 +218,7 @@
       <div class="relative bg-white w-full sm:max-w-lg sm:mx-4 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
 
         <!-- Modal Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-3xl">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-3xl z-10">
           <h3 class="text-lg font-bold text-stone-900">Оформление заказа</h3>
           <button @click="showCheckout = false" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
             <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,80 +235,104 @@
               Адрес доставки <span class="text-red-400">*</span>
             </label>
 
-            <!-- Text input with GPS button -->
-            <div class="relative mb-3">
-              <input
-                v-model="checkoutForm.address"
-                type="text"
-                placeholder="Например: Андижанская область, г. Карасу, ул. Навои 15"
-                class="w-full border rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-stone-900 text-sm"
-                :class="locationError ? 'border-red-400 bg-red-50/30' : 'border-stone-200'"
-              />
+            <!-- Confirmed location banner -->
+            <div v-if="locationConfirmed" class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-3">
+              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-green-700 mb-0.5">Локация подтверждена</p>
+                <p class="text-xs text-green-600 truncate">{{ checkoutForm.address || `${checkoutForm.lat.toFixed(5)}, ${checkoutForm.lng.toFixed(5)}` }}</p>
+              </div>
+              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">Изменить</button>
+            </div>
+
+            <template v-else>
+              <!-- Text input with GPS button -->
+              <div class="relative mb-3">
+                <input
+                  v-model="checkoutForm.address"
+                  type="text"
+                  placeholder="Например: Андижанская область, г. Карасу, ул. Навои 15"
+                  class="w-full border rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-stone-900 text-sm"
+                  :class="locationError ? 'border-red-400 bg-red-50/30' : 'border-stone-200'"
+                />
+                <button
+                  type="button"
+                  @click="detectGPS"
+                  :disabled="gpsLoading"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-stone-400 hover:text-brand-600 hover:bg-brand-50 transition-all disabled:opacity-40"
+                  title="Определить моё местоположение"
+                >
+                  <svg v-if="!gpsLoading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                  <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Map toggle button -->
               <button
                 type="button"
-                @click="detectGPS"
-                :disabled="gpsLoading"
-                class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg text-stone-400 hover:text-brand-600 hover:bg-brand-50 transition-all disabled:opacity-40"
-                title="Определить моё местоположение"
+                @click="toggleMap"
+                class="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors mb-2"
               >
-                <svg v-if="!gpsLoading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                {{ showMap ? 'Скрыть карту' : 'Выбрать точку на карте' }}
               </button>
-            </div>
 
-            <!-- Map toggle button -->
-            <button
-              type="button"
-              @click="toggleMap"
-              class="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors mb-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              {{ showMap ? 'Скрыть карту' : 'Выбрать точку на карте' }}
-            </button>
+              <!-- Leaflet Map -->
+              <div v-show="showMap" class="rounded-2xl overflow-hidden border border-stone-200 mb-2" style="height: 260px">
+                <div id="checkout-map" style="height: 100%; width: 100%;"></div>
+              </div>
 
-            <!-- Leaflet Map -->
-            <div v-show="showMap" class="rounded-2xl overflow-hidden border border-stone-200 mb-2" style="height: 240px">
-              <div id="checkout-map" style="height: 100%; width: 100%;"></div>
-            </div>
+              <!-- Confirm location button (visible when map is open and coords are set) -->
+              <button
+                v-if="showMap && checkoutForm.lat && checkoutForm.lng"
+                type="button"
+                @click="confirmLocation"
+                class="w-full flex items-center justify-center gap-2 bg-brand-600 text-white py-2.5 rounded-xl font-semibold hover:bg-brand-700 transition-all mb-2 text-sm"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                Подтвердить локацию
+              </button>
 
-            <p v-if="locationError" class="text-xs text-red-500 mt-1">{{ locationError }}</p>
-            <p v-else-if="checkoutForm.lat && checkoutForm.lng" class="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Координаты: {{ checkoutForm.lat.toFixed(5) }}, {{ checkoutForm.lng.toFixed(5) }}
-            </p>
-            <p v-else class="text-xs text-stone-400 mt-1">
-              Введите адрес вручную, нажмите
-              <svg class="inline w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-              для автоопределения или выберите точку на карте
-            </p>
+              <p v-if="locationError" class="text-xs text-red-500 mt-1">{{ locationError }}</p>
+              <p v-else-if="checkoutForm.lat && checkoutForm.lng && !showMap" class="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                Координаты: {{ checkoutForm.lat.toFixed(5) }}, {{ checkoutForm.lng.toFixed(5) }}
+              </p>
+              <p v-else-if="!showMap" class="text-xs text-stone-400 mt-1">
+                Введите адрес вручную, нажмите
+                <svg class="inline w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                для автоопределения или выберите точку на карте
+              </p>
+            </template>
           </div>
 
-          <!-- Referral section -->
+          <!-- Referral section (REQUIRED) -->
           <div>
             <label class="block text-sm font-semibold text-stone-700 mb-2">
-              Кто посоветовал заказать?
+              Откуда вы узнали о нас? <span class="text-red-400">*</span>
             </label>
             <div class="relative">
               <input
                 v-model="referralInput"
                 type="text"
-                placeholder="Имя доктора, 'Сам' или 'Из рекламы'"
-                class="w-full border border-stone-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-stone-900 text-sm"
+                placeholder="Имя доктора, 'Самостоятельно' или 'Из рекламы'"
+                class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-stone-900 text-sm"
+                :class="referralError ? 'border-red-400 bg-red-50/30' : 'border-stone-200'"
                 @input="onReferralInput"
-                @focus="showReferralDropdown = filteredDoctors.length > 0 || quickOptions.length > 0"
+                @focus="showReferralDropdown = true"
                 @blur="hideReferralDropdown"
               />
               <!-- Autocomplete dropdown -->
               <div
                 v-if="showReferralDropdown && (filteredDoctors.length > 0 || quickOptions.length > 0)"
-                class="absolute left-0 right-0 top-full mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-10 overflow-hidden max-h-48 overflow-y-auto"
+                class="absolute left-0 right-0 top-full mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-20 overflow-hidden max-h-52 overflow-y-auto"
               >
                 <button
                   v-for="opt in quickOptions"
@@ -317,22 +341,30 @@
                   @mousedown.prevent="selectReferral(opt)"
                   class="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-brand-50 hover:text-brand-700 transition-colors flex items-center gap-2"
                 >
-                  <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                   {{ opt }}
                 </button>
-                <div v-if="filteredDoctors.length > 0 && quickOptions.length > 0" class="border-t border-stone-100 mx-2"></div>
+                <div v-if="filteredDoctors.length > 0 && quickOptions.length > 0" class="border-t border-stone-100"></div>
                 <button
                   v-for="doc in filteredDoctors"
                   :key="doc.id"
                   type="button"
-                  @mousedown.prevent="selectReferral('Доктор: ' + doc.name)"
-                  class="w-full text-left px-4 py-2.5 text-sm text-stone-700 hover:bg-brand-50 hover:text-brand-700 transition-colors flex items-center gap-2"
+                  @mousedown.prevent="selectReferral(doc.name + (doc.specialty ? ' (' + doc.specialty + ')' : ''), true)"
+                  class="w-full text-left px-4 py-2.5 hover:bg-brand-50 transition-colors flex items-center gap-3"
                 >
-                  <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                  {{ doc.name }}
+                  <div class="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-stone-800">{{ doc.name }}</p>
+                    <p v-if="doc.specialty" class="text-xs text-brand-500">{{ doc.specialty }}</p>
+                    <p v-else class="text-xs text-stone-400">Врач</p>
+                  </div>
                 </button>
               </div>
             </div>
+            <p v-if="referralError" class="text-xs text-red-500 mt-1">{{ referralError }}</p>
+            <p v-else class="text-xs text-stone-400 mt-1">Укажите, кто порекомендовал наши препараты</p>
           </div>
 
           <!-- Error -->
@@ -364,6 +396,32 @@
             {{ checkoutLoading ? 'Оформление...' : 'Подтвердить заказ' }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== ORDER SUCCESS MODAL ===== -->
+    <div v-if="showOrderSuccess" class="fixed inset-0 z-[70] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeOrderSuccess"></div>
+      <div class="relative bg-white rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+        <!-- Success icon -->
+        <div class="w-20 h-20 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <svg class="w-10 h-10 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 class="text-2xl font-bold text-stone-900 mb-2">Заказ оформлен!</h3>
+        <p class="text-stone-500 mb-5 leading-relaxed text-sm">Мы свяжемся с вами в ближайшее время для подтверждения и доставки</p>
+
+        <!-- Order code -->
+        <div class="bg-gradient-to-br from-brand-50 to-blue-50 border border-brand-100 rounded-2xl p-5 mb-6">
+          <p class="text-xs text-brand-500 font-semibold uppercase tracking-wider mb-2">Ваш код заказа</p>
+          <p class="text-5xl font-bold text-brand-700 tracking-[0.15em] mb-2">{{ orderSuccessCode }}</p>
+          <p class="text-xs text-stone-400">Сообщите этот код при получении заказа</p>
+        </div>
+
+        <button @click="closeOrderSuccess" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold">
+          Отлично, понял!
+        </button>
       </div>
     </div>
   </Teleport>
@@ -458,8 +516,14 @@ const showCheckout = ref(false)
 const checkoutLoading = ref(false)
 const checkoutError = ref('')
 const locationError = ref('')
+const referralError = ref('')
 const gpsLoading = ref(false)
 const showMap = ref(false)
+const locationConfirmed = ref(false)
+
+// Order success
+const showOrderSuccess = ref(false)
+const orderSuccessCode = ref('')
 
 const checkoutForm = ref({
   address: '',
@@ -493,9 +557,21 @@ function hideReferralDropdown() {
   setTimeout(() => { showReferralDropdown.value = false }, 150)
 }
 
-function selectReferral(val) {
-  referralInput.value = val
+function selectReferral(val, isDoctor = false) {
+  referralInput.value = isDoctor ? ('Доктор: ' + val) : val
+  referralError.value = ''
   showReferralDropdown.value = false
+}
+
+function confirmLocation() {
+  if (!checkoutForm.value.lat || !checkoutForm.value.lng) {
+    locationError.value = 'Выберите точку на карте'
+    return
+  }
+  locationConfirmed.value = true
+  locationError.value = ''
+  destroyMap()
+  showMap.value = false
 }
 
 async function loadDoctors() {
@@ -640,23 +716,38 @@ function openCheckout() {
   }
   checkoutError.value = ''
   locationError.value = ''
+  referralError.value = ''
   checkoutForm.value = { address: '', lat: 0, lng: 0 }
   referralInput.value = ''
   showMap.value = false
+  locationConfirmed.value = false
   destroyMap()
   loadDoctors()
   showCheckout.value = true
 }
 
+function closeOrderSuccess() {
+  showOrderSuccess.value = false
+  orderSuccessCode.value = ''
+  switchTab('orders')
+  loadOrders()
+}
+
 async function submitOrder() {
   checkoutError.value = ''
   locationError.value = ''
+  referralError.value = ''
 
   const hasAddress = checkoutForm.value.address.trim().length > 0
   const hasCoords = checkoutForm.value.lat !== 0 && checkoutForm.value.lng !== 0
 
   if (!hasAddress && !hasCoords) {
     locationError.value = 'Укажите адрес доставки или выберите точку на карте'
+    return
+  }
+
+  if (!referralInput.value.trim()) {
+    referralError.value = 'Укажите, откуда вы узнали о нас — это обязательное поле'
     return
   }
 
@@ -668,7 +759,7 @@ async function submitOrder() {
       unit_type: item.unit_type || 'pack'
     }))
 
-    await api.post('/orders', {
+    const res = await api.post('/orders', {
       items,
       phone: authStore.user.phone,
       delivery_address: checkoutForm.value.address.trim(),
@@ -680,8 +771,8 @@ async function submitOrder() {
     cartStore.clear()
     showCheckout.value = false
     destroyMap()
-    switchTab('orders')
-    await loadOrders()
+    orderSuccessCode.value = res.data?.order_code || ''
+    showOrderSuccess.value = true
   } catch (e) {
     checkoutError.value = e.response?.data?.error || 'Ошибка при оформлении заказа'
   } finally {

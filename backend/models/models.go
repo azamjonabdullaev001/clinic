@@ -15,6 +15,7 @@ type User struct {
 type Doctor struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	Name      string    `gorm:"not null" json:"name"`
+	Specialty string    `json:"specialty"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

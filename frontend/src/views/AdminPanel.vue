@@ -154,7 +154,7 @@
                   </svg>
                   <span class="text-xs text-teal-700">{{ order.delivery_address }}</span>
                 </div>
-                <div v-if="order.latitude && order.longitude" class="mt-1">
+                <div v-if="order.latitude && order.longitude" class="mt-1 flex items-center gap-2 flex-wrap">
                   <a
                     :href="`https://www.openstreetmap.org/?mlat=${order.latitude}&mlon=${order.longitude}#map=15/${order.latitude}/${order.longitude}`"
                     target="_blank"
@@ -162,8 +162,15 @@
                     class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                   >
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                    Открыть на карте
+                    На карте
                   </a>
+                  <button
+                    @click="openRouteModal(order)"
+                    class="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-800 font-medium transition-colors"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    Маршрут
+                  </button>
                 </div>
                 <div v-if="order.referred_by" class="mt-1 flex items-center gap-1">
                   <svg class="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -261,15 +268,22 @@
             <thead class="bg-gray-50 border-b">
               <tr>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Имя доктора</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Специализация</th>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Добавлен</th>
                 <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="doc in doctors" :key="doc.id" class="hover:bg-gray-50 transition">
-                <td class="px-5 py-3 font-medium text-gray-800 flex items-center gap-2">
-                  <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                  {{ doc.name }}
+                <td class="px-5 py-3 font-medium text-gray-800">
+                  <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    {{ doc.name }}
+                  </div>
+                </td>
+                <td class="px-5 py-3">
+                  <span v-if="doc.specialty" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">{{ doc.specialty }}</span>
+                  <span v-else class="text-gray-400 text-sm">—</span>
                 </td>
                 <td class="px-5 py-3 text-gray-500 text-sm">{{ new Date(doc.created_at).toLocaleDateString('ru-RU') }}</td>
                 <td class="px-5 py-3 text-right">
@@ -279,7 +293,7 @@
                 </td>
               </tr>
               <tr v-if="doctors.length === 0">
-                <td colspan="3" class="px-5 py-12 text-center text-gray-400">
+                <td colspan="4" class="px-5 py-12 text-center text-gray-400">
                   <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -704,6 +718,12 @@
               <input v-model="doctorName" type="text" required placeholder="Например: Абдурахман Каримов"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Специализация</label>
+              <input v-model="doctorSpecialty" type="text" placeholder="Например: Невролог, Кардиолог, Гинеколог..."
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
+              <p class="text-xs text-gray-400 mt-1">Укажите специальность врача (необязательно)</p>
+            </div>
             <div v-if="doctorError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ doctorError }}</div>
             <div class="flex gap-3">
               <button type="button" @click="showDoctorModal = false"
@@ -965,11 +985,40 @@
 
     <!-- Image upload hidden input (for table button) -->
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
+
+    <!-- Route Modal -->
+    <div v-if="showRouteModal" class="fixed inset-0 z-[60] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeRouteModal"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">Маршрут доставки</h3>
+            <p v-if="routeOrder" class="text-sm text-gray-500">Заказ {{ routeOrder.order_code }} · {{ routeOrder.delivery_address }}</p>
+          </div>
+          <button @click="closeRouteModal" class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div v-if="routeLoading" class="flex items-center justify-center" style="height: 420px">
+          <div class="text-center text-gray-400">
+            <div class="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p class="text-sm">Построение маршрута...</p>
+          </div>
+        </div>
+        <div v-show="!routeLoading" style="height: 420px">
+          <div id="admin-route-map" style="height: 100%; width: 100%;"></div>
+        </div>
+        <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-center gap-1">
+          <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Дорожный маршрут от аптеки до адреса доставки
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { Chart, registerables } from 'chart.js'
@@ -1576,6 +1625,7 @@ async function aSubmitOfflineSale() {
 const doctors = ref([])
 const showDoctorModal = ref(false)
 const doctorName = ref('')
+const doctorSpecialty = ref('')
 const doctorError = ref('')
 const savingDoctor = ref(false)
 
@@ -1591,9 +1641,13 @@ async function saveDoctor() {
   doctorError.value = ''
   savingDoctor.value = true
   try {
-    await api.post('/admin/doctors', { name: doctorName.value.trim() })
+    await api.post('/admin/doctors', {
+      name: doctorName.value.trim(),
+      specialty: doctorSpecialty.value.trim(),
+    })
     showDoctorModal.value = false
     doctorName.value = ''
+    doctorSpecialty.value = ''
     await loadDoctors()
   } catch (e) {
     doctorError.value = e.response?.data?.error || 'Ошибка'
@@ -1699,6 +1753,107 @@ async function deleteNews(id) {
     await loadNews()
   } catch { alert('Ошибка при удалении') }
 }
+
+// Route modal
+const showRouteModal = ref(false)
+const routeOrder = ref(null)
+const routeLoading = ref(false)
+let routeLeafletMap = null
+
+async function openRouteModal(order) {
+  routeOrder.value = order
+  showRouteModal.value = true
+  routeLoading.value = true
+  await nextTick()
+  await buildRouteMap(order)
+}
+
+function closeRouteModal() {
+  showRouteModal.value = false
+  routeOrder.value = null
+  if (routeLeafletMap) {
+    routeLeafletMap.remove()
+    routeLeafletMap = null
+  }
+}
+
+async function buildRouteMap(order) {
+  const L = await import('leaflet')
+  await import('leaflet/dist/leaflet.css')
+
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  })
+
+  const mapEl = document.getElementById('admin-route-map')
+  if (!mapEl) { routeLoading.value = false; return }
+
+  // Pharmacy starting point (Andijan area)
+  const startLat = 40.9983
+  const startLng = 71.6726
+  const destLat = order.latitude
+  const destLng = order.longitude
+
+  if (routeLeafletMap) {
+    routeLeafletMap.remove()
+    routeLeafletMap = null
+  }
+
+  routeLeafletMap = L.map('admin-route-map').setView(
+    [(startLat + destLat) / 2, (startLng + destLng) / 2], 13
+  )
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(routeLeafletMap)
+
+  // Pharmacy marker (green)
+  const pharmacyIcon = L.divIcon({
+    html: `<div style="background:#059669;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
+    className: '',
+    iconAnchor: [7, 7],
+  })
+  L.marker([startLat, startLng], { icon: pharmacyIcon })
+    .addTo(routeLeafletMap)
+    .bindPopup('<b>Аптека (отправная точка)</b>')
+
+  // Customer marker (red)
+  L.marker([destLat, destLng])
+    .addTo(routeLeafletMap)
+    .bindPopup(`<b>Адрес доставки</b><br>${order.delivery_address || ''}`)
+    .openPopup()
+
+  // Fetch road route from OSRM
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${destLng},${destLat}?overview=full&geometries=geojson`
+    const res = await fetch(url)
+    const data = await res.json()
+    if (data.routes && data.routes.length > 0) {
+      const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
+      const polyline = L.polyline(coords, { color: '#0d9488', weight: 4, opacity: 0.85 }).addTo(routeLeafletMap)
+      routeLeafletMap.fitBounds(polyline.getBounds(), { padding: [30, 30] })
+    } else {
+      // Fallback: straight line
+      const line = L.polyline([[startLat, startLng], [destLat, destLng]], { color: '#6366f1', weight: 3, dashArray: '6 4' }).addTo(routeLeafletMap)
+      routeLeafletMap.fitBounds(line.getBounds(), { padding: [30, 30] })
+    }
+  } catch {
+    // Fallback: straight line
+    const line = L.polyline([[startLat, startLng], [destLat, destLng]], { color: '#6366f1', weight: 3, dashArray: '6 4' }).addTo(routeLeafletMap)
+    routeLeafletMap.fitBounds(line.getBounds(), { padding: [30, 30] })
+  }
+
+  routeLoading.value = false
+}
+
+onUnmounted(() => {
+  if (routeLeafletMap) {
+    routeLeafletMap.remove()
+    routeLeafletMap = null
+  }
+})
 
 watch(activeTab, (tab) => {
   if (tab === 'analytics' && !analyticsData.value) {

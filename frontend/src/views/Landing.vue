@@ -146,6 +146,57 @@
       </div>
     </section>
 
+    <!-- Latest News -->
+    <section v-if="latestNews.length > 0" id="news" class="py-20 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 reveal">
+          <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-semibold tracking-widest uppercase mb-4">
+            <span class="w-8 h-px bg-brand-400"></span>
+            {{ t.nav_news || 'Новости' }}
+            <span class="w-8 h-px bg-brand-400"></span>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold text-stone-900 mb-3">{{ t.news_title || 'Последние новости' }}</h2>
+          <p class="text-stone-500 text-lg max-w-xl mx-auto">{{ t.news_subtitle || 'Актуальные события и обновления' }}</p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <article
+            v-for="post in latestNews"
+            :key="post.id"
+            class="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300 reveal"
+          >
+            <div v-if="post.images && post.images.length > 0" class="h-48 overflow-hidden">
+              <img :src="post.images[0].image_path" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+            </div>
+            <div v-else-if="post.image_path" class="h-48 overflow-hidden">
+              <img :src="post.image_path" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+            </div>
+            <div v-else-if="post.video_url" class="h-48 bg-brand-50 flex items-center justify-center">
+              <svg class="w-12 h-12 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z"/>
+              </svg>
+            </div>
+            <div class="p-5">
+              <p class="text-xs text-stone-400 mb-2">{{ new Date(post.created_at).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
+              <h3 class="font-bold text-stone-900 mb-2 leading-snug text-base">{{ post.title }}</h3>
+              <p v-if="post.description" class="text-stone-500 text-sm leading-relaxed line-clamp-3">{{ post.description }}</p>
+            </div>
+          </article>
+        </div>
+
+        <div class="text-center mt-10">
+          <router-link
+            to="/news"
+            class="inline-flex items-center gap-2 border border-brand-200 text-brand-700 px-7 py-3 rounded-full font-semibold hover:bg-brand-50 hover:border-brand-400 transition-all duration-300 group"
+          >
+            {{ t.news_all || 'Все новости' }}
+            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </router-link>
+        </div>
+      </div>
+    </section>
+
     <!-- Products -->
     <section id="products" class="py-24 bg-gradient-to-b from-white via-surface-warm to-surface relative">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -263,6 +314,7 @@ const products = ref([])
 const loading = ref(true)
 const showSuccess = ref(false)
 const lastOrderCode = ref('')
+const latestNews = ref([])
 
 const patientPhotos = [
   'photo_2026-04-21_23-34-03.jpg',
@@ -366,6 +418,11 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  try {
+    const newsRes = await axios.get('/api/news')
+    latestNews.value = (newsRes.data || []).slice(0, 3)
+  } catch { /* ignore */ }
 
   await nextTick()
   setupObserver()
