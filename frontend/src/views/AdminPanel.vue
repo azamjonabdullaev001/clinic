@@ -177,18 +177,9 @@
                   <span class="text-xs text-purple-700">Рекомендовал: {{ order.referred_by }}</span>
                 </div>
               </div>
-              <select
-                :value="order.status"
-                @change="updateOrderStatus(order.id, $event.target.value)"
-                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                <option value="pending">Ожидает</option>
-                <option value="confirmed">Подтверждён</option>
-                <option value="shipped">Отправлен</option>
-                <option value="in_transit">В пути</option>
-                <option value="delivered">Доставлен</option>
-                <option value="cancelled">Отменён</option>
-              </select>
+              <span :class="statusClass(order.status)" class="text-xs font-semibold px-3 py-1.5 rounded-full">
+                {{ statusLabel(order.status) }}
+              </span>
             </div>
 
             <div class="border-t pt-4 space-y-2">
@@ -273,25 +264,73 @@
                 <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="doc in doctors" :key="doc.id" class="hover:bg-gray-50 transition">
-                <td class="px-5 py-3 font-medium text-gray-800">
-                  <div class="flex items-center gap-2">
-                    <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    {{ doc.name }}
-                  </div>
-                </td>
-                <td class="px-5 py-3">
-                  <span v-if="doc.specialty" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">{{ doc.specialty }}</span>
-                  <span v-else class="text-gray-400 text-sm">—</span>
-                </td>
-                <td class="px-5 py-3 text-gray-500 text-sm">{{ new Date(doc.created_at).toLocaleDateString('ru-RU') }}</td>
-                <td class="px-5 py-3 text-right">
-                  <button @click="deleteDoctor(doc.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  </button>
-                </td>
-              </tr>
+            <tbody>
+              <template v-for="doc in doctors" :key="doc.id">
+                <tr class="hover:bg-gray-50 transition border-b border-gray-100">
+                  <td class="px-5 py-3 font-medium text-gray-800">
+                    <div class="flex items-center gap-2">
+                      <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                      {{ doc.name }}
+                    </div>
+                  </td>
+                  <td class="px-5 py-3">
+                    <span v-if="doc.specialty" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">{{ doc.specialty }}</span>
+                    <span v-else class="text-gray-400 text-sm">—</span>
+                  </td>
+                  <td class="px-5 py-3 text-gray-500 text-sm">{{ new Date(doc.created_at).toLocaleDateString('ru-RU') }}</td>
+                  <td class="px-5 py-3 text-right">
+                    <div class="flex items-center justify-end gap-1">
+                      <button @click="toggleDoctorStats(doc)" class="p-2 rounded-lg transition"
+                        :class="expandedDoctorId === doc.id ? 'text-purple-600 bg-purple-50' : 'text-gray-400 hover:bg-gray-100'"
+                        title="Статистика продаж">
+                        <svg class="w-4 h-4 transition-transform duration-200" :class="expandedDoctorId === doc.id ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                      </button>
+                      <button @click="openEditDoctorModal(doc)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" title="Редактировать">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button @click="deleteDoctor(doc.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <!-- Stats expand row -->
+                <tr v-if="expandedDoctorId === doc.id" class="bg-purple-50/40">
+                  <td colspan="4" class="px-5 py-4">
+                    <div v-if="doctorStatsLoading" class="flex items-center gap-2 text-sm text-gray-400 py-2">
+                      <div class="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+                      Загрузка статистики...
+                    </div>
+                    <div v-else-if="doctorStats">
+                      <div class="flex items-center gap-3 mb-3">
+                        <span class="text-sm font-semibold text-purple-800">{{ doctorStats.doctor.name }}</span>
+                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">{{ doctorStats.total_orders }} заказ(ов)</span>
+                      </div>
+                      <div v-if="doctorStats.products && doctorStats.products.length > 0" class="overflow-x-auto rounded-xl border border-purple-100">
+                        <table class="w-full text-sm">
+                          <thead class="bg-purple-100/60">
+                            <tr>
+                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
+                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Упаковок</th>
+                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
+                              <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Выручка</th>
+                            </tr>
+                          </thead>
+                          <tbody class="divide-y divide-purple-100">
+                            <tr v-for="p in doctorStats.products" :key="p.product_id" class="hover:bg-purple-50 transition">
+                              <td class="px-4 py-2 font-medium text-gray-800">{{ p.product_name }}</td>
+                              <td class="px-4 py-2 text-gray-600">{{ p.total_packs }} упак.</td>
+                              <td class="px-4 py-2 text-gray-600">{{ p.total_pieces }} шт</td>
+                              <td class="px-4 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }} сўм</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <p v-else class="text-sm text-gray-400 py-2">Продаж по этому доктору ещё нет</p>
+                    </div>
+                  </td>
+                </tr>
+              </template>
               <tr v-if="doctors.length === 0">
                 <td colspan="4" class="px-5 py-12 text-center text-gray-400">
                   <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -704,6 +743,35 @@
               </button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Edit Doctor Modal -->
+      <div v-if="showEditDoctorModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showEditDoctorModal = false"></div>
+        <div class="relative bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+          <h3 class="text-xl font-bold text-gray-800 mb-5">Редактировать доктора</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Имя доктора <span class="text-red-400">*</span></label>
+              <input v-model="editDoctorForm.name" type="text" required placeholder="Например: Абдурахман Каримов"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Специализация</label>
+              <input v-model="editDoctorForm.specialty" type="text" placeholder="Например: Невролог, Кардиолог..."
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+            </div>
+            <div v-if="editDoctorError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ editDoctorError }}</div>
+            <div class="flex gap-3">
+              <button type="button" @click="showEditDoctorModal = false"
+                class="flex-1 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium">Отмена</button>
+              <button @click="saveEditDoctor" :disabled="savingEditDoctor"
+                class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">
+                {{ savingEditDoctor ? 'Сохранение...' : 'Сохранить' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1629,6 +1697,18 @@ const doctorSpecialty = ref('')
 const doctorError = ref('')
 const savingDoctor = ref(false)
 
+// Edit doctor
+const showEditDoctorModal = ref(false)
+const editingDoctorId = ref(null)
+const editDoctorForm = reactive({ name: '', specialty: '' })
+const editDoctorError = ref('')
+const savingEditDoctor = ref(false)
+
+// Doctor stats expand
+const expandedDoctorId = ref(null)
+const doctorStats = ref(null)
+const doctorStatsLoading = ref(false)
+
 async function loadDoctors() {
   try {
     const res = await api.get('/admin/doctors')
@@ -1660,8 +1740,51 @@ async function deleteDoctor(id) {
   if (!confirm('Удалить этого доктора?')) return
   try {
     await api.delete(`/admin/doctors/${id}`)
+    if (expandedDoctorId.value === id) expandedDoctorId.value = null
     await loadDoctors()
   } catch { alert('Ошибка при удалении') }
+}
+
+function openEditDoctorModal(doc) {
+  editingDoctorId.value = doc.id
+  editDoctorForm.name = doc.name
+  editDoctorForm.specialty = doc.specialty || ''
+  editDoctorError.value = ''
+  showEditDoctorModal.value = true
+}
+
+async function saveEditDoctor() {
+  if (!editDoctorForm.name.trim()) return
+  editDoctorError.value = ''
+  savingEditDoctor.value = true
+  try {
+    await api.put(`/admin/doctors/${editingDoctorId.value}`, {
+      name: editDoctorForm.name.trim(),
+      specialty: editDoctorForm.specialty.trim(),
+    })
+    showEditDoctorModal.value = false
+    await loadDoctors()
+  } catch (e) {
+    editDoctorError.value = e.response?.data?.error || 'Ошибка'
+  } finally {
+    savingEditDoctor.value = false
+  }
+}
+
+async function toggleDoctorStats(doc) {
+  if (expandedDoctorId.value === doc.id) {
+    expandedDoctorId.value = null
+    doctorStats.value = null
+    return
+  }
+  expandedDoctorId.value = doc.id
+  doctorStats.value = null
+  doctorStatsLoading.value = true
+  try {
+    const res = await api.get(`/admin/doctors/${doc.id}/stats`)
+    doctorStats.value = res.data
+  } catch { doctorStats.value = { doctor: doc, total_orders: 0, products: [] } }
+  finally { doctorStatsLoading.value = false }
 }
 
 async function deleteProductComment(id) {
@@ -1777,6 +1900,27 @@ function closeRouteModal() {
   }
 }
 
+// Pharmacy coordinates cache (Andijan, Hodja 27)
+let pharmacyCoords = null
+
+async function getPharmacyCoords() {
+  if (pharmacyCoords) return pharmacyCoords
+  try {
+    const res = await fetch(
+      'https://nominatim.openstreetmap.org/search?q=%D1%83%D0%BB%D0%B8%D1%86%D0%B0+%D0%A5%D0%BE%D0%B4%D0%B6%D0%B0+27%2C+%D0%90%D0%BD%D0%B4%D0%B8%D0%B6%D0%B0%D0%BD%2C+%D0%A3%D0%B7%D0%B1%D0%B5%D0%BA%D0%B8%D1%81%D1%82%D0%B0%D0%BD&format=json&limit=1',
+      { headers: { 'Accept-Language': 'ru' } }
+    )
+    const data = await res.json()
+    if (data && data.length > 0) {
+      pharmacyCoords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+      return pharmacyCoords
+    }
+  } catch { /* ignore */ }
+  // Fallback: Andijan city center
+  pharmacyCoords = { lat: 40.7821, lng: 72.3442 }
+  return pharmacyCoords
+}
+
 async function buildRouteMap(order) {
   const L = await import('leaflet')
   await import('leaflet/dist/leaflet.css')
@@ -1791,9 +1935,10 @@ async function buildRouteMap(order) {
   const mapEl = document.getElementById('admin-route-map')
   if (!mapEl) { routeLoading.value = false; return }
 
-  // Pharmacy starting point (Andijan area)
-  const startLat = 40.9983
-  const startLng = 71.6726
+  // Pharmacy starting point: улица Ходжа 27, Андижан
+  const pharmacy = await getPharmacyCoords()
+  const startLat = pharmacy.lat
+  const startLng = pharmacy.lng
   const destLat = order.latitude
   const destLng = order.longitude
 
@@ -1817,7 +1962,7 @@ async function buildRouteMap(order) {
   })
   L.marker([startLat, startLng], { icon: pharmacyIcon })
     .addTo(routeLeafletMap)
-    .bindPopup('<b>Аптека (отправная точка)</b>')
+    .bindPopup('<b>Аптека</b><br>ул. Ходжа 27, Андижан')
 
   // Customer marker (red)
   L.marker([destLat, destLng])

@@ -147,7 +147,7 @@
     </section>
 
     <!-- Latest News -->
-    <section v-if="latestNews.length > 0" id="news" class="py-20 bg-white">
+    <section id="news" class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12 reveal">
           <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-semibold tracking-widest uppercase mb-4">
@@ -159,7 +159,21 @@
           <p class="text-stone-500 text-lg max-w-xl mx-auto">{{ t.news_subtitle || 'Актуальные события и обновления' }}</p>
         </div>
 
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Loading -->
+        <div v-if="newsLoading" class="flex justify-center py-10">
+          <div class="w-8 h-8 border-[3px] border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="latestNews.length === 0" class="text-center py-12 text-stone-400">
+          <svg class="w-12 h-12 mx-auto mb-3 text-stone-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+          </svg>
+          <p class="text-base font-medium">Новостей пока нет</p>
+        </div>
+
+        <!-- News grid -->
+        <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <article
             v-for="post in latestNews"
             :key="post.id"
@@ -315,6 +329,7 @@ const loading = ref(true)
 const showSuccess = ref(false)
 const lastOrderCode = ref('')
 const latestNews = ref([])
+const newsLoading = ref(true)
 
 const patientPhotos = [
   'photo_2026-04-21_23-34-03.jpg',
@@ -422,7 +437,9 @@ onMounted(async () => {
   try {
     const newsRes = await axios.get('/api/news')
     latestNews.value = (newsRes.data || []).slice(0, 3)
-  } catch { /* ignore */ }
+  } catch { /* ignore */ } finally {
+    newsLoading.value = false
+  }
 
   await nextTick()
   setupObserver()

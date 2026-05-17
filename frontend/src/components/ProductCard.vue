@@ -69,35 +69,36 @@
         class="fixed inset-0 z-[100] bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4"
         @click.self="closeDescription"
       >
-        <div class="w-[96vw] h-[92vh] bg-white rounded-3xl shadow-2xl border border-stone-100 p-4 sm:p-6 lg:p-8 overflow-hidden">
+        <div class="w-[96vw] max-h-[92vh] bg-white rounded-3xl shadow-2xl border border-stone-100 p-4 sm:p-6 lg:p-8 overflow-y-auto">
         <div class="flex items-start justify-between gap-4 mb-5">
           <h4 class="text-base sm:text-lg font-bold text-stone-900">{{ t.product_description }}</h4>
           <button
             @click="closeDescription"
-            class="text-xs font-semibold text-stone-500 hover:text-stone-700"
+            class="text-xs font-semibold text-stone-500 hover:text-stone-700 flex-shrink-0"
           >
             {{ t.product_close }}
           </button>
         </div>
 
-        <div class="grid lg:grid-cols-2 gap-5 lg:gap-8 h-[calc(100%-52px)]">
+        <div class="grid lg:grid-cols-2 gap-5 lg:gap-8">
           <div
-            class="rounded-2xl overflow-hidden bg-stone-100 min-h-56 h-full transition-all duration-700 ease-out"
+            class="rounded-2xl overflow-hidden bg-stone-100 transition-all duration-700 ease-out"
             :class="animatePanel ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'"
+            style="height: 260px;"
           >
             <img
               v-if="product.image_path"
               :src="product.image_path"
               :alt="product.name"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-contain"
             />
-            <div v-else class="w-full h-full min-h-56 flex items-center justify-center text-stone-400 text-sm">
+            <div v-else class="w-full h-full flex items-center justify-center text-stone-400 text-sm">
               {{ t.no_photo }}
             </div>
           </div>
 
           <div
-            class="flex flex-col h-full transition-all duration-700 ease-out"
+            class="flex flex-col transition-all duration-700 ease-out"
             :class="animatePanel ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'"
           >
             <h5 class="text-3xl lg:text-4xl font-black text-stone-900 mb-2 uppercase tracking-wide">{{ product.name }}</h5>

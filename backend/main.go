@@ -74,7 +74,9 @@ func main() {
 				protected.DELETE("/products/:id/comment", handlers.DeleteProductComment)
 				protected.GET("/doctors", handlers.GetDoctors)
 				protected.POST("/doctors", handlers.CreateDoctor)
+				protected.PUT("/doctors/:id", handlers.UpdateDoctor)
 				protected.DELETE("/doctors/:id", handlers.DeleteDoctor)
+				protected.GET("/doctors/:id/stats", handlers.GetDoctorStats)
 			}
 		}
 
