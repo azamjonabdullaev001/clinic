@@ -94,58 +94,6 @@
 
     <DoctorSection />
 
-    <!-- Patients Photos Carousel -->
-    <section id="patients" class="py-24 bg-gray-50 overflow-hidden">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-14">
-        <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-semibold tracking-widest uppercase mb-4">
-          <span class="w-8 h-px bg-brand-400"></span>
-          {{ t.patients_label }}
-          <span class="w-8 h-px bg-brand-400"></span>
-        </div>
-        <h2 class="text-3xl md:text-4xl font-bold text-stone-900 mb-4">{{ t.patients_title }}</h2>
-        <p class="text-stone-500 text-lg max-w-xl mx-auto">{{ t.patients_subtitle }}</p>
-      </div>
-
-      <!-- Auto-loop gallery -->
-      <div class="relative overflow-hidden">
-        <!-- Left gradient fade -->
-        <div class="absolute left-0 top-0 bottom-0 w-16 lg:w-28 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"></div>
-        <!-- Right gradient fade -->
-        <div class="absolute right-0 top-0 bottom-0 w-16 lg:w-28 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"></div>
-
-        <div
-          ref="patientsScroller"
-          class="overflow-x-auto px-3 sm:px-6 pb-4 cursor-grab active:cursor-grabbing select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          @wheel.passive="pauseAutoScroll"
-          @scroll.passive="handleInfiniteScroll"
-          @mousedown="onDragStart"
-          @mousemove="onDragMove"
-          @mouseup="onDragEnd"
-          @mouseleave="onDragEnd"
-          @touchstart="onDragStart"
-          @touchmove="onDragMove"
-          @touchend="onDragEnd"
-        >
-          <div class="flex gap-5 w-max">
-            <template v-for="rep in 2" :key="rep">
-              <div
-                v-for="(photo, idx) in patientPhotos"
-                :key="`${rep}-${photo}`"
-                class="shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg group cursor-pointer"
-              >
-                <img
-                  :src="`/images/patients/${photo}`"
-                  :alt="`Фото с пациентом ${idx + 1}`"
-                  class="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                  draggable="false"
-                />
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Latest News Carousel -->
     <section id="news" class="py-20 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -471,75 +419,10 @@ function restartNewsTimer() {
   startNewsTimer()
 }
 
-const patientPhotos = [
-  'photo_2026-04-21_23-34-03.jpg',
-  'photo_2026-04-21_23-34-31.jpg',
-  'photo_2026-04-21_23-34-39.jpg',
-  'photo_2026-04-21_23-34-44.jpg',
-  'photo_2026-04-21_23-34-52.jpg',
-  'photo_2026-04-21_23-34-57.jpg',
-  'photo_2026-04-21_23-35-02.jpg',
-  'photo_2026-04-21_23-35-10.jpg',
-]
-
-const AUTO_SCROLL_PAUSE_MS = 3000
-const AUTO_SCROLL_SPEED = 0.55
-
 // Scroll reveal refs
 const productsHeader = ref(null)
 const ctaSection = ref(null)
 const productRefs = ref({})
-const patientsScroller = ref(null)
-
-const dragState = {
-  active: false,
-  startX: 0,
-  scrollLeft: 0,
-}
-
-let observer = null
-let autoScrollRaf = null
-let autoScrollResumeTimer = null
-const autoScrollPaused = ref(false)
-
-function startAutoScroll() {
-  const step = () => {
-    const scroller = patientsScroller.value
-    if (scroller && !autoScrollPaused.value) {
-      const loopWidth = scroller.scrollWidth / 2
-      if (loopWidth > 0) {
-        scroller.scrollLeft += AUTO_SCROLL_SPEED
-        if (scroller.scrollLeft >= loopWidth) {
-          scroller.scrollLeft -= loopWidth
-        }
-      }
-    }
-    autoScrollRaf = requestAnimationFrame(step)
-  }
-
-  if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf)
-  autoScrollRaf = requestAnimationFrame(step)
-}
-
-function pauseAutoScroll() {
-  autoScrollPaused.value = true
-  if (autoScrollResumeTimer) clearTimeout(autoScrollResumeTimer)
-  autoScrollResumeTimer = setTimeout(() => {
-    autoScrollPaused.value = false
-  }, AUTO_SCROLL_PAUSE_MS)
-}
-
-function handleInfiniteScroll() {
-  const scroller = patientsScroller.value
-  if (!scroller) return
-
-  const loopWidth = scroller.scrollWidth / 2
-  if (loopWidth <= 0) return
-
-  if (scroller.scrollLeft >= loopWidth) {
-    scroller.scrollLeft -= loopWidth
-  }
-}
 
 function setupObserver() {
   observer = new IntersectionObserver(
@@ -584,40 +467,12 @@ onMounted(async () => {
 
   await nextTick()
   setupObserver()
-  startAutoScroll()
 })
 
 onUnmounted(() => {
   if (observer) observer.disconnect()
-  if (autoScrollRaf) cancelAnimationFrame(autoScrollRaf)
-  if (autoScrollResumeTimer) clearTimeout(autoScrollResumeTimer)
   if (newsTimer) clearInterval(newsTimer)
 })
 
-function getClientX(event) {
-  if ('touches' in event && event.touches.length > 0) return event.touches[0].clientX
-  if ('changedTouches' in event && event.changedTouches.length > 0) return event.changedTouches[0].clientX
-  return event.clientX
-}
-
-function onDragStart(event) {
-  if (!patientsScroller.value) return
-  pauseAutoScroll()
-  dragState.active = true
-  dragState.startX = getClientX(event)
-  dragState.scrollLeft = patientsScroller.value.scrollLeft
-}
-
-function onDragMove(event) {
-  if (!dragState.active || !patientsScroller.value) return
-  const currentX = getClientX(event)
-  const walk = currentX - dragState.startX
-  patientsScroller.value.scrollLeft = dragState.scrollLeft - walk
-}
-
-function onDragEnd() {
-  dragState.active = false
-  pauseAutoScroll()
-}
 
 </script>
