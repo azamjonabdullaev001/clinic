@@ -20,10 +20,6 @@
             {{ t.nav_specialist }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <a href="/#patients" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
-            {{ t.nav_patients }}
-            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
-          </a>
           <a href="/#products" class="relative text-sm font-medium text-stone-500 hover:text-brand-700 px-4 py-2 rounded-xl hover:bg-brand-50/60 transition-all duration-300 group">
             {{ t.nav_products }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
@@ -201,10 +197,6 @@
       <a href="/#doctor" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
         {{ t.nav_specialist }}
-      </a>
-      <a href="/#patients" @click="mobileMenuOpen = false"
-         class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
-        {{ t.nav_patients }}
       </a>
       <a href="/#products" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-stone-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50/60 transition-all duration-200">
