@@ -423,6 +423,7 @@ function restartNewsTimer() {
 const productsHeader = ref(null)
 const ctaSection = ref(null)
 const productRefs = ref({})
+let observer = null
 
 function setupObserver() {
   observer = new IntersectionObserver(
