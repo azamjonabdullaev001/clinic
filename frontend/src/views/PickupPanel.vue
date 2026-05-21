@@ -20,7 +20,146 @@
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-12 space-y-6">
 
-      <!-- Offline sale section -->
+      <!-- ===== OFFLINE (Nurse) Order Section ===== -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b flex items-center gap-3">
+          <div class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 class="font-bold text-gray-800">{{ txt.nurse_section }}</h2>
+        </div>
+        <div class="px-6 py-5">
+          <p class="text-sm text-gray-500 mb-4">{{ txt.nurse_desc }}</p>
+          <div class="flex gap-3">
+            <input
+              v-model="nurseCode"
+              type="text"
+              maxlength="5"
+              :placeholder="txt.nurse_placeholder"
+              class="flex-1 border-2 border-gray-300 rounded-xl px-5 py-4 text-3xl font-bold tracking-[0.4em] text-center focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-400 transition"
+              @keyup.enter="searchNurseOrder"
+            />
+            <button
+              @click="searchNurseOrder"
+              :disabled="nurseCode.length < 5 || nurseSearching"
+              class="bg-teal-600 text-white px-7 py-4 rounded-xl hover:bg-teal-700 transition font-semibold text-base disabled:opacity-40"
+            >
+              {{ nurseSearching ? txt.searching : txt.find }}
+            </button>
+          </div>
+          <p v-if="nurseSearchError" class="mt-3 text-red-500 text-sm">{{ nurseSearchError }}</p>
+
+          <!-- Found nurse order -->
+          <div v-if="nurseOrder" class="mt-5 border-2 border-teal-200 rounded-xl p-5 bg-teal-50">
+            <div v-if="nurseConfirmed" class="text-center py-4">
+              <svg class="w-14 h-14 text-teal-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-xl font-bold text-teal-700">{{ txt.payment_success }}</p>
+              <button @click="resetNurse" class="mt-4 text-sm text-teal-600 underline hover:no-underline">{{ txt.new_search }}</button>
+            </div>
+            <template v-else>
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <p class="text-2xl font-bold tracking-[0.2em] text-teal-700 mb-1">{{ nurseOrder.order_code }}</p>
+                  <p class="font-semibold text-gray-800 text-lg">{{ nurseOrder.patient_first_name }} {{ nurseOrder.patient_last_name }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ new Date(nurseOrder.created_at).toLocaleString('ru-RU') }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs text-gray-400">{{ txt.total }}</p>
+                  <p class="text-2xl font-bold text-teal-700">{{ formatPrice(orderTotal(nurseOrder)) }} <span class="text-sm font-normal">{{ txt.sum }}</span></p>
+                </div>
+              </div>
+
+              <!-- Items display / edit mode -->
+              <div class="border-t border-teal-200 pt-3 mb-4">
+                <div v-if="!editingNurseItems">
+                  <!-- View mode -->
+                  <div class="space-y-1.5 mb-3">
+                    <div v-for="item in nurseOrder.items" :key="item.id" class="flex justify-between text-sm text-gray-700">
+                      <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span></span>
+                      <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
+                    </div>
+                  </div>
+                  <button @click="startEditItems"
+                    class="text-xs text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    {{ txt.edit_items }}
+                  </button>
+                </div>
+
+                <!-- Edit mode -->
+                <div v-else class="space-y-3">
+                  <!-- Existing editable items -->
+                  <div v-for="(item, idx) in editItems" :key="idx"
+                    class="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                    <span class="flex-1 text-sm font-medium text-gray-800 truncate">{{ item.name }}</span>
+                    <input v-model.number="item.quantity" type="number" min="1"
+                      class="w-16 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                    <select v-model="item.unit_type"
+                      class="w-24 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                      <option value="pack">{{ txt.pack }}</option>
+                      <option value="piece">{{ txt.piece }}</option>
+                    </select>
+                    <button @click="editItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 flex-shrink-0">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                  <!-- Add product row -->
+                  <div class="flex gap-2 items-end flex-wrap">
+                    <select v-model="editAddProductId"
+                      class="flex-1 min-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                      <option value="">{{ txt.select_product }}</option>
+                      <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+                    </select>
+                    <input v-model.number="editAddQty" type="number" min="1"
+                      class="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                    <select v-model="editAddUnit"
+                      class="w-24 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                      <option value="pack">{{ txt.pack }}</option>
+                      <option value="piece">{{ txt.piece }}</option>
+                    </select>
+                    <button @click="addEditItem" :disabled="!editAddProductId || editAddQty < 1"
+                      class="bg-teal-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-40">
+                      + {{ txt.add }}
+                    </button>
+                  </div>
+                  <!-- Save / cancel edit -->
+                  <div class="flex gap-2">
+                    <button @click="cancelEditItems"
+                      class="flex-1 border border-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                      {{ txt.cancel_edit }}
+                    </button>
+                    <button @click="saveEditItems" :disabled="savingEditItems || editItems.length === 0"
+                      class="flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-teal-700 transition disabled:opacity-40">
+                      {{ savingEditItems ? txt.saving_items : txt.save_items }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Name verification -->
+              <div v-if="!editingNurseItems" class="bg-white border border-teal-200 rounded-xl p-4 mb-4">
+                <p class="text-sm font-medium text-gray-700 mb-2">{{ txt.verify_name }}</p>
+                <input v-model="verifyName" type="text"
+                  class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                  :placeholder="txt.enter_patient_name" />
+                <p v-if="verifyError" class="mt-2 text-red-500 text-sm">{{ verifyError }}</p>
+              </div>
+
+              <button v-if="!editingNurseItems" @click="confirmNurseOrder"
+                :disabled="!verifyName.trim() || nurseConfirming"
+                class="w-full bg-teal-600 text-white py-4 rounded-xl hover:bg-teal-700 transition font-bold text-base disabled:opacity-40">
+                {{ nurseConfirming ? txt.confirming : txt.confirm_issue }}
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Direct Offline Sale (existing) ===== -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <button
           @click="offlineOpen = !offlineOpen"
@@ -386,11 +525,137 @@ import { useAuthStore, api } from '../stores/auth'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const lang = ref(localStorage.getItem('pickupLang') || 'ru')
+const watchLang = () => { localStorage.setItem('pickupLang', lang.value) }
+
+const texts = {
+  ru: {
+    title: 'Пункт выдачи',
+    logout: 'Выйти',
+    nurse_section: 'Выдача по коду медсестры (5 цифр)',
+    nurse_desc: 'Введите 5-значный код, который пациент получил от медсестры',
+    nurse_placeholder: 'XXXXX',
+    find: 'Найти',
+    searching: 'Поиск...',
+    verify_name: 'Подтвердите личность пациента',
+    enter_patient_name: 'Введите имя пациента',
+    confirm_issue: '✓ Выдать и подтвердить оплату',
+    confirming: 'Подтверждение...',
+    payment_success: 'Оплата прошла успешно!',
+    new_search: 'Новый поиск',
+    offline_sale: 'Прямая офлайн продажа',
+    search_online: 'Поиск онлайн заказа по коду',
+    enter_6_code: 'Введите 6-значный код',
+    all_orders: 'Все заказы',
+    refresh: 'Обновить',
+    product: 'Препарат',
+    select_product: 'Выберите препарат',
+    qty: 'Кол-во',
+    unit: 'Ед.',
+    pack: 'упак.',
+    piece: 'шт',
+    add: 'Добавить',
+    total: 'Итого',
+    sum: 'сўм',
+    buyer_name: 'Имя покупателя (необязательно)',
+    saving: 'Запись...',
+    record_sale: 'Записать продажу',
+    sale_recorded: 'Продажа записана. Код:',
+    confirm: 'Подтвердить',
+    in_transit: 'В пути',
+    deliver: 'Выдать',
+    cancel: 'Отменить',
+    write: 'Написать',
+    offline_badge: 'Офлайн',
+    positions: 'позиций',
+    no_orders: 'Нет заказов',
+    chat_with_client: 'Чат с клиентом',
+    loading: 'Загрузка...',
+    no_messages: 'Нет сообщений',
+    client: 'Клиент',
+    worker: 'Работник',
+    admin: 'Администратор',
+    type_message: 'Введите сообщение...',
+    status_pending: 'Ожидает',
+    status_confirmed: 'Подтверждён',
+    status_shipped: 'Отправлен',
+    status_in_transit: 'В пути',
+    status_delivered: 'Выдан',
+    status_cancelled: 'Отменён',
+    verify_error: 'Имя не совпадает. Проверьте данные пациента.',
+    edit_items: 'Редактировать товары',
+    save_items: 'Сохранить изменения',
+    saving_items: 'Сохранение...',
+    cancel_edit: 'Отмена',
+  },
+  uz: {
+    title: 'Berish punkti',
+    logout: 'Chiqish',
+    nurse_section: 'Hamshira kodi bo\'yicha berish (5 raqam)',
+    nurse_desc: 'Bemor hamshiradan olgan 5 raqamli kodni kiriting',
+    nurse_placeholder: 'XXXXX',
+    find: 'Topish',
+    searching: 'Qidirilmoqda...',
+    verify_name: 'Bemorning shaxsini tasdiqlang',
+    enter_patient_name: 'Bemorning ismini kiriting',
+    confirm_issue: '✓ Berish va to\'lovni tasdiqlash',
+    confirming: 'Tasdiqlanmoqda...',
+    payment_success: 'To\'lov muvaffaqiyatli o\'tkazildi!',
+    new_search: 'Yangi qidiruv',
+    offline_sale: 'To\'g\'ridan-to\'g\'ri oflayn sotuv',
+    search_online: 'Onlayn buyurtmani kod bo\'yicha qidirish',
+    enter_6_code: '6 raqamli kodni kiriting',
+    all_orders: 'Barcha buyurtmalar',
+    refresh: 'Yangilash',
+    product: 'Dori',
+    select_product: 'Dori tanlang',
+    qty: 'Miqdor',
+    unit: 'Birlik',
+    pack: 'quti',
+    piece: 'dona',
+    add: "Qo'shish",
+    total: 'Jami',
+    sum: "so'm",
+    buyer_name: 'Xaridor ismi (ixtiyoriy)',
+    saving: 'Saqlanmoqda...',
+    record_sale: 'Sotuvni yozish',
+    sale_recorded: 'Sotuv yozildi. Kod:',
+    confirm: 'Tasdiqlash',
+    in_transit: 'Yo\'lda',
+    deliver: 'Berish',
+    cancel: 'Bekor qilish',
+    write: 'Yozish',
+    offline_badge: 'Oflayn',
+    positions: 'ta mahsulot',
+    no_orders: "Buyurtmalar yo'q",
+    chat_with_client: 'Mijoz bilan suhbat',
+    loading: 'Yuklanmoqda...',
+    no_messages: "Xabarlar yo'q",
+    client: 'Mijoz',
+    worker: 'Xodim',
+    admin: 'Administrator',
+    type_message: 'Xabar kiriting...',
+    status_pending: 'Kutilmoqda',
+    status_confirmed: 'Tasdiqlangan',
+    status_shipped: 'Yuborilgan',
+    status_in_transit: "Yo'lda",
+    status_delivered: 'Berildi',
+    status_cancelled: 'Bekor qilindi',
+    verify_error: "Ism mos kelmadi. Bemorning ma'lumotlarini tekshiring.",
+    edit_items: "Mahsulotlarni tahrirlash",
+    save_items: "O'zgarishlarni saqlash",
+    saving_items: "Saqlanmoqda...",
+    cancel_edit: "Bekor qilish",
+  }
+}
+
+const txt = computed(() => {
+  watchLang()
+  return texts[lang.value] || texts.ru
+})
+
+// ===== Orders =====
 const orders = ref([])
-const searchCode = ref('')
-const foundOrder = ref(null)
-const searchError = ref('')
-const searching = ref(false)
 const activeFilter = ref('all')
 
 const filters = [
@@ -448,10 +713,136 @@ async function loadOrders() {
   try {
     const res = await api.get('/pickup/orders')
     orders.value = res.data || []
+  } catch (e) { console.error(e) }
+}
+
+// ===== Nurse order (5-digit) =====
+const nurseCode = ref('')
+const nurseOrder = ref(null)
+const nurseSearchError = ref('')
+const nurseSearching = ref(false)
+const nurseConfirmed = ref(false)
+const nurseConfirming = ref(false)
+const verifyName = ref('')
+const verifyError = ref('')
+
+// Edit items for nurse/doctor pre-order
+const editingNurseItems = ref(false)
+const editItems = ref([])
+const editAddProductId = ref('')
+const editAddQty = ref(1)
+const editAddUnit = ref('pack')
+const savingEditItems = ref(false)
+
+function startEditItems() {
+  editItems.value = (nurseOrder.value.items || []).map(item => ({
+    product_id: item.product_id,
+    name: item.product?.name || '',
+    quantity: item.quantity,
+    unit_type: item.unit_type,
+  }))
+  editAddProductId.value = ''
+  editAddQty.value = 1
+  editAddUnit.value = 'pack'
+  editingNurseItems.value = true
+}
+
+function cancelEditItems() {
+  editingNurseItems.value = false
+}
+
+function addEditItem() {
+  if (!editAddProductId.value || editAddQty.value < 1) return
+  const product = allProducts.value.find(p => p.id === editAddProductId.value)
+  if (!product) return
+  editItems.value.push({
+    product_id: product.id,
+    name: product.name,
+    quantity: editAddQty.value,
+    unit_type: editAddUnit.value,
+  })
+  editAddProductId.value = ''
+  editAddQty.value = 1
+  editAddUnit.value = 'pack'
+}
+
+async function saveEditItems() {
+  if (!nurseOrder.value || editItems.value.length === 0) return
+  savingEditItems.value = true
+  try {
+    const res = await api.put(`/pickup/orders/${nurseOrder.value.id}/items`, {
+      items: editItems.value.map(i => ({
+        product_id: i.product_id,
+        quantity: i.quantity,
+        unit_type: i.unit_type,
+      })),
+    })
+    nurseOrder.value = res.data
+    editingNurseItems.value = false
   } catch (e) {
-    console.error(e)
+    alert(e.response?.data?.error || 'Ошибка при сохранении')
+  } finally {
+    savingEditItems.value = false
   }
 }
+
+async function searchNurseOrder() {
+  if (nurseCode.value.length < 5) return
+  nurseSearchError.value = ''
+  nurseOrder.value = null
+  nurseConfirmed.value = false
+  verifyName.value = ''
+  verifyError.value = ''
+  nurseSearching.value = true
+  try {
+    const res = await api.get(`/pickup/nurse-order/${nurseCode.value}`)
+    nurseOrder.value = res.data
+  } catch (e) {
+    nurseSearchError.value = e.response?.data?.error || (lang.value === 'uz' ? "Buyurtma topilmadi" : 'Заказ не найден')
+  } finally {
+    nurseSearching.value = false
+  }
+}
+
+async function confirmNurseOrder() {
+  if (!nurseOrder.value || !verifyName.value.trim()) return
+  verifyError.value = ''
+
+  const expected = (nurseOrder.value.patient_first_name + ' ' + nurseOrder.value.patient_last_name).toLowerCase()
+  const entered = verifyName.value.trim().toLowerCase()
+  if (!expected.includes(entered) && !entered.includes(expected.split(' ')[0])) {
+    verifyError.value = txt.value.verify_error
+    return
+  }
+
+  nurseConfirming.value = true
+  try {
+    await api.put(`/pickup/orders/${nurseOrder.value.id}/status`, { status: 'delivered' })
+    nurseConfirmed.value = true
+    loadOrders()
+  } catch (e) {
+    verifyError.value = e.response?.data?.error || 'Ошибка'
+  } finally {
+    nurseConfirming.value = false
+  }
+}
+
+function resetNurse() {
+  nurseCode.value = ''
+  nurseOrder.value = null
+  nurseConfirmed.value = false
+  verifyName.value = ''
+  verifyError.value = ''
+  nurseSearchError.value = ''
+  editingNurseItems.value = false
+  editItems.value = []
+}
+
+// ===== Online order search (6-digit) =====
+const searchCode = ref('')
+const foundOrder = ref(null)
+const searchError = ref('')
+const searching = ref(false)
 
 async function searchByCode() {
   if (searchCode.value.length < 6) return

@@ -113,3 +113,25 @@ func WorkerAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func DoctorAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims, err := extractToken(c)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Необходима авторизация"})
+			c.Abort()
+			return
+		}
+
+		role, _ := claims["role"].(string)
+		if role != "doctor" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Требуется доступ врача"})
+			c.Abort()
+			return
+		}
+
+		id, _ := claims["id"].(float64)
+		c.Set("doctorID", uint(id))
+		c.Next()
+	}
+}
