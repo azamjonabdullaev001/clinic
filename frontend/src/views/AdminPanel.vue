@@ -475,6 +475,74 @@
             </table>
           </div>
         </div>
+
+        <!-- Per-Doctor Detail Stats -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <h3 class="text-lg font-semibold text-gray-800">Детальная статистика по врачу</h3>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <select v-model="perDoctorSelectedId"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[180px]">
+                <option value="">Выберите врача</option>
+                <option v-for="doc in doctors" :key="doc.id" :value="doc.id">{{ doc.name }}</option>
+              </select>
+              <button @click="loadPerDoctorStats"
+                :disabled="!perDoctorSelectedId || perDoctorStatsLoading"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-40 flex items-center gap-1.5">
+                <div v-if="perDoctorStatsLoading" class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Показать статистику
+              </button>
+            </div>
+          </div>
+          <div class="px-6 py-4">
+            <div v-if="perDoctorStatsLoading" class="flex items-center gap-2 text-sm text-gray-400 py-4">
+              <div class="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+              Загрузка статистики...
+            </div>
+            <div v-else-if="perDoctorStats">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <div>
+                  <p class="font-semibold text-gray-800">{{ perDoctorStats.doctor.name }}</p>
+                  <p v-if="perDoctorStats.doctor.specialty" class="text-xs text-gray-400">{{ perDoctorStats.doctor.specialty }}</p>
+                </div>
+                <span class="ml-auto text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium">{{ perDoctorStats.total_orders }} заказ(ов)</span>
+              </div>
+              <div v-if="perDoctorStats.products && perDoctorStats.products.length > 0" class="overflow-x-auto rounded-xl border border-indigo-100">
+                <table class="w-full text-sm">
+                  <thead class="bg-indigo-50">
+                    <tr>
+                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Препарат</th>
+                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Упаковок</th>
+                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Штук</th>
+                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Заказов</th>
+                      <th class="text-right px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Выручка</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-indigo-50">
+                    <tr v-for="p in perDoctorStats.products" :key="p.product_id" class="hover:bg-indigo-50 transition">
+                      <td class="px-4 py-2.5 font-medium text-gray-800">{{ p.product_name }}</td>
+                      <td class="px-4 py-2.5 text-gray-600">{{ p.total_packs }} упак.</td>
+                      <td class="px-4 py-2.5 text-gray-600">{{ p.total_pieces }} шт</td>
+                      <td class="px-4 py-2.5 text-gray-600">{{ p.order_count }}</td>
+                      <td class="px-4 py-2.5 text-right font-bold text-indigo-700">{{ formatPrice(p.revenue) }} сўм</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p v-else class="text-sm text-gray-400 py-4 text-center">Продаж по этому врачу ещё нет</p>
+            </div>
+            <div v-else class="py-6 text-center text-gray-400 text-sm">
+              Выберите врача и нажмите «Показать статистику»
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ===== Settings Tab ===== -->
@@ -1798,6 +1866,11 @@ const expandedDoctorId = ref(null)
 const doctorStats = ref(null)
 const doctorStatsLoading = ref(false)
 
+// Per-doctor analytics detail
+const perDoctorSelectedId = ref('')
+const perDoctorStats = ref(null)
+const perDoctorStatsLoading = ref(false)
+
 async function loadDoctors() {
   try {
     const res = await api.get('/admin/doctors')
@@ -1884,6 +1957,21 @@ async function toggleDoctorStats(doc) {
     doctorStats.value = res.data
   } catch { doctorStats.value = { doctor: doc, total_orders: 0, products: [] } }
   finally { doctorStatsLoading.value = false }
+}
+
+async function loadPerDoctorStats() {
+  if (!perDoctorSelectedId.value) return
+  perDoctorStats.value = null
+  perDoctorStatsLoading.value = true
+  try {
+    const res = await api.get(`/admin/doctors/${perDoctorSelectedId.value}/stats`)
+    perDoctorStats.value = res.data
+  } catch {
+    const doc = doctors.value.find(d => d.id === perDoctorSelectedId.value)
+    perDoctorStats.value = { doctor: doc || { name: 'Врач' }, total_orders: 0, products: [] }
+  } finally {
+    perDoctorStatsLoading.value = false
+  }
 }
 
 async function deleteProductComment(id) {
