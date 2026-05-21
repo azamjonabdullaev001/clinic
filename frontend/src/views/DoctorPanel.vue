@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen bg-gray-100">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+    <header class="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,7 +15,6 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <!-- Language switcher -->
           <div class="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
             <button @click="lang = 'ru'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
               :class="lang === 'ru' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">RU</button>
@@ -25,110 +24,149 @@
           <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">{{ txt.logout }}</button>
         </div>
       </div>
+      <!-- Tabs -->
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 flex gap-1 border-t">
+        <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
+          class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+          :class="activeTab === tab.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'">
+          {{ tab.label }}
+          <span v-if="tab.key === 'order' && cartItems.length" class="ml-1.5 bg-blue-600 text-white text-xs rounded-full px-1.5 py-0.5">{{ cartItems.length }}</span>
+        </button>
+      </div>
     </header>
 
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 mt-6 pb-12 space-y-6">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 mt-4 pb-12">
 
-      <!-- Create Order -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b flex items-center gap-3">
-          <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          </div>
-          <h2 class="font-bold text-gray-800">{{ txt.create_order }}</h2>
-        </div>
+      <!-- ===== ORDER TAB ===== -->
+      <div v-if="activeTab === 'order'">
 
         <!-- Success card -->
-        <div v-if="createdCode" class="mx-6 my-4 bg-blue-50 border-2 border-blue-300 rounded-xl p-6 text-center">
-          <svg class="w-12 h-12 text-blue-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+        <div v-if="createdCode" class="bg-blue-50 border-2 border-blue-300 rounded-xl p-8 text-center mb-6">
+          <svg class="w-14 h-14 text-blue-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p class="text-sm text-blue-700 mb-2">{{ txt.success_title }}</p>
-          <p class="text-5xl font-bold tracking-[0.3em] text-blue-700 mb-3">{{ createdCode }}</p>
+          <p class="text-6xl font-bold tracking-[0.3em] text-blue-700 mb-3">{{ createdCode }}</p>
           <p class="text-xs text-blue-600">{{ txt.success_desc }}</p>
           <button @click="createdCode = ''" class="mt-4 text-sm text-blue-700 underline hover:no-underline">{{ txt.new_order }}</button>
         </div>
 
-        <div v-else class="px-6 py-5 space-y-5">
-          <!-- Patient name -->
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">{{ txt.patient_fname }} <span class="text-red-400">*</span></label>
-              <input v-model="patientFName" type="text"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                :placeholder="txt.patient_fname" />
+        <div v-else class="space-y-5">
+          <!-- Product catalog -->
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b flex items-center gap-2">
+              <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+              <h2 class="font-bold text-gray-800">{{ txt.catalog }}</h2>
+              <span class="ml-auto text-xs text-gray-400">{{ txt.click_to_add }}</span>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-2">{{ txt.patient_lname }} <span class="text-red-400">*</span></label>
-              <input v-model="patientLName" type="text"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                :placeholder="txt.patient_lname" />
+            <div class="p-4">
+              <div v-if="productsLoading" class="flex justify-center py-8 text-gray-400">{{ txt.loading }}</div>
+              <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div v-for="product in products" :key="product.id"
+                  @click="addToCart(product)"
+                  class="relative bg-gray-50 rounded-xl p-3 cursor-pointer hover:bg-blue-50 hover:shadow-md transition-all border-2 border-transparent hover:border-blue-200 group select-none"
+                  :class="cartQty(product.id) > 0 ? 'border-blue-400 bg-blue-50' : ''">
+                  <!-- Cart badge -->
+                  <div v-if="cartQty(product.id) > 0"
+                    class="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md">
+                    {{ cartQty(product.id) }}
+                  </div>
+                  <!-- Product image -->
+                  <div class="w-full aspect-square rounded-lg overflow-hidden bg-white mb-2 flex items-center justify-center">
+                    <img v-if="product.image_path" :src="`/uploads/${product.image_path}`"
+                      class="w-full h-full object-cover" :alt="product.name" />
+                    <div v-else class="w-full h-full bg-blue-100 flex items-center justify-center">
+                      <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <p class="text-xs font-semibold text-gray-800 leading-tight mb-1 line-clamp-2">{{ product.name }}</p>
+                  <p v-if="product.description" class="text-xs text-gray-400 leading-tight mb-1 line-clamp-2">{{ product.description }}</p>
+                  <p class="text-xs font-bold text-blue-600">{{ formatPrice(product.price_per_pack) }} {{ txt.sum }}</p>
+                  <p class="text-xs text-gray-400">{{ product.quantity_per_pack }} {{ txt.piece }}</p>
+                  <!-- Add indicator -->
+                  <div class="mt-1.5 text-center">
+                    <span class="text-xs text-blue-500 font-medium group-hover:text-blue-700 transition">
+                      {{ cartQty(product.id) > 0 ? '+ ' + txt.add_more : txt.tap_to_add }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Add item -->
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2">{{ txt.add_product }}</label>
-            <div class="flex gap-2 flex-wrap items-end">
-              <div class="flex-1 min-w-[180px]">
-                <select v-model="selProductId"
-                  class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                  <option value="">{{ txt.select_product }}</option>
-                  <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
-                </select>
+          <!-- Cart / Order form -->
+          <div v-if="cartItems.length > 0" class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <h2 class="font-bold text-gray-800">{{ txt.order_form }}</h2>
+            </div>
+            <div class="px-5 py-4 space-y-4">
+              <!-- Patient name -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.patient_fname }} <span class="text-red-400">*</span></label>
+                  <input v-model="patientFName" type="text"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    :placeholder="txt.patient_fname" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.patient_lname }} <span class="text-red-400">*</span></label>
+                  <input v-model="patientLName" type="text"
+                    class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    :placeholder="txt.patient_lname" />
+                </div>
               </div>
-              <div class="w-24">
-                <input v-model.number="selQty" type="number" min="1"
-                  class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition" />
+
+              <!-- Cart items -->
+              <div class="border rounded-xl overflow-hidden">
+                <div v-for="item in cartItems" :key="item.product_id"
+                  class="flex items-center gap-3 px-4 py-3 border-b last:border-0 bg-gray-50">
+                  <span class="flex-1 text-sm font-medium text-gray-800 truncate">{{ item.name }}</span>
+                  <div class="flex items-center gap-1.5">
+                    <button @click.stop="decreaseCart(item.product_id)"
+                      class="w-7 h-7 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center text-gray-700 transition text-sm font-bold">−</button>
+                    <span class="w-8 text-center text-sm font-bold text-gray-800">{{ item.quantity }}</span>
+                    <button @click.stop="increaseCart(item.product_id)"
+                      class="w-7 h-7 bg-blue-100 hover:bg-blue-200 rounded-lg flex items-center justify-center text-blue-700 transition text-sm font-bold">+</button>
+                  </div>
+                  <span class="text-xs text-gray-400 w-16 text-right">{{ txt.pack }}</span>
+                  <span class="font-semibold text-gray-700 text-sm w-24 text-right">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
+                  <button @click.stop="removeFromCart(item.product_id)" class="text-red-400 hover:text-red-600 transition flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <div class="flex justify-between px-4 py-3 bg-white font-bold text-sm">
+                  <span class="text-gray-600">{{ txt.total }}:</span>
+                  <span class="text-blue-700">{{ formatPrice(cartTotal) }} {{ txt.sum }}</span>
+                </div>
               </div>
-              <div class="w-28">
-                <select v-model="selUnit"
-                  class="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                  <option value="pack">{{ txt.pack }}</option>
-                  <option value="piece">{{ txt.piece }}</option>
-                </select>
-              </div>
-              <button @click="addItem" :disabled="!selProductId || selQty < 1"
-                class="bg-blue-600 text-white px-5 py-3 rounded-xl hover:bg-blue-700 transition font-medium disabled:opacity-40">
-                + {{ txt.add }}
+
+              <div v-if="formError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ formError }}</div>
+
+              <button @click="submitOrder" :disabled="!canSubmit || submitting"
+                class="w-full bg-blue-600 text-white py-3.5 rounded-xl hover:bg-blue-700 transition font-bold text-base disabled:opacity-40">
+                {{ submitting ? txt.submitting : txt.submit }}
               </button>
             </div>
           </div>
 
-          <!-- Items list -->
-          <div v-if="items.length" class="border rounded-xl overflow-hidden">
-            <div v-for="(item, idx) in items" :key="idx"
-              class="flex items-center justify-between px-4 py-3 border-b last:border-0 bg-gray-50">
-              <div>
-                <span class="font-medium text-gray-800">{{ item.name }}</span>
-                <span class="text-gray-500 ml-2">× {{ item.quantity }} {{ item.unit_type === 'pack' ? txt.pack : txt.piece }}</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-700">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
-                <button @click="items.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-              </div>
-            </div>
-            <div class="flex justify-between px-4 py-2.5 bg-white font-semibold text-sm">
-              <span class="text-gray-600">{{ txt.total }}:</span>
-              <span class="text-blue-700">{{ formatPrice(items.reduce((s, i) => s + i.price, 0)) }} {{ txt.sum }}</span>
-            </div>
+          <div v-else class="bg-white rounded-xl shadow-sm p-8 text-center text-gray-400">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <p class="text-sm">{{ txt.catalog_hint }}</p>
           </div>
-
-          <div v-if="formError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ formError }}</div>
-
-          <button @click="submitOrder" :disabled="!canSubmit || submitting"
-            class="w-full bg-blue-600 text-white py-3.5 rounded-xl hover:bg-blue-700 transition font-semibold text-base disabled:opacity-40">
-            {{ submitting ? txt.submitting : txt.submit }}
-          </button>
         </div>
       </div>
 
-      <!-- My Orders -->
-      <div>
+      <!-- ===== MY ORDERS TAB ===== -->
+      <div v-if="activeTab === 'history'">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-bold text-gray-800">{{ txt.my_orders }}</h2>
           <button @click="loadOrders" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
@@ -140,7 +178,7 @@
         <div class="space-y-3">
           <div v-for="order in myOrders" :key="order.id"
             class="bg-white rounded-xl shadow-sm p-5">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex items-start justify-between mb-3">
               <div>
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-2xl font-bold tracking-[0.2em] text-blue-700">{{ order.order_code }}</span>
@@ -170,6 +208,76 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== ANALYTICS TAB ===== -->
+      <div v-if="activeTab === 'analytics'">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-gray-800">{{ txt.analytics }}</h2>
+          <button @click="loadAnalytics" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            {{ txt.refresh }}
+          </button>
+        </div>
+
+        <div v-if="analyticsLoading" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">{{ txt.loading }}</div>
+
+        <div v-else class="space-y-4">
+          <!-- Stats cards -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white rounded-xl shadow-sm p-5">
+              <p class="text-xs text-gray-400 mb-1">{{ txt.total_orders }}</p>
+              <p class="text-3xl font-bold text-blue-700">{{ analytics.total_orders || 0 }}</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-5">
+              <p class="text-xs text-gray-400 mb-1">{{ txt.total_revenue }}</p>
+              <p class="text-2xl font-bold text-green-700">{{ formatPrice(analytics.total_revenue || 0) }}</p>
+              <p class="text-xs text-gray-400">{{ txt.sum }}</p>
+            </div>
+          </div>
+
+          <!-- Top products -->
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b">
+              <h3 class="font-bold text-gray-800">{{ txt.top_products }}</h3>
+            </div>
+            <div v-if="analytics.top_products?.length">
+              <div v-for="(p, i) in analytics.top_products" :key="p.product_id"
+                class="flex items-center gap-3 px-5 py-3 border-b last:border-0">
+                <span class="w-6 h-6 bg-blue-100 text-blue-700 text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">{{ i + 1 }}</span>
+                <span class="flex-1 text-sm font-medium text-gray-800">{{ p.product_name }}</span>
+                <div class="text-right">
+                  <p class="text-sm font-bold text-gray-700">{{ formatPrice(p.revenue) }} {{ txt.sum }}</p>
+                  <p class="text-xs text-gray-400">{{ txt.orders }}: {{ p.order_count }}</p>
+                </div>
+              </div>
+            </div>
+            <div v-else class="px-5 py-8 text-center text-gray-400 text-sm">{{ txt.no_data }}</div>
+          </div>
+
+          <!-- Recent orders in analytics -->
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b">
+              <h3 class="font-bold text-gray-800">{{ txt.recent_orders }}</h3>
+            </div>
+            <div v-if="analytics.recent_orders?.length">
+              <div v-for="order in analytics.recent_orders" :key="order.id"
+                class="flex items-center gap-3 px-5 py-3 border-b last:border-0">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-blue-700 tracking-widest text-sm">{{ order.order_code }}</span>
+                    <span :class="statusClass(order.status)" class="text-xs px-1.5 py-0.5 rounded">{{ statusLabel(order.status) }}</span>
+                  </div>
+                  <p class="text-xs text-gray-500">{{ order.patient_first_name }} {{ order.patient_last_name }}</p>
+                  <p class="text-xs text-gray-400">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
+                </div>
+                <p class="font-bold text-gray-700 text-sm">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
+              </div>
+            </div>
+            <div v-else class="px-5 py-8 text-center text-gray-400 text-sm">{{ txt.no_orders }}</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -188,15 +296,15 @@ const watchLang = () => { localStorage.setItem('doctorLang', lang.value) }
 const texts = {
   ru: {
     title: 'Панель врача',
-    create_order: 'Оформить заказ',
+    catalog: 'Каталог препаратов',
+    click_to_add: 'Нажмите на препарат для добавления',
+    tap_to_add: '+ Нажать для добавления',
+    add_more: 'Ещё одну',
+    order_form: 'Оформление заказа',
     patient_fname: 'Имя пациента',
     patient_lname: 'Фамилия пациента',
-    add_product: 'Добавить препарат',
-    select_product: 'Выберите препарат',
-    quantity: 'Количество',
     pack: 'упак.',
-    piece: 'шт',
-    add: 'Добавить',
+    piece: 'шт.',
     total: 'Итого',
     sum: 'сўм',
     submit: 'Оформить заказ',
@@ -208,21 +316,34 @@ const texts = {
     refresh: 'Обновить',
     no_orders: 'Нет заказов',
     logout: 'Выйти',
+    loading: 'Загрузка...',
+    catalog_hint: 'Нажмите на препарат в каталоге чтобы добавить его в заказ',
+    analytics: 'Аналитика',
+    total_orders: 'Всего заказов',
+    total_revenue: 'Общая выручка',
+    top_products: 'Топ препаратов',
+    recent_orders: 'Последние заказы',
+    orders: 'заказов',
+    no_data: 'Нет данных',
     status_pending: 'Ожидает',
+    status_confirmed: 'Подтверждён',
+    status_shipped: 'Отправлен',
+    status_in_transit: 'В пути',
     status_delivered: 'Выдан',
     status_cancelled: 'Отменён',
+    add: 'Добавить',
   },
   uz: {
     title: 'Shifokor paneli',
-    create_order: 'Buyurtma rasmiylashtirish',
+    catalog: 'Dorilar katalogi',
+    click_to_add: 'Dori qo\'shish uchun bosing',
+    tap_to_add: '+ Qo\'shish uchun bosing',
+    add_more: 'Yana bittasi',
+    order_form: 'Buyurtmani rasmiylashtirish',
     patient_fname: 'Bemorning ismi',
     patient_lname: 'Bemorning familiyasi',
-    add_product: "Dori qo'shish",
-    select_product: 'Dori tanlang',
-    quantity: 'Miqdor',
     pack: 'quti',
     piece: 'dona',
-    add: "Qo'shish",
     total: 'Jami',
     sum: "so'm",
     submit: 'Buyurtma berish',
@@ -234,9 +355,22 @@ const texts = {
     refresh: 'Yangilash',
     no_orders: "Buyurtmalar yo'q",
     logout: 'Chiqish',
+    loading: 'Yuklanmoqda...',
+    catalog_hint: "Buyurtmaga qo'shish uchun katalogdagi dorini bosing",
+    analytics: 'Tahlil',
+    total_orders: 'Jami buyurtmalar',
+    total_revenue: 'Umumiy daromad',
+    top_products: 'Top dorilar',
+    recent_orders: 'Oxirgi buyurtmalar',
+    orders: 'buyurtma',
+    no_data: "Ma'lumot yo'q",
     status_pending: 'Kutilmoqda',
+    status_confirmed: 'Tasdiqlangan',
+    status_shipped: 'Yuborilgan',
+    status_in_transit: "Yo'lda",
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
+    add: "Qo'shish",
   }
 }
 
@@ -245,21 +379,82 @@ const txt = computed(() => {
   return texts[lang.value] || texts.ru
 })
 
+const activeTab = ref('order')
+const tabs = computed(() => [
+  { key: 'order', label: lang.value === 'ru' ? 'Новый заказ' : 'Yangi buyurtma' },
+  { key: 'history', label: lang.value === 'ru' ? 'Мои заказы' : 'Buyurtmalarim' },
+  { key: 'analytics', label: lang.value === 'ru' ? 'Аналитика' : 'Tahlil' },
+])
+
+// Products & cart
 const products = ref([])
-const myOrders = ref([])
+const productsLoading = ref(false)
+const cartItems = ref([]) // { product_id, name, quantity, price_per_pack, price }
+
+function cartQty(productId) {
+  const item = cartItems.value.find(i => i.product_id === productId)
+  return item ? item.quantity : 0
+}
+
+function addToCart(product) {
+  const existing = cartItems.value.find(i => i.product_id === product.id)
+  if (existing) {
+    existing.quantity++
+    existing.price = existing.price_per_pack * existing.quantity
+  } else {
+    cartItems.value.push({
+      product_id: product.id,
+      name: product.name,
+      quantity: 1,
+      price_per_pack: product.price_per_pack,
+      price: product.price_per_pack,
+    })
+  }
+}
+
+function increaseCart(productId) {
+  const item = cartItems.value.find(i => i.product_id === productId)
+  if (item) {
+    item.quantity++
+    item.price = item.price_per_pack * item.quantity
+  }
+}
+
+function decreaseCart(productId) {
+  const idx = cartItems.value.findIndex(i => i.product_id === productId)
+  if (idx === -1) return
+  if (cartItems.value[idx].quantity <= 1) {
+    cartItems.value.splice(idx, 1)
+  } else {
+    cartItems.value[idx].quantity--
+    cartItems.value[idx].price = cartItems.value[idx].price_per_pack * cartItems.value[idx].quantity
+  }
+}
+
+function removeFromCart(productId) {
+  const idx = cartItems.value.findIndex(i => i.product_id === productId)
+  if (idx !== -1) cartItems.value.splice(idx, 1)
+}
+
+const cartTotal = computed(() => cartItems.value.reduce((s, i) => s + i.price, 0))
+
+// Order form
 const patientFName = ref('')
 const patientLName = ref('')
-const selProductId = ref('')
-const selQty = ref(1)
-const selUnit = ref('pack')
-const items = ref([])
 const submitting = ref(false)
 const formError = ref('')
 const createdCode = ref('')
 
 const canSubmit = computed(() =>
-  patientFName.value.trim() && patientLName.value.trim() && items.value.length > 0
+  patientFName.value.trim() && patientLName.value.trim() && cartItems.value.length > 0
 )
+
+// Orders history
+const myOrders = ref([])
+
+// Analytics
+const analytics = ref({})
+const analyticsLoading = ref(false)
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price || 0))
@@ -271,36 +466,27 @@ function orderTotal(order) {
 
 function statusLabel(status) {
   const t = txt.value
-  const m = { pending: t.status_pending, delivered: t.status_delivered, cancelled: t.status_cancelled }
+  const m = {
+    pending: t.status_pending,
+    confirmed: t.status_confirmed,
+    shipped: t.status_shipped,
+    in_transit: t.status_in_transit,
+    delivered: t.status_delivered,
+    cancelled: t.status_cancelled,
+  }
   return m[status] || status
 }
 
 function statusClass(status) {
   const m = {
     pending: 'bg-yellow-100 text-yellow-700',
+    confirmed: 'bg-blue-100 text-blue-700',
+    shipped: 'bg-purple-100 text-purple-700',
+    in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-700',
   }
   return m[status] || 'bg-gray-100 text-gray-700'
-}
-
-function addItem() {
-  if (!selProductId.value || selQty.value < 1) return
-  const product = products.value.find(p => p.id === selProductId.value)
-  if (!product) return
-  const price = selUnit.value === 'piece'
-    ? product.price_per_pill * selQty.value
-    : product.price_per_pack * selQty.value
-  items.value.push({
-    product_id: product.id,
-    name: product.name,
-    quantity: selQty.value,
-    unit_type: selUnit.value,
-    price,
-  })
-  selProductId.value = ''
-  selQty.value = 1
-  selUnit.value = 'pack'
 }
 
 async function submitOrder() {
@@ -311,16 +497,16 @@ async function submitOrder() {
     const res = await api.post('/doctor/orders', {
       patient_first_name: patientFName.value.trim(),
       patient_last_name: patientLName.value.trim(),
-      items: items.value.map(i => ({
+      items: cartItems.value.map(i => ({
         product_id: i.product_id,
         quantity: i.quantity,
-        unit_type: i.unit_type,
+        unit_type: 'pack',
       })),
     })
     createdCode.value = res.data.order_code
     patientFName.value = ''
     patientLName.value = ''
-    items.value = []
+    cartItems.value = []
     loadOrders()
   } catch (e) {
     formError.value = e.response?.data?.error || 'Ошибка при оформлении'
@@ -337,6 +523,7 @@ async function loadOrders() {
 }
 
 async function loadProducts() {
+  productsLoading.value = true
   try {
     const res = await api.get('/doctor/products')
     products.value = res.data || []
@@ -344,6 +531,16 @@ async function loadProducts() {
       p.price_per_pack = p.price_per_pill * p.quantity_per_pack
     }
   } catch (e) { console.error(e) }
+  finally { productsLoading.value = false }
+}
+
+async function loadAnalytics() {
+  analyticsLoading.value = true
+  try {
+    const res = await api.get('/doctor/analytics')
+    analytics.value = res.data || {}
+  } catch (e) { console.error(e) }
+  finally { analyticsLoading.value = false }
 }
 
 function logout() {
@@ -354,5 +551,6 @@ function logout() {
 onMounted(() => {
   loadProducts()
   loadOrders()
+  loadAnalytics()
 })
 </script>

@@ -75,6 +75,14 @@
                   <p class="text-2xl font-bold tracking-[0.2em] text-teal-700 mb-1">{{ nurseOrder.order_code }}</p>
                   <p class="font-semibold text-gray-800 text-lg">{{ nurseOrder.patient_first_name }} {{ nurseOrder.patient_last_name }}</p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ new Date(nurseOrder.created_at).toLocaleString('ru-RU') }}</p>
+                  <div v-if="nurseOrder.latitude && nurseOrder.longitude" class="mt-1 flex items-center gap-2">
+                    <a :href="`https://www.openstreetmap.org/?mlat=${nurseOrder.latitude}&mlon=${nurseOrder.longitude}#map=15/${nurseOrder.latitude}/${nurseOrder.longitude}`"
+                      target="_blank" rel="noopener noreferrer"
+                      class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                      {{ txt.view_on_map }}
+                    </a>
+                  </div>
                 </div>
                 <div class="text-right">
                   <p class="text-xs text-gray-400">{{ txt.total }}</p>
@@ -293,6 +301,14 @@
                 </svg>
                 <span class="text-sm text-blue-700 font-medium">{{ foundOrder.delivery_address }}</span>
               </div>
+              <div v-if="foundOrder.latitude && foundOrder.longitude" class="mt-1 flex items-center gap-2">
+                <a :href="`https://www.openstreetmap.org/?mlat=${foundOrder.latitude}&mlon=${foundOrder.longitude}#map=15/${foundOrder.latitude}/${foundOrder.longitude}`"
+                  target="_blank" rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                  {{ txt.view_on_map }}
+                </a>
+              </div>
             </div>
             <div class="text-right">
               <p class="text-xs text-gray-400">{{ txt.total }}</p>
@@ -370,6 +386,14 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
                   <span class="text-xs text-orange-700">{{ order.delivery_address }}</span>
+                </div>
+                <div v-if="order.latitude && order.longitude" class="mt-1 flex items-center gap-2">
+                  <a :href="`https://www.openstreetmap.org/?mlat=${order.latitude}&mlon=${order.longitude}#map=15/${order.latitude}/${order.longitude}`"
+                    target="_blank" rel="noopener noreferrer"
+                    class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    {{ txt.view_on_map }}
+                  </a>
                 </div>
               </div>
               <div class="text-right flex-shrink-0">
@@ -528,6 +552,7 @@ const texts = {
     save_items: 'Сохранить изменения',
     saving_items: 'Сохранение...',
     cancel_edit: 'Отмена',
+    view_on_map: 'На карте',
   },
   uz: {
     title: 'Berish punkti',
@@ -587,6 +612,7 @@ const texts = {
     save_items: "O'zgarishlarni saqlash",
     saving_items: "Saqlanmoqda...",
     cancel_edit: "Bekor qilish",
+    view_on_map: "Xaritada ko'rish",
   }
 }
 
