@@ -9,8 +9,13 @@ import (
 )
 
 func GetPickupOrders(c *gin.Context) {
+	workerID, _ := c.Get("workerID")
 	var orders []models.Order
-	database.DB.Preload("Items.Product").Preload("User").
+	// Show online customer orders + own offline direct sales (not nurse orders)
+	database.DB.Where(
+		"(is_offline = false AND is_nurse_order = false) OR (is_offline = true AND is_nurse_order = false AND worker_id = ?)",
+		workerID,
+	).Preload("Items.Product").Preload("User").
 		Order("created_at desc").
 		Find(&orders)
 

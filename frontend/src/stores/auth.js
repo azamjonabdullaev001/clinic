@@ -11,7 +11,7 @@ api.interceptors.request.use(config => {
   const userToken = localStorage.getItem('userToken') || ''
   if (config.url?.startsWith('/admin') && adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`
-  } else if (config.url?.startsWith('/pickup') && workerToken) {
+  } else if ((config.url?.startsWith('/pickup') || config.url?.startsWith('/nurse')) && workerToken) {
     config.headers.Authorization = `Bearer ${workerToken}`
   } else if (userToken) {
     config.headers.Authorization = `Bearer ${userToken}`

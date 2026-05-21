@@ -68,7 +68,7 @@ func AdminLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"token":  token,
 		"role":   "worker",
-		"worker": gin.H{"id": worker.ID, "phone": worker.Phone, "name": worker.Name},
+		"worker": gin.H{"id": worker.ID, "phone": worker.Phone, "name": worker.Name, "role": worker.Role},
 	})
 }
 
@@ -141,6 +141,7 @@ type CreateWorkerInput struct {
 	Name     string `json:"name" binding:"required"`
 	Phone    string `json:"phone" binding:"required"`
 	Password string `json:"password" binding:"required,min=6"`
+	Role     string `json:"role"`
 }
 
 func GetWorkers(c *gin.Context) {
@@ -148,7 +149,7 @@ func GetWorkers(c *gin.Context) {
 	database.DB.Find(&workers)
 	result := make([]gin.H, len(workers))
 	for i, w := range workers {
-		result[i] = gin.H{"id": w.ID, "name": w.Name, "phone": w.Phone}
+		result[i] = gin.H{"id": w.ID, "name": w.Name, "phone": w.Phone, "role": w.Role}
 	}
 	c.JSON(http.StatusOK, result)
 }
@@ -177,17 +178,70 @@ func CreateWorker(c *gin.Context) {
 		return
 	}
 
+	role := input.Role
+	if role != "nurse" {
+		role = "pickup"
+	}
+
 	worker := models.Worker{
 		Name:     input.Name,
 		Phone:    input.Phone,
 		Password: string(hash),
+		Role:     role,
 	}
 	if err := database.DB.Create(&worker).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании работника"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": worker.ID, "name": worker.Name, "phone": worker.Phone})
+	c.JSON(http.StatusCreated, gin.H{"id": worker.ID, "name": worker.Name, "phone": worker.Phone, "role": worker.Role})
+}
+
+type UpdateWorkerInput struct {
+	Name     string `json:"name"`
+	Phone    string `json:"phone"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
+func UpdateWorker(c *gin.Context) {
+	id := c.Param("id")
+	var worker models.Worker
+	if err := database.DB.First(&worker, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Работник не найден"})
+		return
+	}
+
+	var input UpdateWorkerInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
+
+	if input.Name != "" {
+		worker.Name = input.Name
+	}
+	if input.Phone != "" && phoneRegex.MatchString(input.Phone) {
+		worker.Phone = input.Phone
+	}
+	if input.Role == "nurse" || input.Role == "pickup" {
+		worker.Role = input.Role
+	}
+	if len(input.Password) >= 6 {
+		hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
+			return
+		}
+		worker.Password = string(hash)
+	}
+
+	if err := database.DB.Save(&worker).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"id": worker.ID, "name": worker.Name, "phone": worker.Phone, "role": worker.Role})
 }
 
 func DeleteWorker(c *gin.Context) {

@@ -10,17 +10,105 @@
             </svg>
           </div>
           <div>
-            <h1 class="text-lg font-bold text-gray-800">Пункт выдачи</h1>
+            <h1 class="text-lg font-bold text-gray-800">{{ txt.title }}</h1>
             <p v-if="authStore.worker" class="text-xs text-gray-400">{{ authStore.worker.name }}</p>
           </div>
         </div>
-        <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">Выйти</button>
+        <div class="flex items-center gap-3">
+          <!-- Language switcher -->
+          <div class="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
+            <button @click="lang = 'ru'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
+              :class="lang === 'ru' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">RU</button>
+            <button @click="lang = 'uz'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
+              :class="lang === 'uz' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">UZ</button>
+          </div>
+          <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">{{ txt.logout }}</button>
+        </div>
       </div>
     </header>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-12 space-y-6">
 
-      <!-- Offline sale section -->
+      <!-- ===== OFFLINE (Nurse) Order Section ===== -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b flex items-center gap-3">
+          <div class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 class="font-bold text-gray-800">{{ txt.nurse_section }}</h2>
+        </div>
+        <div class="px-6 py-5">
+          <p class="text-sm text-gray-500 mb-4">{{ txt.nurse_desc }}</p>
+          <div class="flex gap-3">
+            <input
+              v-model="nurseCode"
+              type="text"
+              maxlength="5"
+              :placeholder="txt.nurse_placeholder"
+              class="flex-1 border-2 border-gray-300 rounded-xl px-5 py-4 text-3xl font-bold tracking-[0.4em] text-center focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-400 transition"
+              @keyup.enter="searchNurseOrder"
+            />
+            <button
+              @click="searchNurseOrder"
+              :disabled="nurseCode.length < 5 || nurseSearching"
+              class="bg-teal-600 text-white px-7 py-4 rounded-xl hover:bg-teal-700 transition font-semibold text-base disabled:opacity-40"
+            >
+              {{ nurseSearching ? txt.searching : txt.find }}
+            </button>
+          </div>
+          <p v-if="nurseSearchError" class="mt-3 text-red-500 text-sm">{{ nurseSearchError }}</p>
+
+          <!-- Found nurse order -->
+          <div v-if="nurseOrder" class="mt-5 border-2 border-teal-200 rounded-xl p-5 bg-teal-50">
+            <div v-if="nurseConfirmed" class="text-center py-4">
+              <svg class="w-14 h-14 text-teal-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p class="text-xl font-bold text-teal-700">{{ txt.payment_success }}</p>
+              <button @click="resetNurse" class="mt-4 text-sm text-teal-600 underline hover:no-underline">{{ txt.new_search }}</button>
+            </div>
+            <template v-else>
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <p class="text-2xl font-bold tracking-[0.2em] text-teal-700 mb-1">{{ nurseOrder.order_code }}</p>
+                  <p class="font-semibold text-gray-800 text-lg">{{ nurseOrder.patient_first_name }} {{ nurseOrder.patient_last_name }}</p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ new Date(nurseOrder.created_at).toLocaleString('ru-RU') }}</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs text-gray-400">{{ txt.total }}</p>
+                  <p class="text-2xl font-bold text-teal-700">{{ formatPrice(orderTotal(nurseOrder)) }} <span class="text-sm font-normal">{{ txt.sum }}</span></p>
+                </div>
+              </div>
+
+              <div class="border-t border-teal-200 pt-3 mb-4 space-y-1.5">
+                <div v-for="item in nurseOrder.items" :key="item.id" class="flex justify-between text-sm text-gray-700">
+                  <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span></span>
+                  <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
+                </div>
+              </div>
+
+              <!-- Name verification -->
+              <div class="bg-white border border-teal-200 rounded-xl p-4 mb-4">
+                <p class="text-sm font-medium text-gray-700 mb-2">{{ txt.verify_name }}</p>
+                <input v-model="verifyName" type="text"
+                  class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
+                  :placeholder="txt.enter_patient_name" />
+                <p v-if="verifyError" class="mt-2 text-red-500 text-sm">{{ verifyError }}</p>
+              </div>
+
+              <button @click="confirmNurseOrder"
+                :disabled="!verifyName.trim() || nurseConfirming"
+                class="w-full bg-teal-600 text-white py-4 rounded-xl hover:bg-teal-700 transition font-bold text-base disabled:opacity-40">
+                {{ nurseConfirming ? txt.confirming : txt.confirm_issue }}
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Direct Offline Sale (existing) ===== -->
       <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <button
           @click="offlineOpen = !offlineOpen"
@@ -32,7 +120,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </div>
-            <span class="font-semibold text-gray-800">Офлайн продажа</span>
+            <span class="font-semibold text-gray-800">{{ txt.offline_sale }}</span>
           </div>
           <svg class="w-5 h-5 text-gray-400 transition-transform" :class="offlineOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -40,82 +128,79 @@
         </button>
 
         <div v-if="offlineOpen" class="border-t px-6 py-5 space-y-4">
-          <!-- Add item row -->
           <div class="flex gap-2 flex-wrap items-end">
             <div class="flex-1 min-w-[180px]">
-              <label class="block text-xs font-medium text-gray-500 mb-1">Препарат</label>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.product }}</label>
               <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="">Выберите препарат</option>
+                <option value="">{{ txt.select_product }}</option>
                 <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
               </select>
             </div>
             <div class="w-24">
-              <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во</label>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.qty }}</label>
               <input v-model.number="offlineQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
             <div class="w-28">
-              <label class="block text-xs font-medium text-gray-500 mb-1">Ед.</label>
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.unit }}</label>
               <select v-model="offlineUnit" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="pack">упак.</option>
-                <option value="piece">шт</option>
+                <option value="pack">{{ txt.pack }}</option>
+                <option value="piece">{{ txt.piece }}</option>
               </select>
             </div>
             <button
               @click="addOfflineItem"
               :disabled="!offlineProductId || offlineQty < 1"
               class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium disabled:opacity-40"
-            >+ Добавить</button>
+            >+ {{ txt.add }}</button>
           </div>
 
-          <!-- Items list -->
           <div v-if="offlineItems.length" class="border rounded-xl overflow-hidden">
             <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
               <div>
                 <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
-                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'pack' ? 'упак.' : 'шт' }}</span>
+                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'pack' ? txt.pack : txt.piece }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(item.price) }} сўм</span>
+                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
                 <button @click="offlineItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               </div>
             </div>
             <div class="flex items-center justify-between px-4 py-2 bg-white">
-              <span class="text-sm font-semibold text-gray-700">Итого:</span>
-              <span class="font-bold text-emerald-600">{{ formatPrice(offlineItems.reduce((s,i)=>s+i.price,0)) }} сўм</span>
+              <span class="text-sm font-semibold text-gray-700">{{ txt.total }}:</span>
+              <span class="font-bold text-emerald-600">{{ formatPrice(offlineItems.reduce((s,i)=>s+i.price,0)) }} {{ txt.sum }}</span>
             </div>
           </div>
 
-          <!-- Note + submit -->
           <div class="flex gap-2 flex-wrap">
             <input
               v-model="offlineNote"
-              placeholder="Имя покупателя (необязательно)"
+              :placeholder="txt.buyer_name"
               class="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <button
               @click="submitOfflineSale"
               :disabled="!offlineItems.length || offlineSubmitting"
               class="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-40"
-            >{{ offlineSubmitting ? 'Запись...' : 'Записать продажу' }}</button>
+            >{{ offlineSubmitting ? txt.saving : txt.record_sale }}</button>
           </div>
 
           <div v-if="offlineSuccess" class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">
-            Продажа записана. Код: <strong>{{ offlineSuccess }}</strong>
+            {{ txt.sale_recorded }} <strong>{{ offlineSuccess }}</strong>
           </div>
         </div>
       </div>
 
-      <!-- Search by code -->
+      <!-- ===== Online order search by 6-digit code ===== -->
       <div class="bg-white rounded-xl shadow-sm p-6">
-        <h2 class="text-lg font-bold text-gray-800 mb-4">Поиск заказа по коду</h2>
+        <h2 class="text-lg font-bold text-gray-800 mb-4">{{ txt.search_online }}</h2>
         <div class="flex gap-3">
           <input
             v-model="searchCode"
             type="text"
             maxlength="6"
-            placeholder="Введите 6-значный код"
+            :placeholder="txt.enter_6_code"
             class="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-2xl font-bold tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             @keyup.enter="searchByCode"
           />
@@ -124,12 +209,12 @@
             :disabled="searchCode.length < 6 || searching"
             class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-40"
           >
-            {{ searching ? 'Поиск...' : 'Найти' }}
+            {{ searching ? txt.searching : txt.find }}
           </button>
         </div>
         <p v-if="searchError" class="mt-3 text-red-500 text-sm">{{ searchError }}</p>
 
-        <!-- Found order -->
+        <!-- Found online order -->
         <div v-if="foundOrder" class="mt-6 border-2 border-blue-200 rounded-xl p-5 bg-blue-50">
           <div class="flex items-center justify-between mb-4">
             <div>
@@ -141,7 +226,6 @@
               <p v-if="foundOrder.user?.middle_name" class="text-sm text-gray-600">{{ foundOrder.user.middle_name }}</p>
               <p class="text-sm text-gray-500">+{{ foundOrder.phone }}</p>
               <p class="text-xs text-gray-400 mt-0.5">{{ new Date(foundOrder.created_at).toLocaleString('ru-RU') }}</p>
-              <!-- Delivery address -->
               <div v-if="foundOrder.delivery_address" class="mt-2 flex items-start gap-1.5">
                 <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -151,8 +235,8 @@
               </div>
             </div>
             <div class="text-right">
-              <p class="text-xs text-gray-400">Итого</p>
-              <p class="text-2xl font-bold text-blue-700">{{ formatPrice(orderTotal(foundOrder)) }} <span class="text-sm font-normal">сўм</span></p>
+              <p class="text-xs text-gray-400">{{ txt.total }}</p>
+              <p class="text-2xl font-bold text-blue-700">{{ formatPrice(orderTotal(foundOrder)) }} <span class="text-sm font-normal">{{ txt.sum }}</span></p>
             </div>
           </div>
 
@@ -160,96 +244,66 @@
             <div v-for="item in foundOrder.items" :key="item.id" class="flex justify-between items-center py-1.5 border-b border-blue-100 last:border-0">
               <div>
                 <span class="font-medium text-gray-800">{{ item.product?.name }}</span>
-                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'упак.' }}</span>
+                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span>
               </div>
-              <span class="font-semibold text-gray-700">{{ formatPrice(item.price) }} сўм</span>
+              <span class="font-semibold text-gray-700">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
             </div>
           </div>
 
           <div class="flex gap-2 flex-wrap">
-            <button
-              v-if="foundOrder.status === 'pending'"
-              @click="updateStatus(foundOrder, 'confirmed')"
-              class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-medium text-sm"
-            >
-              ✓ Подтвердить
-            </button>
-            <button
-              v-if="foundOrder.status === 'confirmed' || foundOrder.status === 'shipped'"
-              @click="updateStatus(foundOrder, 'in_transit')"
-              class="flex-1 bg-orange-500 text-white py-2.5 rounded-lg hover:bg-orange-600 transition font-medium text-sm"
-            >
-              🚚 Передан в доставку
-            </button>
-            <button
-              v-if="foundOrder.status === 'in_transit'"
-              @click="updateStatus(foundOrder, 'delivered')"
-              class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition font-medium text-sm"
-            >
-              ✓ Выдать заказ
-            </button>
-            <button
-              v-if="foundOrder.status !== 'cancelled' && foundOrder.status !== 'delivered'"
-              @click="updateStatus(foundOrder, 'cancelled')"
-              class="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg hover:bg-red-100 transition font-medium text-sm"
-            >
-              Отменить
-            </button>
-            <button
-              @click="openChat(foundOrder)"
-              class="bg-indigo-50 text-indigo-600 border border-indigo-200 py-2.5 px-4 rounded-lg hover:bg-indigo-100 transition font-medium text-sm flex items-center gap-1.5"
-            >
+            <button v-if="foundOrder.status === 'pending'" @click="updateStatus(foundOrder, 'confirmed')"
+              class="flex-1 bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-medium text-sm">✓ {{ txt.confirm }}</button>
+            <button v-if="foundOrder.status === 'confirmed' || foundOrder.status === 'shipped'" @click="updateStatus(foundOrder, 'in_transit')"
+              class="flex-1 bg-orange-500 text-white py-2.5 rounded-lg hover:bg-orange-600 transition font-medium text-sm">🚚 {{ txt.in_transit }}</button>
+            <button v-if="foundOrder.status === 'in_transit'" @click="updateStatus(foundOrder, 'delivered')"
+              class="flex-1 bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition font-medium text-sm">✓ {{ txt.deliver }}</button>
+            <button v-if="foundOrder.status !== 'cancelled' && foundOrder.status !== 'delivered'" @click="updateStatus(foundOrder, 'cancelled')"
+              class="flex-1 bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg hover:bg-red-100 transition font-medium text-sm">{{ txt.cancel }}</button>
+            <button @click="openChat(foundOrder)"
+              class="bg-indigo-50 text-indigo-600 border border-indigo-200 py-2.5 px-4 rounded-lg hover:bg-indigo-100 transition font-medium text-sm flex items-center gap-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
               </svg>
-              Написать
+              {{ txt.write }}
             </button>
           </div>
         </div>
       </div>
 
-      <!-- All orders list -->
+      <!-- ===== All orders list ===== -->
       <div>
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold text-gray-800">Все заказы</h2>
+          <h2 class="text-xl font-bold text-gray-800">{{ txt.all_orders }}</h2>
           <button @click="loadOrders" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            Обновить
+            {{ txt.refresh }}
           </button>
         </div>
 
-        <!-- Filter tabs -->
         <div class="flex gap-2 mb-4 flex-wrap">
-          <button
-            v-for="f in filters"
-            :key="f.value"
-            @click="activeFilter = f.value"
+          <button v-for="f in filters" :key="f.value" @click="activeFilter = f.value"
             :class="activeFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-            class="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 transition"
-          >
+            class="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 transition">
             {{ f.label }}
             <span v-if="f.value !== 'all'" class="ml-1.5 text-xs opacity-75">({{ orderCountByStatus(f.value) }})</span>
           </button>
         </div>
 
         <div class="space-y-3">
-          <div
-            v-for="order in filteredOrders"
-            :key="order.id"
-            class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow"
-          >
+          <div v-for="order in filteredOrders" :key="order.id"
+            class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
             <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
                   <span class="text-xl font-bold text-blue-700 tracking-widest">{{ order.order_code }}</span>
                   <span :class="statusClass(order.status)" class="text-xs font-medium px-2 py-0.5 rounded">{{ statusLabel(order.status) }}</span>
+                  <span v-if="order.is_offline" class="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">{{ txt.offline_badge }}</span>
                 </div>
-                <p class="font-semibold text-gray-800">{{ order.user?.first_name }} {{ order.user?.last_name }}
-                  <span v-if="order.user?.middle_name" class="font-normal text-gray-600"> {{ order.user.middle_name }}</span>
+                <p class="font-semibold text-gray-800">
+                  {{ order.is_offline ? order.offline_note : (order.user?.first_name + ' ' + order.user?.last_name) }}
                 </p>
-                <p class="text-sm text-gray-500">+{{ order.phone }}</p>
+                <p class="text-sm text-gray-500" v-if="!order.is_offline">+{{ order.phone }}</p>
                 <p class="text-xs text-gray-400 mt-0.5">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
-                <!-- Delivery address -->
                 <div v-if="order.delivery_address" class="mt-1.5 flex items-start gap-1.5">
                   <svg class="w-3.5 h-3.5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -259,49 +313,33 @@
                 </div>
               </div>
               <div class="text-right flex-shrink-0">
-                <p class="font-bold text-gray-800">{{ formatPrice(orderTotal(order)) }} сўм</p>
-                <p class="text-xs text-gray-400">{{ order.items?.length }} позиций</p>
+                <p class="font-bold text-gray-800">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
+                <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
               </div>
             </div>
 
-            <!-- Items summary -->
             <div class="mt-3 pt-3 border-t border-gray-100 space-y-1">
               <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'упак.' }}</span></span>
-                <span class="font-medium">{{ formatPrice(item.price) }} сўм</span>
+                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span></span>
+                <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
               </div>
             </div>
 
-            <!-- Actions (sequential flow) -->
             <div class="mt-3 flex gap-2 flex-wrap">
-              <button
-                v-if="order.status === 'pending'"
-                @click="updateStatus(order, 'confirmed')"
-                class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-              >Подтвердить</button>
-              <button
-                v-if="order.status === 'confirmed' || order.status === 'shipped'"
-                @click="updateStatus(order, 'in_transit')"
-                class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium"
-              >🚚 В пути</button>
-              <button
-                v-if="order.status === 'in_transit'"
-                @click="updateStatus(order, 'delivered')"
-                class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium"
-              >✓ Выдать</button>
-              <button
-                v-if="order.status !== 'cancelled' && order.status !== 'delivered'"
-                @click="updateStatus(order, 'cancelled')"
-                class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium"
-              >Отменить</button>
-              <button
-                @click="openChat(order)"
-                class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1"
-              >
+              <button v-if="order.status === 'pending'" @click="updateStatus(order, 'confirmed')"
+                class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm font-medium">{{ txt.confirm }}</button>
+              <button v-if="order.status === 'confirmed' || order.status === 'shipped'" @click="updateStatus(order, 'in_transit')"
+                class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium">🚚 {{ txt.in_transit }}</button>
+              <button v-if="order.status === 'in_transit'" @click="updateStatus(order, 'delivered')"
+                class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium">✓ {{ txt.deliver }}</button>
+              <button v-if="order.status !== 'cancelled' && order.status !== 'delivered'" @click="updateStatus(order, 'cancelled')"
+                class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium">{{ txt.cancel }}</button>
+              <button v-if="!order.is_offline" @click="openChat(order)"
+                class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
-                Написать
+                {{ txt.write }}
               </button>
             </div>
           </div>
@@ -310,7 +348,7 @@
             <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            Нет заказов
+            {{ txt.no_orders }}
           </div>
         </div>
       </div>
@@ -320,11 +358,10 @@
   <!-- Chat panel -->
   <div v-if="chatOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end" @click.self="chatOpen = false">
     <div class="w-full sm:w-96 h-[55vh] sm:h-[70vh] bg-white sm:rounded-tl-2xl sm:rounded-bl-2xl shadow-2xl flex flex-col sm:mr-0 sm:mt-0 rounded-t-2xl">
-      <!-- Chat header -->
       <div class="flex items-center justify-between px-4 py-3 border-b bg-indigo-600 rounded-t-2xl sm:rounded-tl-2xl">
         <div>
           <p class="text-white font-semibold text-sm">{{ chatUserName }}</p>
-          <p class="text-indigo-200 text-xs">Чат с клиентом</p>
+          <p class="text-indigo-200 text-xs">{{ txt.chat_with_client }}</p>
         </div>
         <button @click="chatOpen = false" class="text-white/70 hover:text-white transition">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -332,43 +369,26 @@
           </svg>
         </button>
       </div>
-      <!-- Messages -->
       <div ref="chatMessagesEl" class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
-        <div v-if="chatLoading" class="flex justify-center pt-8 text-gray-400 text-sm">Загрузка...</div>
+        <div v-if="chatLoading" class="flex justify-center pt-8 text-gray-400 text-sm">{{ txt.loading }}</div>
         <template v-else>
-          <div v-if="chatMessages.length === 0" class="text-center text-gray-400 text-sm pt-8">Нет сообщений</div>
-          <div
-            v-for="msg in chatMessages"
-            :key="msg.id"
-            class="flex"
-            :class="msg.sender_role === 'user' ? 'justify-start' : 'justify-end'"
-          >
-            <div
-              class="max-w-[75%] px-3 py-2 rounded-xl text-sm"
-              :class="msg.sender_role === 'user'
-                ? 'bg-white text-gray-800 shadow-sm'
-                : 'bg-indigo-600 text-white'"
-            >
-              <p class="text-[10px] mb-0.5 opacity-60">{{ msg.sender_role === 'user' ? 'Клиент' : msg.sender_role === 'worker' ? 'Работник' : 'Администратор' }}</p>
+          <div v-if="chatMessages.length === 0" class="text-center text-gray-400 text-sm pt-8">{{ txt.no_messages }}</div>
+          <div v-for="msg in chatMessages" :key="msg.id" class="flex"
+            :class="msg.sender_role === 'user' ? 'justify-start' : 'justify-end'">
+            <div class="max-w-[75%] px-3 py-2 rounded-xl text-sm"
+              :class="msg.sender_role === 'user' ? 'bg-white text-gray-800 shadow-sm' : 'bg-indigo-600 text-white'">
+              <p class="text-[10px] mb-0.5 opacity-60">{{ msg.sender_role === 'user' ? txt.client : msg.sender_role === 'worker' ? txt.worker : txt.admin }}</p>
               {{ msg.message }}
               <p class="text-[10px] mt-0.5 opacity-50 text-right">{{ new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) }}</p>
             </div>
           </div>
         </template>
       </div>
-      <!-- Input -->
       <div class="px-3 py-3 border-t flex gap-2">
-        <input
-          v-model="chatMsg"
-          @keyup.enter="sendWorkerMessage"
-          placeholder="Введите сообщение..."
-          class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-        <button
-          @click="sendWorkerMessage"
-          :disabled="!chatMsg.trim() || chatSending"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition disabled:opacity-40"
-        >
+        <input v-model="chatMsg" @keyup.enter="sendWorkerMessage" :placeholder="txt.type_message"
+          class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button @click="sendWorkerMessage" :disabled="!chatMsg.trim() || chatSending"
+          class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition disabled:opacity-40">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
           </svg>
@@ -386,22 +406,140 @@ import { useAuthStore, api } from '../stores/auth'
 const authStore = useAuthStore()
 const router = useRouter()
 
+const lang = ref(localStorage.getItem('pickupLang') || 'ru')
+const watchLang = () => { localStorage.setItem('pickupLang', lang.value) }
+
+const texts = {
+  ru: {
+    title: 'Пункт выдачи',
+    logout: 'Выйти',
+    nurse_section: 'Выдача по коду медсестры (5 цифр)',
+    nurse_desc: 'Введите 5-значный код, который пациент получил от медсестры',
+    nurse_placeholder: 'XXXXX',
+    find: 'Найти',
+    searching: 'Поиск...',
+    verify_name: 'Подтвердите личность пациента',
+    enter_patient_name: 'Введите имя пациента',
+    confirm_issue: '✓ Выдать и подтвердить оплату',
+    confirming: 'Подтверждение...',
+    payment_success: 'Оплата прошла успешно!',
+    new_search: 'Новый поиск',
+    offline_sale: 'Прямая офлайн продажа',
+    search_online: 'Поиск онлайн заказа по коду',
+    enter_6_code: 'Введите 6-значный код',
+    all_orders: 'Все заказы',
+    refresh: 'Обновить',
+    product: 'Препарат',
+    select_product: 'Выберите препарат',
+    qty: 'Кол-во',
+    unit: 'Ед.',
+    pack: 'упак.',
+    piece: 'шт',
+    add: 'Добавить',
+    total: 'Итого',
+    sum: 'сўм',
+    buyer_name: 'Имя покупателя (необязательно)',
+    saving: 'Запись...',
+    record_sale: 'Записать продажу',
+    sale_recorded: 'Продажа записана. Код:',
+    confirm: 'Подтвердить',
+    in_transit: 'В пути',
+    deliver: 'Выдать',
+    cancel: 'Отменить',
+    write: 'Написать',
+    offline_badge: 'Офлайн',
+    positions: 'позиций',
+    no_orders: 'Нет заказов',
+    chat_with_client: 'Чат с клиентом',
+    loading: 'Загрузка...',
+    no_messages: 'Нет сообщений',
+    client: 'Клиент',
+    worker: 'Работник',
+    admin: 'Администратор',
+    type_message: 'Введите сообщение...',
+    status_pending: 'Ожидает',
+    status_confirmed: 'Подтверждён',
+    status_shipped: 'Отправлен',
+    status_in_transit: 'В пути',
+    status_delivered: 'Выдан',
+    status_cancelled: 'Отменён',
+    verify_error: 'Имя не совпадает. Проверьте данные пациента.',
+  },
+  uz: {
+    title: 'Berish punkti',
+    logout: 'Chiqish',
+    nurse_section: 'Hamshira kodi bo\'yicha berish (5 raqam)',
+    nurse_desc: 'Bemor hamshiradan olgan 5 raqamli kodni kiriting',
+    nurse_placeholder: 'XXXXX',
+    find: 'Topish',
+    searching: 'Qidirilmoqda...',
+    verify_name: 'Bemorning shaxsini tasdiqlang',
+    enter_patient_name: 'Bemorning ismini kiriting',
+    confirm_issue: '✓ Berish va to\'lovni tasdiqlash',
+    confirming: 'Tasdiqlanmoqda...',
+    payment_success: 'To\'lov muvaffaqiyatli o\'tkazildi!',
+    new_search: 'Yangi qidiruv',
+    offline_sale: 'To\'g\'ridan-to\'g\'ri oflayn sotuv',
+    search_online: 'Onlayn buyurtmani kod bo\'yicha qidirish',
+    enter_6_code: '6 raqamli kodni kiriting',
+    all_orders: 'Barcha buyurtmalar',
+    refresh: 'Yangilash',
+    product: 'Dori',
+    select_product: 'Dori tanlang',
+    qty: 'Miqdor',
+    unit: 'Birlik',
+    pack: 'quti',
+    piece: 'dona',
+    add: "Qo'shish",
+    total: 'Jami',
+    sum: "so'm",
+    buyer_name: 'Xaridor ismi (ixtiyoriy)',
+    saving: 'Saqlanmoqda...',
+    record_sale: 'Sotuvni yozish',
+    sale_recorded: 'Sotuv yozildi. Kod:',
+    confirm: 'Tasdiqlash',
+    in_transit: 'Yo\'lda',
+    deliver: 'Berish',
+    cancel: 'Bekor qilish',
+    write: 'Yozish',
+    offline_badge: 'Oflayn',
+    positions: 'ta mahsulot',
+    no_orders: "Buyurtmalar yo'q",
+    chat_with_client: 'Mijoz bilan suhbat',
+    loading: 'Yuklanmoqda...',
+    no_messages: "Xabarlar yo'q",
+    client: 'Mijoz',
+    worker: 'Xodim',
+    admin: 'Administrator',
+    type_message: 'Xabar kiriting...',
+    status_pending: 'Kutilmoqda',
+    status_confirmed: 'Tasdiqlangan',
+    status_shipped: 'Yuborilgan',
+    status_in_transit: "Yo'lda",
+    status_delivered: 'Berildi',
+    status_cancelled: 'Bekor qilindi',
+    verify_error: "Ism mos kelmadi. Bemorning ma'lumotlarini tekshiring.",
+  }
+}
+
+const txt = computed(() => {
+  watchLang()
+  return texts[lang.value] || texts.ru
+})
+
+// ===== Orders =====
 const orders = ref([])
-const searchCode = ref('')
-const foundOrder = ref(null)
-const searchError = ref('')
-const searching = ref(false)
 const activeFilter = ref('all')
 
-const filters = [
-  { label: 'Все', value: 'all' },
-  { label: 'Ожидает', value: 'pending' },
-  { label: 'Подтверждён', value: 'confirmed' },
-  { label: 'Отправлен', value: 'shipped' },
-  { label: 'В пути', value: 'in_transit' },
-  { label: 'Выдан', value: 'delivered' },
-  { label: 'Отменён', value: 'cancelled' },
-]
+const filters = computed(() => [
+  { label: txt.value.status_pending.split(' ')[0] === 'Все' ? 'Все' : (lang.value === 'ru' ? 'Все' : 'Barchasi'), value: 'all' },
+  { label: txt.value.status_pending, value: 'pending' },
+  { label: txt.value.status_confirmed, value: 'confirmed' },
+  { label: txt.value.status_shipped, value: 'shipped' },
+  { label: txt.value.status_in_transit, value: 'in_transit' },
+  { label: txt.value.status_delivered, value: 'delivered' },
+  { label: txt.value.status_cancelled, value: 'cancelled' },
+])
 
 const filteredOrders = computed(() => {
   if (activeFilter.value === 'all') return orders.value
@@ -421,15 +559,16 @@ function orderTotal(order) {
 }
 
 function statusLabel(status) {
-  const labels = {
-    pending: 'Ожидает',
-    confirmed: 'Подтверждён',
-    shipped: 'Отправлен',
-    in_transit: 'В пути',
-    delivered: 'Выдан',
-    cancelled: 'Отменён',
+  const t = txt.value
+  const m = {
+    pending: t.status_pending,
+    confirmed: t.status_confirmed,
+    shipped: t.status_shipped,
+    in_transit: t.status_in_transit,
+    delivered: t.status_delivered,
+    cancelled: t.status_cancelled,
   }
-  return labels[status] || status
+  return m[status] || status
 }
 
 function statusClass(status) {
@@ -448,10 +587,74 @@ async function loadOrders() {
   try {
     const res = await api.get('/pickup/orders')
     orders.value = res.data || []
+  } catch (e) { console.error(e) }
+}
+
+// ===== Nurse order (5-digit) =====
+const nurseCode = ref('')
+const nurseOrder = ref(null)
+const nurseSearchError = ref('')
+const nurseSearching = ref(false)
+const nurseConfirmed = ref(false)
+const nurseConfirming = ref(false)
+const verifyName = ref('')
+const verifyError = ref('')
+
+async function searchNurseOrder() {
+  if (nurseCode.value.length < 5) return
+  nurseSearchError.value = ''
+  nurseOrder.value = null
+  nurseConfirmed.value = false
+  verifyName.value = ''
+  verifyError.value = ''
+  nurseSearching.value = true
+  try {
+    const res = await api.get(`/pickup/nurse-order/${nurseCode.value}`)
+    nurseOrder.value = res.data
   } catch (e) {
-    console.error(e)
+    nurseSearchError.value = e.response?.data?.error || (lang.value === 'uz' ? "Buyurtma topilmadi" : 'Заказ не найден')
+  } finally {
+    nurseSearching.value = false
   }
 }
+
+async function confirmNurseOrder() {
+  if (!nurseOrder.value || !verifyName.value.trim()) return
+  verifyError.value = ''
+
+  const expected = (nurseOrder.value.patient_first_name + ' ' + nurseOrder.value.patient_last_name).toLowerCase()
+  const entered = verifyName.value.trim().toLowerCase()
+  if (!expected.includes(entered) && !entered.includes(expected.split(' ')[0])) {
+    verifyError.value = txt.value.verify_error
+    return
+  }
+
+  nurseConfirming.value = true
+  try {
+    await api.put(`/pickup/orders/${nurseOrder.value.id}/status`, { status: 'delivered' })
+    nurseConfirmed.value = true
+    loadOrders()
+  } catch (e) {
+    verifyError.value = e.response?.data?.error || 'Ошибка'
+  } finally {
+    nurseConfirming.value = false
+  }
+}
+
+function resetNurse() {
+  nurseCode.value = ''
+  nurseOrder.value = null
+  nurseConfirmed.value = false
+  verifyName.value = ''
+  verifyError.value = ''
+  nurseSearchError.value = ''
+}
+
+// ===== Online order search (6-digit) =====
+const searchCode = ref('')
+const foundOrder = ref(null)
+const searchError = ref('')
+const searching = ref(false)
 
 async function searchByCode() {
   if (searchCode.value.length < 6) return
@@ -462,7 +665,7 @@ async function searchByCode() {
     const res = await api.get(`/pickup/orders/code/${searchCode.value}`)
     foundOrder.value = res.data
   } catch (e) {
-    searchError.value = e.response?.data?.error || 'Заказ не найден'
+    searchError.value = e.response?.data?.error || (lang.value === 'uz' ? "Buyurtma topilmadi" : 'Заказ не найден')
   } finally {
     searching.value = false
   }
@@ -484,7 +687,7 @@ function logout() {
   router.push('/admin/login')
 }
 
-// Chat
+// ===== Chat =====
 const chatOpen = ref(false)
 const chatUserName = ref('')
 const chatThreadId = ref(null)
@@ -509,9 +712,8 @@ async function openChat(order) {
       const detail = await api.get(`/pickup/support/threads/${thread.id}`)
       chatMessages.value = detail.data.messages || []
     }
-  } catch (e) {
-    console.error(e)
-  } finally {
+  } catch (e) { console.error(e) }
+  finally {
     chatLoading.value = false
     await nextTick()
     scrollChatToBottom()
@@ -519,20 +721,13 @@ async function openChat(order) {
 }
 
 function scrollChatToBottom() {
-  if (chatMessagesEl.value) {
-    chatMessagesEl.value.scrollTop = chatMessagesEl.value.scrollHeight
-  }
+  if (chatMessagesEl.value) chatMessagesEl.value.scrollTop = chatMessagesEl.value.scrollHeight
 }
 
 async function sendWorkerMessage() {
   if (!chatMsg.value.trim() || chatSending.value) return
+  if (!chatThreadId.value) { alert(lang.value === 'uz' ? "Foydalanuvchi hali muloqot boshlamagan" : 'Пользователь ещё не начал переписку'); return }
   const text = chatMsg.value.trim()
-
-  if (!chatThreadId.value) {
-    alert('Пользователь ещё не начал переписку')
-    return
-  }
-
   chatSending.value = true
   try {
     const res = await api.post(`/pickup/support/threads/${chatThreadId.value}/reply`, { message: text })
@@ -542,12 +737,10 @@ async function sendWorkerMessage() {
     scrollChatToBottom()
   } catch (e) {
     alert(e.response?.data?.error || 'Ошибка при отправке')
-  } finally {
-    chatSending.value = false
-  }
+  } finally { chatSending.value = false }
 }
 
-// Offline sale
+// ===== Direct Offline Sale =====
 const offlineOpen = ref(false)
 const allProducts = ref([])
 const offlineProductId = ref('')
@@ -562,9 +755,7 @@ async function loadProducts() {
   try {
     const res = await api.get('/products')
     allProducts.value = res.data || []
-    for (const p of allProducts.value) {
-      p.price_per_pack = p.price_per_pill * p.quantity_per_pack
-    }
+    for (const p of allProducts.value) p.price_per_pack = p.price_per_pill * p.quantity_per_pack
   } catch (e) { console.error(e) }
 }
 
@@ -575,13 +766,7 @@ function addOfflineItem() {
   const price = offlineUnit.value === 'piece'
     ? product.price_per_pill * offlineQty.value
     : product.price_per_pack * offlineQty.value
-  offlineItems.value.push({
-    product_id: product.id,
-    name: product.name,
-    quantity: offlineQty.value,
-    unit_type: offlineUnit.value,
-    price,
-  })
+  offlineItems.value.push({ product_id: product.id, name: product.name, quantity: offlineQty.value, unit_type: offlineUnit.value, price })
   offlineProductId.value = ''
   offlineQty.value = 1
   offlineUnit.value = 'pack'
@@ -593,11 +778,7 @@ async function submitOfflineSale() {
   offlineSuccess.value = ''
   try {
     const res = await api.post('/pickup/offline-sale', {
-      items: offlineItems.value.map(i => ({
-        product_id: i.product_id,
-        quantity: i.quantity,
-        unit_type: i.unit_type,
-      })),
+      items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
       offline_note: offlineNote.value,
     })
     offlineSuccess.value = res.data.order_code
@@ -606,9 +787,7 @@ async function submitOfflineSale() {
     loadOrders()
   } catch (e) {
     alert(e.response?.data?.error || 'Ошибка при записи')
-  } finally {
-    offlineSubmitting.value = false
-  }
+  } finally { offlineSubmitting.value = false }
 }
 
 onMounted(() => {

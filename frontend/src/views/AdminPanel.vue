@@ -206,8 +206,8 @@
       <!-- ===== Workers Tab ===== -->
       <div v-if="activeTab === 'workers'">
         <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold text-gray-800">Работники пункта выдачи</h2>
-          <button @click="showWorkerModal = true" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium flex items-center gap-2">
+          <h2 class="text-2xl font-bold text-gray-800">Работники</h2>
+          <button @click="openWorkerModal()" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Добавить работника
           </button>
@@ -219,21 +219,33 @@
               <tr>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Имя</th>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Телефон</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Роль</th>
                 <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr v-for="w in workers" :key="w.id" class="hover:bg-gray-50 transition">
                 <td class="px-5 py-3 font-medium text-gray-800">{{ w.name }}</td>
-                <td class="px-5 py-3 text-gray-500">+{{ w.phone }}</td>
+                <td class="px-5 py-3 text-gray-500 font-mono">+{{ w.phone }}</td>
+                <td class="px-5 py-3">
+                  <span :class="w.role === 'nurse' ? 'bg-teal-50 text-teal-700' : 'bg-blue-50 text-blue-700'"
+                    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium">
+                    {{ w.role === 'nurse' ? 'Медсестра' : 'Пункт выдачи' }}
+                  </span>
+                </td>
                 <td class="px-5 py-3 text-right">
-                  <button @click="deleteWorker(w.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  </button>
+                  <div class="flex items-center justify-end gap-1">
+                    <button @click="openEditWorkerModal(w)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Редактировать">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <button @click="deleteWorker(w.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="workers.length === 0">
-                <td colspan="3" class="px-5 py-12 text-center text-gray-400">
+                <td colspan="4" class="px-5 py-12 text-center text-gray-400">
                   <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -1012,28 +1024,39 @@
       </div>
     </div>
 
-    <!-- Worker Modal -->
+    <!-- Worker Modal (Add / Edit) -->
     <div v-if="showWorkerModal" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showWorkerModal = false"></div>
       <div class="relative bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
-        <h3 class="text-xl font-bold text-gray-800 mb-5">Добавить работника</h3>
+        <h3 class="text-xl font-bold text-gray-800 mb-5">{{ editingWorker ? 'Редактировать работника' : 'Добавить работника' }}</h3>
         <form @submit.prevent="saveWorker" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Имя <span class="text-red-400">*</span></label>
-            <input v-model="workerForm.name" type="text" required
+            <input v-model="workerForm.name" type="text" :required="!editingWorker"
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Номер телефона <span class="text-red-400">*</span></label>
             <div class="flex">
               <span class="inline-flex items-center px-3.5 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm font-medium">+998</span>
-              <input v-model="workerForm.phoneDigits" type="tel" maxlength="9" required
+              <input v-model="workerForm.phoneDigits" type="tel" maxlength="9" :required="!editingWorker"
                 class="flex-1 border border-gray-300 rounded-r-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Пароль <span class="text-red-400">*</span></label>
-            <input v-model="workerForm.password" type="password" required minlength="6"
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Роль <span class="text-red-400">*</span></label>
+            <select v-model="workerForm.role"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition">
+              <option value="pickup">Пункт выдачи</option>
+              <option value="nurse">Медсестра / Медбрат</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">
+              Пароль <span v-if="!editingWorker" class="text-red-400">*</span>
+              <span v-else class="text-gray-400 text-xs">(оставьте пустым, чтобы не менять)</span>
+            </label>
+            <input v-model="workerForm.password" type="password" :required="!editingWorker" minlength="6"
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
           </div>
           <div v-if="workerError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ workerError }}</div>
@@ -1044,7 +1067,7 @@
             </button>
             <button type="submit" :disabled="savingWorker"
               class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">
-              {{ savingWorker ? 'Сохранение...' : 'Добавить' }}
+              {{ savingWorker ? 'Сохранение...' : (editingWorker ? 'Сохранить' : 'Добавить') }}
             </button>
           </div>
         </form>
@@ -1132,7 +1155,8 @@ const orders = ref([])
 // Workers
 const workers = ref([])
 const showWorkerModal = ref(false)
-const workerForm = reactive({ name: '', phoneDigits: '', password: '' })
+const editingWorker = ref(null)
+const workerForm = reactive({ name: '', phoneDigits: '', password: '', role: 'pickup' })
 const workerError = ref('')
 const savingWorker = ref(false)
 
@@ -1468,19 +1492,50 @@ async function sendSupportReply() {
   }
 }
 
+function openWorkerModal() {
+  editingWorker.value = null
+  workerForm.name = ''
+  workerForm.phoneDigits = ''
+  workerForm.password = ''
+  workerForm.role = 'pickup'
+  workerError.value = ''
+  showWorkerModal.value = true
+}
+
+function openEditWorkerModal(w) {
+  editingWorker.value = w
+  workerForm.name = w.name
+  workerForm.phoneDigits = w.phone.replace(/^998/, '')
+  workerForm.password = ''
+  workerForm.role = w.role || 'pickup'
+  workerError.value = ''
+  showWorkerModal.value = true
+}
+
 async function saveWorker() {
   workerError.value = ''
   savingWorker.value = true
   try {
-    await api.post('/admin/workers', {
-      name: workerForm.name,
-      phone: '998' + workerForm.phoneDigits,
-      password: workerForm.password
-    })
+    if (editingWorker.value) {
+      const payload = { role: workerForm.role }
+      if (workerForm.name) payload.name = workerForm.name
+      if (workerForm.phoneDigits) payload.phone = '998' + workerForm.phoneDigits
+      if (workerForm.password) payload.password = workerForm.password
+      await api.put(`/admin/workers/${editingWorker.value.id}`, payload)
+    } else {
+      await api.post('/admin/workers', {
+        name: workerForm.name,
+        phone: '998' + workerForm.phoneDigits,
+        password: workerForm.password,
+        role: workerForm.role,
+      })
+    }
     showWorkerModal.value = false
+    editingWorker.value = null
     workerForm.name = ''
     workerForm.phoneDigits = ''
     workerForm.password = ''
+    workerForm.role = 'pickup'
     await loadWorkers()
   } catch (e) {
     workerError.value = e.response?.data?.error || 'Ошибка'

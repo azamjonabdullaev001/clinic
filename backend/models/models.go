@@ -30,6 +30,7 @@ type Worker struct {
 	Name     string `gorm:"not null" json:"name"`
 	Phone    string `gorm:"uniqueIndex;not null" json:"phone"`
 	Password string `gorm:"not null" json:"-"`
+	Role     string `gorm:"default:'pickup';not null" json:"role"` // "pickup" or "nurse"
 }
 
 type Product struct {
@@ -106,16 +107,20 @@ type Order struct {
 	ID              uint        `gorm:"primaryKey" json:"id"`
 	UserID          *uint       `json:"user_id"`
 	User            User        `json:"user"`
+	WorkerID        *uint       `json:"worker_id"`
 	Items           []OrderItem `json:"items"`
 	Status          string      `gorm:"default:'pending';not null" json:"status"`
 	Phone           string      `gorm:"not null" json:"phone"`
-	OrderCode       string      `gorm:"uniqueIndex;size:6" json:"order_code"`
+	OrderCode       string      `gorm:"uniqueIndex;size:10" json:"order_code"`
 	DeliveryAddress string      `json:"delivery_address"`
 	Latitude        float64     `json:"latitude"`
 	Longitude       float64     `json:"longitude"`
 	ReferredBy      string      `json:"referred_by"`
 	IsOffline       bool        `gorm:"default:false" json:"is_offline"`
+	IsNurseOrder    bool        `gorm:"default:false" json:"is_nurse_order"`
 	OfflineNote     string      `json:"offline_note"`
+	PatientFName    string      `json:"patient_first_name"`
+	PatientLName    string      `json:"patient_last_name"`
 	CreatedAt       time.Time   `json:"created_at"`
 }
 

@@ -56,6 +56,7 @@ func main() {
 				protected.PUT("/orders/:id/status", handlers.UpdateOrderStatus)
 				protected.GET("/workers", handlers.GetWorkers)
 				protected.POST("/workers", handlers.CreateWorker)
+				protected.PUT("/workers/:id", handlers.UpdateWorker)
 				protected.DELETE("/workers/:id", handlers.DeleteWorker)
 				protected.GET("/faqs", handlers.GetFAQs)
 				protected.POST("/faqs", handlers.CreateFAQ)
@@ -114,11 +115,20 @@ func main() {
 		{
 			pickup.GET("/orders", handlers.GetPickupOrders)
 			pickup.GET("/orders/code/:code", handlers.GetOrderByCode)
+			pickup.GET("/nurse-order/:code", handlers.ConfirmNurseOrder)
 			pickup.PUT("/orders/:id/status", handlers.UpdatePickupOrderStatus)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)
+		}
+
+		nurse := api.Group("/nurse")
+		nurse.Use(middleware.WorkerAuth())
+		{
+			nurse.POST("/orders", handlers.CreateNurseOrder)
+			nurse.GET("/orders", handlers.GetNurseOrders)
+			nurse.GET("/products", handlers.GetProducts)
 		}
 	}
 

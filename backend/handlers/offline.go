@@ -54,8 +54,15 @@ func CreateOfflineSale(c *gin.Context) {
 
 	tx := database.DB.Begin()
 
+	var wid *uint
+	if workerID, exists := c.Get("workerID"); exists {
+		id := workerID.(uint)
+		wid = &id
+	}
+
 	order := models.Order{
 		UserID:      nil,
+		WorkerID:    wid,
 		Status:      "delivered",
 		Phone:       "offline",
 		OrderCode:   generateOrderCode(),

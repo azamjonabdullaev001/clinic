@@ -86,7 +86,8 @@ async function handleLogin() {
       password: password.value
     })
     if (result.role === 'worker') {
-      router.push('/pickup')
+      const workerRole = result.worker?.role
+      router.push(workerRole === 'nurse' ? '/nurse' : '/pickup')
     } else {
       router.push('/admin')
     }
