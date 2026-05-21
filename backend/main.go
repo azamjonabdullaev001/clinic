@@ -117,6 +117,7 @@ func main() {
 			pickup.GET("/orders/code/:code", handlers.GetOrderByCode)
 			pickup.GET("/nurse-order/:code", handlers.ConfirmNurseOrder)
 			pickup.PUT("/orders/:id/status", handlers.UpdatePickupOrderStatus)
+			pickup.PUT("/orders/:id/items", handlers.UpdateOrderItems)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
@@ -129,6 +130,15 @@ func main() {
 			nurse.POST("/orders", handlers.CreateNurseOrder)
 			nurse.GET("/orders", handlers.GetNurseOrders)
 			nurse.GET("/products", handlers.GetProducts)
+		}
+
+		doctor := api.Group("/doctor")
+		doctor.Use(middleware.DoctorAuth())
+		{
+			doctor.GET("/profile", handlers.GetDoctorProfile)
+			doctor.POST("/orders", handlers.CreateDoctorOrder)
+			doctor.GET("/orders", handlers.GetDoctorOrders)
+			doctor.GET("/products", handlers.GetProducts)
 		}
 	}
 

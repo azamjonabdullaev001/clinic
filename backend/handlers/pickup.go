@@ -8,10 +8,84 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func UpdateOrderItems(c *gin.Context) {
+	id := c.Param("id")
+	var order models.Order
+	if err := database.DB.Preload("Items").First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+
+	if order.Status == "delivered" || order.Status == "cancelled" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить завершённый заказ"})
+		return
+	}
+
+	var input struct {
+		Items []OfflineItemInput `json:"items" binding:"required,min=1"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Список товаров обязателен"})
+		return
+	}
+
+	tx := database.DB.Begin()
+
+	if err := tx.Where("order_id = ?", order.ID).Delete(&models.OrderItem{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})
+		return
+	}
+
+	for _, item := range input.Items {
+		var product models.Product
+		if err := tx.First(&product, item.ProductID).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Товар не найден"})
+			return
+		}
+		product.ComputePackPrice()
+
+		unitType := item.UnitType
+		if unitType == "" {
+			unitType = "pack"
+		}
+
+		var price float64
+		if unitType == "piece" {
+			price = product.PricePerPill * float64(item.Quantity)
+		} else {
+			price = product.PricePerPack * float64(item.Quantity)
+		}
+
+		orderItem := models.OrderItem{
+			OrderID:   order.ID,
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			UnitType:  unitType,
+			Price:     price,
+		}
+		if err := tx.Create(&orderItem).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})
+			return
+		}
+	}
+
+	tx.Commit()
+
+	database.DB.Preload("Items.Product").First(&order, order.ID)
+	for i := range order.Items {
+		order.Items[i].Product.ComputePackPrice()
+	}
+
+	c.JSON(http.StatusOK, order)
+}
+
 func GetPickupOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
 	var orders []models.Order
-	// Show online customer orders + own offline direct sales (not nurse orders)
+	// Show online customer orders + own offline direct sales (not nurse/doctor pre-orders)
 	database.DB.Where(
 		"(is_offline = false AND is_nurse_order = false) OR (is_offline = true AND is_nurse_order = false AND worker_id = ?)",
 		workerID,

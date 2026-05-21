@@ -272,6 +272,7 @@
               <tr>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Имя доктора</th>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Специализация</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Телефон</th>
                 <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Добавлен</th>
                 <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
               </tr>
@@ -288,6 +289,10 @@
                   <td class="px-5 py-3">
                     <span v-if="doc.specialty" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">{{ doc.specialty }}</span>
                     <span v-else class="text-gray-400 text-sm">—</span>
+                  </td>
+                  <td class="px-5 py-3 text-gray-500 text-sm">
+                    <span v-if="doc.phone">+{{ doc.phone }}</span>
+                    <span v-else class="text-gray-300">—</span>
                   </td>
                   <td class="px-5 py-3 text-gray-500 text-sm">{{ new Date(doc.created_at).toLocaleDateString('ru-RU') }}</td>
                   <td class="px-5 py-3 text-right">
@@ -308,7 +313,7 @@
                 </tr>
                 <!-- Stats expand row -->
                 <tr v-if="expandedDoctorId === doc.id" class="bg-purple-50/40">
-                  <td colspan="4" class="px-5 py-4">
+                  <td colspan="5" class="px-5 py-4">
                     <div v-if="doctorStatsLoading" class="flex items-center gap-2 text-sm text-gray-400 py-2">
                       <div class="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
                       Загрузка статистики...
@@ -344,7 +349,7 @@
                 </tr>
               </template>
               <tr v-if="doctors.length === 0">
-                <td colspan="4" class="px-5 py-12 text-center text-gray-400">
+                <td colspan="5" class="px-5 py-12 text-center text-gray-400">
                   <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -774,6 +779,20 @@
               <input v-model="editDoctorForm.specialty" type="text" placeholder="Например: Невролог, Кардиолог..."
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Номер телефона</label>
+              <div class="flex">
+                <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">+998</span>
+                <input v-model="editDoctorForm.phone" type="tel" maxlength="9" placeholder="901234567"
+                  class="flex-1 border border-gray-300 rounded-r-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Для доступа к панели врача (необязательно)</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Новый пароль</label>
+              <input v-model="editDoctorForm.password" type="password" placeholder="Оставьте пустым, чтобы не менять"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
+            </div>
             <div v-if="editDoctorError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ editDoctorError }}</div>
             <div class="flex gap-3">
               <button type="button" @click="showEditDoctorModal = false"
@@ -802,7 +821,20 @@
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Специализация</label>
               <input v-model="doctorSpecialty" type="text" placeholder="Например: Невролог, Кардиолог, Гинеколог..."
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
-              <p class="text-xs text-gray-400 mt-1">Укажите специальность врача (необязательно)</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Номер телефона</label>
+              <div class="flex">
+                <span class="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">+998</span>
+                <input v-model="doctorPhone" type="tel" maxlength="9" placeholder="901234567"
+                  class="flex-1 border border-gray-300 rounded-r-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Для доступа к панели врача (необязательно)</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Пароль</label>
+              <input v-model="doctorPassword" type="password" placeholder="Минимум 6 символов (необязательно)"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-purple-500 transition" />
             </div>
             <div v-if="doctorError" class="bg-red-50 text-red-600 text-sm p-3 rounded-lg">{{ doctorError }}</div>
             <div class="flex gap-3">
@@ -1749,13 +1781,15 @@ const doctors = ref([])
 const showDoctorModal = ref(false)
 const doctorName = ref('')
 const doctorSpecialty = ref('')
+const doctorPhone = ref('')
+const doctorPassword = ref('')
 const doctorError = ref('')
 const savingDoctor = ref(false)
 
 // Edit doctor
 const showEditDoctorModal = ref(false)
 const editingDoctorId = ref(null)
-const editDoctorForm = reactive({ name: '', specialty: '' })
+const editDoctorForm = reactive({ name: '', specialty: '', phone: '', password: '' })
 const editDoctorError = ref('')
 const savingEditDoctor = ref(false)
 
@@ -1776,13 +1810,18 @@ async function saveDoctor() {
   doctorError.value = ''
   savingDoctor.value = true
   try {
-    await api.post('/admin/doctors', {
+    const payload = {
       name: doctorName.value.trim(),
       specialty: doctorSpecialty.value.trim(),
-    })
+    }
+    if (doctorPhone.value.trim()) payload.phone = '998' + doctorPhone.value.trim()
+    if (doctorPassword.value) payload.password = doctorPassword.value
+    await api.post('/admin/doctors', payload)
     showDoctorModal.value = false
     doctorName.value = ''
     doctorSpecialty.value = ''
+    doctorPhone.value = ''
+    doctorPassword.value = ''
     await loadDoctors()
   } catch (e) {
     doctorError.value = e.response?.data?.error || 'Ошибка'
@@ -1804,6 +1843,8 @@ function openEditDoctorModal(doc) {
   editingDoctorId.value = doc.id
   editDoctorForm.name = doc.name
   editDoctorForm.specialty = doc.specialty || ''
+  editDoctorForm.phone = doc.phone ? doc.phone.replace(/^998/, '') : ''
+  editDoctorForm.password = ''
   editDoctorError.value = ''
   showEditDoctorModal.value = true
 }
@@ -1813,10 +1854,13 @@ async function saveEditDoctor() {
   editDoctorError.value = ''
   savingEditDoctor.value = true
   try {
-    await api.put(`/admin/doctors/${editingDoctorId.value}`, {
+    const payload = {
       name: editDoctorForm.name.trim(),
       specialty: editDoctorForm.specialty.trim(),
-    })
+    }
+    if (editDoctorForm.phone.trim()) payload.phone = '998' + editDoctorForm.phone.trim()
+    if (editDoctorForm.password) payload.password = editDoctorForm.password
+    await api.put(`/admin/doctors/${editingDoctorId.value}`, payload)
     showEditDoctorModal.value = false
     await loadDoctors()
   } catch (e) {

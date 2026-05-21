@@ -82,15 +82,75 @@
                 </div>
               </div>
 
-              <div class="border-t border-teal-200 pt-3 mb-4 space-y-1.5">
-                <div v-for="item in nurseOrder.items" :key="item.id" class="flex justify-between text-sm text-gray-700">
-                  <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span></span>
-                  <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
+              <!-- Items display / edit mode -->
+              <div class="border-t border-teal-200 pt-3 mb-4">
+                <div v-if="!editingNurseItems">
+                  <!-- View mode -->
+                  <div class="space-y-1.5 mb-3">
+                    <div v-for="item in nurseOrder.items" :key="item.id" class="flex justify-between text-sm text-gray-700">
+                      <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span></span>
+                      <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
+                    </div>
+                  </div>
+                  <button @click="startEditItems"
+                    class="text-xs text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    {{ txt.edit_items }}
+                  </button>
+                </div>
+
+                <!-- Edit mode -->
+                <div v-else class="space-y-3">
+                  <!-- Existing editable items -->
+                  <div v-for="(item, idx) in editItems" :key="idx"
+                    class="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                    <span class="flex-1 text-sm font-medium text-gray-800 truncate">{{ item.name }}</span>
+                    <input v-model.number="item.quantity" type="number" min="1"
+                      class="w-16 border border-gray-300 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                    <select v-model="item.unit_type"
+                      class="w-24 border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                      <option value="pack">{{ txt.pack }}</option>
+                      <option value="piece">{{ txt.piece }}</option>
+                    </select>
+                    <button @click="editItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 flex-shrink-0">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                  <!-- Add product row -->
+                  <div class="flex gap-2 items-end flex-wrap">
+                    <select v-model="editAddProductId"
+                      class="flex-1 min-w-[140px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                      <option value="">{{ txt.select_product }}</option>
+                      <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+                    </select>
+                    <input v-model.number="editAddQty" type="number" min="1"
+                      class="w-16 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                    <select v-model="editAddUnit"
+                      class="w-24 border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500">
+                      <option value="pack">{{ txt.pack }}</option>
+                      <option value="piece">{{ txt.piece }}</option>
+                    </select>
+                    <button @click="addEditItem" :disabled="!editAddProductId || editAddQty < 1"
+                      class="bg-teal-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-40">
+                      + {{ txt.add }}
+                    </button>
+                  </div>
+                  <!-- Save / cancel edit -->
+                  <div class="flex gap-2">
+                    <button @click="cancelEditItems"
+                      class="flex-1 border border-gray-300 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                      {{ txt.cancel_edit }}
+                    </button>
+                    <button @click="saveEditItems" :disabled="savingEditItems || editItems.length === 0"
+                      class="flex-1 bg-teal-600 text-white py-2 rounded-lg text-sm font-bold hover:bg-teal-700 transition disabled:opacity-40">
+                      {{ savingEditItems ? txt.saving_items : txt.save_items }}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <!-- Name verification -->
-              <div class="bg-white border border-teal-200 rounded-xl p-4 mb-4">
+              <div v-if="!editingNurseItems" class="bg-white border border-teal-200 rounded-xl p-4 mb-4">
                 <p class="text-sm font-medium text-gray-700 mb-2">{{ txt.verify_name }}</p>
                 <input v-model="verifyName" type="text"
                   class="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
@@ -98,7 +158,7 @@
                 <p v-if="verifyError" class="mt-2 text-red-500 text-sm">{{ verifyError }}</p>
               </div>
 
-              <button @click="confirmNurseOrder"
+              <button v-if="!editingNurseItems" @click="confirmNurseOrder"
                 :disabled="!verifyName.trim() || nurseConfirming"
                 class="w-full bg-teal-600 text-white py-4 rounded-xl hover:bg-teal-700 transition font-bold text-base disabled:opacity-40">
                 {{ nurseConfirming ? txt.confirming : txt.confirm_issue }}
@@ -464,6 +524,10 @@ const texts = {
     status_delivered: 'Выдан',
     status_cancelled: 'Отменён',
     verify_error: 'Имя не совпадает. Проверьте данные пациента.',
+    edit_items: 'Редактировать товары',
+    save_items: 'Сохранить изменения',
+    saving_items: 'Сохранение...',
+    cancel_edit: 'Отмена',
   },
   uz: {
     title: 'Berish punkti',
@@ -519,6 +583,10 @@ const texts = {
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
     verify_error: "Ism mos kelmadi. Bemorning ma'lumotlarini tekshiring.",
+    edit_items: "Mahsulotlarni tahrirlash",
+    save_items: "O'zgarishlarni saqlash",
+    saving_items: "Saqlanmoqda...",
+    cancel_edit: "Bekor qilish",
   }
 }
 
@@ -600,6 +668,66 @@ const nurseConfirming = ref(false)
 const verifyName = ref('')
 const verifyError = ref('')
 
+// Edit items for nurse/doctor pre-order
+const editingNurseItems = ref(false)
+const editItems = ref([])
+const editAddProductId = ref('')
+const editAddQty = ref(1)
+const editAddUnit = ref('pack')
+const savingEditItems = ref(false)
+
+function startEditItems() {
+  editItems.value = (nurseOrder.value.items || []).map(item => ({
+    product_id: item.product_id,
+    name: item.product?.name || '',
+    quantity: item.quantity,
+    unit_type: item.unit_type,
+  }))
+  editAddProductId.value = ''
+  editAddQty.value = 1
+  editAddUnit.value = 'pack'
+  editingNurseItems.value = true
+}
+
+function cancelEditItems() {
+  editingNurseItems.value = false
+}
+
+function addEditItem() {
+  if (!editAddProductId.value || editAddQty.value < 1) return
+  const product = allProducts.value.find(p => p.id === editAddProductId.value)
+  if (!product) return
+  editItems.value.push({
+    product_id: product.id,
+    name: product.name,
+    quantity: editAddQty.value,
+    unit_type: editAddUnit.value,
+  })
+  editAddProductId.value = ''
+  editAddQty.value = 1
+  editAddUnit.value = 'pack'
+}
+
+async function saveEditItems() {
+  if (!nurseOrder.value || editItems.value.length === 0) return
+  savingEditItems.value = true
+  try {
+    const res = await api.put(`/pickup/orders/${nurseOrder.value.id}/items`, {
+      items: editItems.value.map(i => ({
+        product_id: i.product_id,
+        quantity: i.quantity,
+        unit_type: i.unit_type,
+      })),
+    })
+    nurseOrder.value = res.data
+    editingNurseItems.value = false
+  } catch (e) {
+    alert(e.response?.data?.error || 'Ошибка при сохранении')
+  } finally {
+    savingEditItems.value = false
+  }
+}
+
 async function searchNurseOrder() {
   if (nurseCode.value.length < 5) return
   nurseSearchError.value = ''
@@ -648,6 +776,8 @@ function resetNurse() {
   verifyName.value = ''
   verifyError.value = ''
   nurseSearchError.value = ''
+  editingNurseItems.value = false
+  editItems.value = []
 }
 
 // ===== Online order search (6-digit) =====

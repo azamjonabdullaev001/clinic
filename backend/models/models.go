@@ -16,6 +16,8 @@ type Doctor struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	Name      string    `gorm:"not null" json:"name"`
 	Specialty string    `json:"specialty"`
+	Phone     string    `gorm:"uniqueIndex" json:"phone"`
+	Password  string    `gorm:"default:''" json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -108,6 +110,7 @@ type Order struct {
 	UserID          *uint       `json:"user_id"`
 	User            User        `json:"user"`
 	WorkerID        *uint       `json:"worker_id"`
+	DoctorID        *uint       `json:"doctor_id"`
 	Items           []OrderItem `json:"items"`
 	Status          string      `gorm:"default:'pending';not null" json:"status"`
 	Phone           string      `gorm:"not null" json:"phone"`

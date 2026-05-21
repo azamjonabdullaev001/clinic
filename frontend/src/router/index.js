@@ -6,6 +6,7 @@ import AdminLogin from '../views/AdminLogin.vue'
 import AdminPanel from '../views/AdminPanel.vue'
 import PickupPanel from '../views/PickupPanel.vue'
 import NursePanel from '../views/NursePanel.vue'
+import DoctorPanel from '../views/DoctorPanel.vue'
 import Support from '../views/Support.vue'
 import News from '../views/News.vue'
 
@@ -18,6 +19,7 @@ const routes = [
   { path: '/admin', name: 'AdminPanel', component: AdminPanel, meta: { requiresAdmin: true } },
   { path: '/pickup', name: 'PickupPanel', component: PickupPanel, meta: { requiresWorker: true } },
   { path: '/nurse', name: 'NursePanel', component: NursePanel, meta: { requiresWorker: true } },
+  { path: '/doctor', name: 'DoctorPanel', component: DoctorPanel, meta: { requiresDoctor: true } },
   { path: '/support', name: 'Support', component: Support, meta: { requiresUser: true } },
 ]
 
@@ -36,6 +38,10 @@ router.beforeEach((to, from, next) => {
   }
   if (to.meta.requiresWorker) {
     const token = localStorage.getItem('workerToken')
+    if (!token) { next('/admin/login'); return }
+  }
+  if (to.meta.requiresDoctor) {
+    const token = localStorage.getItem('doctorToken')
     if (!token) { next('/admin/login'); return }
   }
   if (to.meta.requiresUser) {

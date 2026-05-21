@@ -88,6 +88,8 @@ async function handleLogin() {
     if (result.role === 'worker') {
       const workerRole = result.worker?.role
       router.push(workerRole === 'nurse' ? '/nurse' : '/pickup')
+    } else if (result.role === 'doctor') {
+      router.push('/doctor')
     } else {
       router.push('/admin')
     }

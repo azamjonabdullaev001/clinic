@@ -51,6 +51,8 @@ func Migrate() {
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
+
+	DB.Exec("UPDATE workers SET role = 'pickup' WHERE role IS NULL OR role = ''")
 	log.Println("Database migrated successfully")
 }
 

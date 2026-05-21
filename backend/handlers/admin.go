@@ -50,25 +50,50 @@ func AdminLogin(c *gin.Context) {
 
 	// Check worker
 	var worker models.Worker
-	if err := database.DB.Where("phone = ?", input.Phone).First(&worker).Error; err != nil {
+	if err := database.DB.Where("phone = ?", input.Phone).First(&worker).Error; err == nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(worker.Password), []byte(input.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные учетные данные"})
+			return
+		}
+		token, err := middleware.GenerateToken(worker.ID, "worker")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"token":  token,
+			"role":   "worker",
+			"worker": gin.H{"id": worker.ID, "phone": worker.Phone, "name": worker.Name, "role": worker.Role},
+		})
+		return
+	}
+
+	// Check doctor
+	var doctor models.Doctor
+	if err := database.DB.Where("phone = ?", input.Phone).First(&doctor).Error; err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные учетные данные"})
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(worker.Password), []byte(input.Password)); err != nil {
+	if doctor.Password == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные учетные данные"})
 		return
 	}
 
-	token, err := middleware.GenerateToken(worker.ID, "worker")
+	if err := bcrypt.CompareHashAndPassword([]byte(doctor.Password), []byte(input.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверные учетные данные"})
+		return
+	}
+
+	token, err := middleware.GenerateToken(doctor.ID, "doctor")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"token":  token,
-		"role":   "worker",
-		"worker": gin.H{"id": worker.ID, "phone": worker.Phone, "name": worker.Name, "role": worker.Role},
+		"role":   "doctor",
+		"doctor": gin.H{"id": doctor.ID, "phone": doctor.Phone, "name": doctor.Name, "specialty": doctor.Specialty},
 	})
 }
 

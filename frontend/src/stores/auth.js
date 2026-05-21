@@ -8,11 +8,14 @@ const api = axios.create({ baseURL: '/api' })
 api.interceptors.request.use(config => {
   const adminToken = localStorage.getItem('adminToken') || ''
   const workerToken = localStorage.getItem('workerToken') || ''
+  const doctorToken = localStorage.getItem('doctorToken') || ''
   const userToken = localStorage.getItem('userToken') || ''
   if (config.url?.startsWith('/admin') && adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`
   } else if ((config.url?.startsWith('/pickup') || config.url?.startsWith('/nurse')) && workerToken) {
     config.headers.Authorization = `Bearer ${workerToken}`
+  } else if (config.url?.startsWith('/doctor') && doctorToken) {
+    config.headers.Authorization = `Bearer ${doctorToken}`
   } else if (userToken) {
     config.headers.Authorization = `Bearer ${userToken}`
   }
@@ -28,10 +31,13 @@ export const useAuthStore = defineStore('auth', () => {
   const admin = ref(JSON.parse(localStorage.getItem('admin') || 'null'))
   const workerToken = ref(localStorage.getItem('workerToken') || '')
   const worker = ref(JSON.parse(localStorage.getItem('worker') || 'null'))
+  const doctorToken = ref(localStorage.getItem('doctorToken') || '')
+  const doctor = ref(JSON.parse(localStorage.getItem('doctor') || 'null'))
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => !!adminToken.value)
   const isWorker = computed(() => !!workerToken.value)
+  const isDoctor = computed(() => !!doctorToken.value)
 
   async function register(data) {
     const res = await api.post('/auth/register', data)
@@ -65,6 +71,11 @@ export const useAuthStore = defineStore('auth', () => {
       worker.value = res.data.worker
       localStorage.setItem('workerToken', res.data.token)
       localStorage.setItem('worker', JSON.stringify(res.data.worker))
+    } else if (res.data.role === 'doctor') {
+      doctorToken.value = res.data.token
+      doctor.value = res.data.doctor
+      localStorage.setItem('doctorToken', res.data.token)
+      localStorage.setItem('doctor', JSON.stringify(res.data.doctor))
     } else {
       adminToken.value = res.data.token
       admin.value = res.data.admin
@@ -95,9 +106,16 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('worker')
   }
 
+  function doctorLogout() {
+    doctorToken.value = ''
+    doctor.value = null
+    localStorage.removeItem('doctorToken')
+    localStorage.removeItem('doctor')
+  }
+
   return {
-    token, user, adminToken, admin, workerToken, worker,
-    isLoggedIn, isAdmin, isWorker,
-    register, login, adminLogin, logout, adminLogout, workerLogout, updateDeliveryAddress
+    token, user, adminToken, admin, workerToken, worker, doctorToken, doctor,
+    isLoggedIn, isAdmin, isWorker, isDoctor,
+    register, login, adminLogin, logout, adminLogout, workerLogout, doctorLogout, updateDeliveryAddress
   }
 })
