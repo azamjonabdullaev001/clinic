@@ -85,9 +85,9 @@ func UpdateOrderItems(c *gin.Context) {
 func GetPickupOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
 	var orders []models.Order
-	// Show online customer orders + own offline direct sales (not nurse/doctor pre-orders)
+	// Show online customer orders + own offline direct sales + doctor pre-orders
 	database.DB.Where(
-		"(is_offline = false AND is_nurse_order = false) OR (is_offline = true AND is_nurse_order = false AND worker_id = ?)",
+		"(is_offline = false AND is_nurse_order = false) OR (is_offline = true AND is_nurse_order = false AND worker_id = ?) OR (is_offline = true AND is_nurse_order = true AND doctor_id IS NOT NULL)",
 		workerID,
 	).Preload("Items.Product").Preload("User").
 		Order("created_at desc").

@@ -302,3 +302,65 @@ func GetDoctorProfile(c *gin.Context) {
 		"id": doctor.ID, "name": doctor.Name, "specialty": doctor.Specialty, "phone": doctor.Phone,
 	})
 }
+
+func GetDoctorAnalytics(c *gin.Context) {
+	doctorID, _ := c.Get("doctorID")
+
+	var orders []models.Order
+	database.DB.Where("doctor_id = ? AND is_nurse_order = true", doctorID).
+		Preload("Items.Product").
+		Order("created_at desc").
+		Find(&orders)
+
+	statsMap := make(map[uint]*DoctorStatProduct)
+	var totalRevenue float64
+
+	for _, order := range orders {
+		for _, item := range order.Items {
+			item.Product.ComputePackPrice()
+			totalRevenue += item.Price
+			s, ok := statsMap[item.ProductID]
+			if !ok {
+				s = &DoctorStatProduct{
+					ProductID:   item.ProductID,
+					ProductName: item.Product.Name,
+				}
+				statsMap[item.ProductID] = s
+			}
+			s.Revenue += item.Price
+			s.OrderCount++
+			if item.UnitType == "piece" {
+				s.TotalPieces += item.Quantity
+			} else {
+				s.TotalPacks += item.Quantity
+			}
+		}
+	}
+
+	var topProducts []DoctorStatProduct
+	for _, s := range statsMap {
+		topProducts = append(topProducts, *s)
+	}
+	for i := 0; i < len(topProducts)-1; i++ {
+		for j := i + 1; j < len(topProducts); j++ {
+			if topProducts[j].Revenue > topProducts[i].Revenue {
+				topProducts[i], topProducts[j] = topProducts[j], topProducts[i]
+			}
+		}
+	}
+	if len(topProducts) > 10 {
+		topProducts = topProducts[:10]
+	}
+
+	recentOrders := orders
+	if len(recentOrders) > 20 {
+		recentOrders = recentOrders[:20]
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_orders":  len(orders),
+		"total_revenue": totalRevenue,
+		"top_products":  topProducts,
+		"recent_orders": recentOrders,
+	})
+}

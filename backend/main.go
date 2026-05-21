@@ -139,6 +139,7 @@ func main() {
 			doctor.POST("/orders", handlers.CreateDoctorOrder)
 			doctor.GET("/orders", handlers.GetDoctorOrders)
 			doctor.GET("/products", handlers.GetProducts)
+			doctor.GET("/analytics", handlers.GetDoctorAnalytics)
 		}
 	}
 
