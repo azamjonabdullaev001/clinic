@@ -135,6 +135,7 @@
                     {{ statusLabel(order.status) }}
                   </span>
                   <span v-if="order.is_offline" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Офлайн</span>
+                  <span v-if="order.is_offline && paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
                 </div>
                 <h3 class="font-semibold text-gray-800 text-lg">
                   <template v-if="order.is_offline">
@@ -1059,10 +1060,10 @@
           <div v-for="(item, idx) in aOfflineItems" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
             <div>
               <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
-              <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'pack' ? 'упак.' : 'шт' }}</span>
+              <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} упак.</span>
             </div>
             <div class="flex items-center gap-3">
-              <span class="font-semibold text-sm">{{ formatPrice(item.price) }} сўм</span>
+              <span class="font-semibold text-sm">{{ formatPrice(aOfflineVip ? 0 : item.price) }} сўм</span>
               <button @click="aOfflineItems.splice(idx,1)" class="text-red-400 hover:text-red-600 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
@@ -1070,7 +1071,35 @@
           </div>
           <div class="flex justify-between px-4 py-2 font-bold text-emerald-700 bg-white">
             <span>Итого:</span>
-            <span>{{ formatPrice(aOfflineItems.reduce((s,i)=>s+i.price,0)) }} сўм</span>
+            <span>{{ formatPrice(aOfflineVip ? 0 : aOfflineItems.reduce((s,i)=>s+i.price,0)) }} сўм</span>
+          </div>
+        </div>
+
+        <!-- VIP + payment method -->
+        <div v-if="aOfflineItems.length" class="border rounded-xl px-4 py-3 space-y-3 mb-4">
+          <label class="flex items-center gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" v-model="aOfflineVip"
+              class="w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
+            <span class="text-sm font-semibold text-amber-700 flex items-center gap-1">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6l4 2 4-5 4 5 4-2-2 9H4L2 6z"/></svg>
+              VIP-пациент — бесплатно
+            </span>
+          </label>
+          <div v-if="!aOfflineVip">
+            <label class="block text-xs font-medium text-gray-500 mb-1.5">Способ оплаты</label>
+            <div class="flex gap-2">
+              <button @click="aOfflinePaymentMethod = 'cash'; aOfflineCardType = ''"
+                :class="aOfflinePaymentMethod === 'cash' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition">Наличные</button>
+              <button @click="aOfflinePaymentMethod = 'card'"
+                :class="aOfflinePaymentMethod === 'card' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition">Карта</button>
+            </div>
+            <div v-if="aOfflinePaymentMethod === 'card'" class="grid grid-cols-2 gap-2 mt-2">
+              <button v-for="ct in cardTypes" :key="ct.value" @click="aOfflineCardType = ct.value"
+                :class="aOfflineCardType === ct.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ ct.label }}</button>
+            </div>
           </div>
         </div>
 
@@ -1083,11 +1112,11 @@
         </div>
 
         <div class="flex gap-3">
-          <button @click="adminOfflineOpen = false; aOfflineItems = []; aOfflineSuccess = ''"
+          <button @click="closeAdminOffline"
             class="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl hover:bg-gray-50 transition font-medium text-sm">
             Закрыть
           </button>
-          <button @click="aSubmitOfflineSale" :disabled="!aOfflineItems.length || aOfflineSubmitting"
+          <button @click="aSubmitOfflineSale" :disabled="!aOfflineCanSubmit || aOfflineSubmitting"
             class="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-40">
             {{ aOfflineSubmitting ? 'Запись...' : 'Записать продажу' }}
           </button>
@@ -1272,7 +1301,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { Chart, registerables } from 'chart.js'
@@ -1364,6 +1393,21 @@ function formatPrice(price) {
 
 function orderTotal(order) {
   return order.items?.reduce((sum, item) => sum + item.price, 0) || 0
+}
+
+const cardLabels = { humo: 'Humo', uzcard: 'Uzcard', visa: 'Visa', mastercard: 'Mastercard' }
+
+function paymentLabel(order) {
+  if (order.is_vip) return 'VIP · Бесплатно'
+  if (order.payment_method === 'card') return 'Карта · ' + (cardLabels[order.card_type] || order.card_type)
+  if (order.payment_method === 'cash') return 'Наличные'
+  return ''
+}
+
+function paymentBadgeClass(order) {
+  if (order.is_vip) return 'bg-amber-100 text-amber-700'
+  if (order.payment_method === 'card') return 'bg-blue-100 text-blue-700'
+  return 'bg-green-100 text-green-700'
 }
 
 function statusLabel(status) {
@@ -1867,11 +1911,41 @@ function logout() {
 const adminOfflineOpen = ref(false)
 const aOfflineProductId = ref('')
 const aOfflineQty = ref(1)
-const aOfflineUnit = ref('pack')
 const aOfflineItems = ref([])
 const aOfflineNote = ref('')
 const aOfflineSubmitting = ref(false)
 const aOfflineSuccess = ref('')
+const aOfflineVip = ref(false)
+const aOfflinePaymentMethod = ref('cash')
+const aOfflineCardType = ref('')
+
+const cardTypes = [
+  { value: 'humo', label: 'Humo' },
+  { value: 'uzcard', label: 'Uzcard' },
+  { value: 'visa', label: 'Visa' },
+  { value: 'mastercard', label: 'Mastercard' },
+]
+
+const aOfflineCanSubmit = computed(() => {
+  if (!aOfflineItems.value.length) return false
+  if (aOfflineVip.value) return true
+  if (aOfflinePaymentMethod.value === 'card' && !aOfflineCardType.value) return false
+  return true
+})
+
+function resetAdminOffline() {
+  aOfflineItems.value = []
+  aOfflineNote.value = ''
+  aOfflineVip.value = false
+  aOfflinePaymentMethod.value = 'cash'
+  aOfflineCardType.value = ''
+}
+
+function closeAdminOffline() {
+  adminOfflineOpen.value = false
+  aOfflineSuccess.value = ''
+  resetAdminOffline()
+}
 
 function aAddOfflineItem() {
   if (!aOfflineProductId.value || aOfflineQty.value < 1) return
@@ -1890,7 +1964,7 @@ function aAddOfflineItem() {
 }
 
 async function aSubmitOfflineSale() {
-  if (!aOfflineItems.value.length) return
+  if (!aOfflineCanSubmit.value) return
   aOfflineSubmitting.value = true
   aOfflineSuccess.value = ''
   try {
@@ -1898,13 +1972,15 @@ async function aSubmitOfflineSale() {
       items: aOfflineItems.value.map(i => ({
         product_id: i.product_id,
         quantity: i.quantity,
-        unit_type: i.unit_type,
+        unit_type: 'pack',
       })),
       offline_note: aOfflineNote.value,
+      is_vip: aOfflineVip.value,
+      payment_method: aOfflineVip.value ? '' : aOfflinePaymentMethod.value,
+      card_type: (!aOfflineVip.value && aOfflinePaymentMethod.value === 'card') ? aOfflineCardType.value : '',
     })
     aOfflineSuccess.value = res.data.order_code
-    aOfflineItems.value = []
-    aOfflineNote.value = ''
+    resetAdminOffline()
     loadOrders()
     loadProducts()
   } catch (e) {

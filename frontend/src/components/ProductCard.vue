@@ -28,12 +28,8 @@
       <h3 class="font-semibold text-stone-900 text-sm sm:text-base mb-1 truncate group-hover:text-brand-700 transition-colors duration-300">{{ product.name }}</h3>
       <p v-if="product.description" class="text-stone-400 text-xs sm:text-sm mb-3 line-clamp-2 sm:line-clamp-3 leading-relaxed">{{ shortDescription }}</p>
 
-      <!-- Prices -->
+      <!-- Price -->
       <div class="space-y-1 sm:space-y-2 mb-3 sm:mb-5 mt-auto">
-        <div class="flex items-center justify-between">
-          <span class="text-[10px] sm:text-xs font-medium text-stone-400 uppercase tracking-wide">{{ t.product_one_pill }}</span>
-          <span class="text-xs sm:text-sm font-semibold text-stone-600">{{ formatPrice(product.price_per_pill) }} {{ t.currency }}</span>
-        </div>
         <div class="flex items-center justify-between">
           <span class="text-[10px] sm:text-xs font-medium text-stone-400 uppercase tracking-wide leading-tight">{{ t.product_pack }} <span class="normal-case">({{ product.quantity_per_pack }} {{ t.unit_piece }})</span></span>
           <span class="text-sm sm:text-lg font-bold text-brand-700">{{ formatPrice(product.price_per_pack) }} {{ t.currency }}</span>

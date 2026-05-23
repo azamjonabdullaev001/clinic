@@ -81,25 +81,14 @@
                     </button>
                   </div>
                   <p class="text-brand-600 font-semibold text-sm mt-0.5">
-                    {{ formatPrice(item.unit_type === 'piece' ? item.price_per_pill : item.price_per_pack) }} {{ t.currency }}
-                    <span class="text-stone-400 font-normal text-xs">/ {{ item.unit_type === 'piece' ? t.unit_piece : t.unit_pack }}</span>
+                    {{ formatPrice(item.price_per_pack) }} {{ t.currency }}
+                    <span class="text-stone-400 font-normal text-xs">/ {{ t.unit_pack }}</span>
                   </p>
                 </div>
               </div>
 
               <div class="flex items-center justify-between mt-3 pt-3 border-t border-stone-200/60">
-                <div class="flex items-center gap-1">
-                  <button
-                    @click="cartStore.updateUnitType(item.product_id, 'piece')"
-                    :class="item.unit_type === 'piece' ? 'bg-brand-700 text-white shadow-sm' : 'bg-white text-stone-500 border border-stone-200 hover:border-stone-300'"
-                    class="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
-                  >{{ t.unit_piece }}</button>
-                  <button
-                    @click="cartStore.updateUnitType(item.product_id, 'pack')"
-                    :class="(item.unit_type || 'pack') === 'pack' ? 'bg-brand-700 text-white shadow-sm' : 'bg-white text-stone-500 border border-stone-200 hover:border-stone-300'"
-                    class="px-2.5 py-1 rounded-lg text-xs font-medium transition-all"
-                  >{{ t.unit_pack }}</button>
-                </div>
+                <span class="text-xs font-medium text-stone-400">{{ item.quantity_per_pack }} {{ t.unit_piece }} / {{ t.unit_pack }}</span>
                 <div class="flex items-center gap-2">
                   <button @click="cartStore.updateQuantity(item.product_id, item.quantity - 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center justify-center text-sm font-medium transition-colors text-stone-600">−</button>
                   <span class="text-sm font-bold w-6 text-center text-stone-900">{{ item.quantity }}</span>
@@ -507,8 +496,7 @@ function formatPrice(price) {
 }
 
 function itemTotal(item) {
-  const unitPrice = item.unit_type === 'piece' ? item.price_per_pill : item.price_per_pack
-  return unitPrice * item.quantity
+  return item.price_per_pack * item.quantity
 }
 
 // ===== CHECKOUT =====

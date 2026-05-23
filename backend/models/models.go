@@ -121,6 +121,9 @@ type Order struct {
 	ReferredBy      string      `json:"referred_by"`
 	IsOffline       bool        `gorm:"default:false" json:"is_offline"`
 	IsNurseOrder    bool        `gorm:"default:false" json:"is_nurse_order"`
+	IsVIP           bool        `gorm:"default:false" json:"is_vip"`
+	PaymentMethod   string      `json:"payment_method"` // "cash" or "card" (empty for VIP/online)
+	CardType        string      `json:"card_type"`      // "humo", "uzcard", "visa", "mastercard"
 	OfflineNote     string      `json:"offline_note"`
 	PatientFName    string      `json:"patient_first_name"`
 	PatientLName    string      `json:"patient_last_name"`

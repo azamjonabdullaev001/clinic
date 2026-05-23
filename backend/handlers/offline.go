@@ -41,8 +41,11 @@ type OfflineItemInput struct {
 }
 
 type OfflineSaleInput struct {
-	Items       []OfflineItemInput `json:"items" binding:"required,min=1"`
-	OfflineNote string             `json:"offline_note"`
+	Items         []OfflineItemInput `json:"items" binding:"required,min=1"`
+	OfflineNote   string             `json:"offline_note"`
+	IsVIP         bool               `json:"is_vip"`
+	PaymentMethod string             `json:"payment_method"` // "cash" or "card"
+	CardType      string             `json:"card_type"`      // "humo", "uzcard", "visa", "mastercard"
 }
 
 func CreateOfflineSale(c *gin.Context) {
@@ -50,6 +53,29 @@ func CreateOfflineSale(c *gin.Context) {
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
 		return
+	}
+
+	// VIP sales are free, so payment method is irrelevant. Otherwise validate it.
+	paymentMethod := input.PaymentMethod
+	cardType := ""
+	if input.IsVIP {
+		paymentMethod = ""
+	} else {
+		if paymentMethod == "" {
+			paymentMethod = "cash"
+		}
+		if paymentMethod != "cash" && paymentMethod != "card" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный способ оплаты"})
+			return
+		}
+		if paymentMethod == "card" {
+			validCards := map[string]bool{"humo": true, "uzcard": true, "visa": true, "mastercard": true}
+			cardType = input.CardType
+			if !validCards[cardType] {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Выберите тип карты"})
+				return
+			}
+		}
 	}
 
 	tx := database.DB.Begin()
@@ -62,13 +88,16 @@ func CreateOfflineSale(c *gin.Context) {
 	}
 
 	order := models.Order{
-		UserID:      nil,
-		WorkerID:    workerIDPtr,
-		Status:      "delivered",
-		Phone:       "offline",
-		OrderCode:   generateOrderCode(),
-		IsOffline:   true,
-		OfflineNote: input.OfflineNote,
+		UserID:        nil,
+		WorkerID:      workerIDPtr,
+		Status:        "delivered",
+		Phone:         "offline",
+		OrderCode:     generateOrderCode(),
+		IsOffline:     true,
+		IsVIP:         input.IsVIP,
+		PaymentMethod: paymentMethod,
+		CardType:      cardType,
+		OfflineNote:   input.OfflineNote,
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
@@ -86,15 +115,9 @@ func CreateOfflineSale(c *gin.Context) {
 		}
 		product.ComputePackPrice()
 
-		unitType := item.UnitType
-		if unitType == "" {
-			unitType = "pack"
-		}
-
+		// Products are sold only by full pack/capsule.
 		var price float64
-		if unitType == "piece" {
-			price = product.PricePerPill * float64(item.Quantity)
-		} else {
+		if !input.IsVIP {
 			price = product.PricePerPack * float64(item.Quantity)
 		}
 
@@ -102,7 +125,7 @@ func CreateOfflineSale(c *gin.Context) {
 			OrderID:   order.ID,
 			ProductID: item.ProductID,
 			Quantity:  item.Quantity,
-			UnitType:  unitType,
+			UnitType:  "pack",
 			Price:     price,
 		}
 
