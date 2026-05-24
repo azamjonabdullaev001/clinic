@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useCartStore = defineStore('cart', () => {
-  const items = ref(JSON.parse(localStorage.getItem('cart') || '[]'))
+  const items = ref(JSON.parse(localStorage.getItem('cart') || '[]').map(i => ({ ...i, unit_type: 'pack' })))
   const isOpen = ref(false)
 
   const totalItems = computed(() =>
