@@ -1,0 +1,85 @@
+/* Night mode for worker panels. Applied when the panel root has .night-mode.
+   Overrides the common Tailwind utility classes used across the panels. */
+
+.night-mode {
+  background-color: #0b1220 !important;
+  color: #e2e8f0;
+}
+
+/* Surfaces */
+.night-mode .bg-gray-100,
+.night-mode .bg-gray-50\/40,
+.night-mode .bg-stone-100 { background-color: #0b1220 !important; }
+
+.night-mode .bg-white,
+.night-mode .bg-gray-50,
+.night-mode .bg-stone-50 { background-color: #1e293b !important; }
+
+.night-mode .bg-gray-100.rounded-xl,
+.night-mode .bg-gray-200 { background-color: #334155 !important; }
+
+/* Header / cards keep a slightly lighter panel */
+.night-mode header.bg-white,
+.night-mode .shadow-sm.bg-white { background-color: #1e293b !important; }
+
+/* Text */
+.night-mode .text-gray-900,
+.night-mode .text-gray-800,
+.night-mode .text-stone-900 { color: #f1f5f9 !important; }
+.night-mode .text-gray-700,
+.night-mode .text-gray-600,
+.night-mode .text-stone-700 { color: #cbd5e1 !important; }
+.night-mode .text-gray-500,
+.night-mode .text-gray-400,
+.night-mode .text-gray-300,
+.night-mode .text-stone-400 { color: #94a3b8 !important; }
+
+/* Borders & dividers */
+.night-mode .border,
+.night-mode .border-b,
+.night-mode .border-t,
+.night-mode .border-gray-100,
+.night-mode .border-gray-200,
+.night-mode .border-gray-300,
+.night-mode .divide-gray-100 > * + *,
+.night-mode .divide-gray-50 > * + * { border-color: #334155 !important; }
+
+/* Form controls */
+.night-mode input,
+.night-mode select,
+.night-mode textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+.night-mode input::placeholder,
+.night-mode textarea::placeholder { color: #64748b !important; }
+
+/* Light accent tints -> darker translucent versions so colored chips stay readable */
+.night-mode .bg-blue-50,
+.night-mode .bg-blue-100 { background-color: rgba(59,130,246,0.18) !important; }
+.night-mode .bg-teal-50,
+.night-mode .bg-teal-100 { background-color: rgba(20,184,166,0.18) !important; }
+.night-mode .bg-emerald-50,
+.night-mode .bg-emerald-100 { background-color: rgba(16,185,129,0.18) !important; }
+.night-mode .bg-indigo-50,
+.night-mode .bg-indigo-100 { background-color: rgba(99,102,241,0.18) !important; }
+.night-mode .bg-purple-50,
+.night-mode .bg-purple-100 { background-color: rgba(168,85,247,0.18) !important; }
+.night-mode .bg-amber-50,
+.night-mode .bg-amber-100 { background-color: rgba(245,158,11,0.18) !important; }
+.night-mode .bg-red-50,
+.night-mode .bg-red-100 { background-color: rgba(239,68,68,0.18) !important; }
+.night-mode .bg-orange-50,
+.night-mode .bg-orange-100 { background-color: rgba(249,115,22,0.18) !important; }
+.night-mode .bg-green-50,
+.night-mode .bg-green-100 { background-color: rgba(34,197,94,0.18) !important; }
+.night-mode .bg-yellow-100 { background-color: rgba(234,179,8,0.18) !important; }
+
+/* Hover surfaces */
+.night-mode .hover\:bg-gray-50:hover,
+.night-mode .hover\:bg-gray-100:hover { background-color: #334155 !important; }
+
+/* Slightly soften shadows on dark */
+.night-mode .shadow-sm,
+.night-mode .shadow-md { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }

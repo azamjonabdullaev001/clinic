@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100" :class="{ 'night-mode': night }">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
       <div class="max-w-3xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
@@ -22,6 +22,10 @@
             <button @click="lang = 'uz'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
               :class="lang === 'uz' ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">UZ</button>
           </div>
+          <button @click="toggleNight" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition" :title="night ? 'Дневной режим' : 'Ночной режим'">
+            <svg v-if="!night" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            <svg v-else class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </button>
           <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">{{ txt.logout }}</button>
         </div>
       </div>
@@ -174,9 +178,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
+import { useNight } from '../stores/night'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { night, toggle: toggleNight } = useNight()
 
 const lang = ref(localStorage.getItem('nurseLang') || 'ru')
 const watchLang = () => { localStorage.setItem('nurseLang', lang.value) }

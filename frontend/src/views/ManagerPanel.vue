@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100" :class="{ 'night-mode': night }">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
@@ -14,7 +14,13 @@
             <p v-if="authStore.worker" class="text-xs text-gray-400">{{ authStore.worker.name }}</p>
           </div>
         </div>
-        <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">Выйти</button>
+        <div class="flex items-center gap-3">
+          <button @click="toggleNight" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition" :title="night ? 'Дневной режим' : 'Ночной режим'">
+            <svg v-if="!night" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            <svg v-else class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </button>
+          <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">Выйти</button>
+        </div>
       </div>
     </header>
 
@@ -111,11 +117,8 @@
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Выручка</p><p class="text-lg font-bold text-emerald-600">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Создано</p><p class="text-2xl font-bold text-purple-600">{{ analytics.created_count }}</p></div>
             </div>
-            <div class="flex items-end gap-0.5 h-28 pt-3">
-              <div v-for="(pt,i) in analytics.points" :key="i"
-                class="flex-1 bg-indigo-200 hover:bg-indigo-400 rounded-t transition-all min-h-[2px]"
-                :style="{ height: (pt.revenue / maxRevenue * 100) + '%' }"
-                :title="pt.label + ': ' + formatPrice(pt.revenue) + ' сўм'"></div>
+            <div class="pt-3" style="position:relative;height:260px;width:100%">
+              <canvas ref="analyticsCanvas"></canvas>
             </div>
           </template>
         </div>
@@ -155,12 +158,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
+import { useNight } from '../stores/night'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { night, toggle: toggleNight } = useNight()
 
 const marketplaces = [
   { value: 'ozon', label: 'Ozon' },
@@ -245,7 +252,8 @@ const period = ref('daily')
 const customDate = ref('')
 const analytics = ref(null)
 const analyticsLoading = ref(false)
-const maxRevenue = computed(() => Math.max(1, ...(analytics.value?.points || []).map(p => p.revenue)))
+const analyticsCanvas = ref(null)
+let analyticsChart = null
 
 async function loadAnalytics() {
   analyticsLoading.value = true
@@ -254,7 +262,54 @@ async function loadAnalytics() {
     if (period.value === 'custom') params.date = customDate.value
     const res = await api.get('/manager/analytics', { params })
     analytics.value = res.data
+    await nextTick()
+    renderChart()
   } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
+}
+
+function renderChart() {
+  const canvas = analyticsCanvas.value
+  if (!canvas || !analytics.value) return
+  const points = analytics.value.points || []
+  const ctx = canvas.getContext('2d')
+  const gradient = ctx.createLinearGradient(0, 0, 0, 260)
+  gradient.addColorStop(0, 'rgba(168,85,247,0.35)')
+  gradient.addColorStop(1, 'rgba(168,85,247,0.02)')
+  const data = {
+    labels: points.map(p => p.label),
+    datasets: [{
+      label: 'Выручка',
+      data: points.map(p => p.revenue),
+      borderColor: '#a855f7',
+      backgroundColor: gradient,
+      borderWidth: 2.5,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: '#a855f7',
+    }],
+  }
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 800, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (c) => formatPrice(c.parsed.y) + ' сўм' } },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#94a3b8', font: { size: 10 } } },
+      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => formatPrice(v) } },
+    },
+  }
+  if (analyticsChart) {
+    analyticsChart.data = data
+    analyticsChart.options = options
+    analyticsChart.update()
+  } else {
+    analyticsChart = new Chart(canvas, { type: 'line', data, options })
+  }
 }
 
 function selectPeriod(p) {

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100" :class="{ 'night-mode': night }">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
@@ -22,6 +22,10 @@
             <button @click="lang = 'uz'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
               :class="lang === 'uz' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">UZ</button>
           </div>
+          <button @click="toggleNight" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition" :title="night ? 'Дневной режим' : 'Ночной режим'">
+            <svg v-if="!night" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            <svg v-else class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          </button>
           <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">{{ txt.logout }}</button>
         </div>
       </div>
@@ -324,11 +328,8 @@
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_created }}</p><p class="text-2xl font-bold text-blue-600">{{ analyticsData.created_count }}</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_confirmed }}</p><p class="text-2xl font-bold text-teal-600">{{ analyticsData.confirmed_count }}</p></div>
             </div>
-            <div class="flex items-end gap-0.5 h-28 pt-2">
-              <div v-for="(pt,i) in analyticsData.points" :key="i"
-                class="flex-1 bg-indigo-200 hover:bg-indigo-400 rounded-t transition-all min-h-[2px]"
-                :style="{ height: (pt.revenue / analyticsMaxRevenue * 100) + '%' }"
-                :title="pt.label + ': ' + formatPrice(pt.revenue) + ' ' + txt.sum"></div>
+            <div class="pt-2" style="position:relative;height:260px;width:100%">
+              <canvas ref="analyticsCanvas"></canvas>
             </div>
           </template>
         </div>
@@ -433,9 +434,9 @@
         <!-- History filters: type + status + period -->
         <div v-if="tab === 'history'" class="space-y-2 mb-4">
           <div class="flex gap-2 flex-wrap">
-            <button v-for="f in [{v:'all',l:txt.type_all},{v:'online',l:txt.type_online},{v:'offline',l:txt.type_offline}]" :key="f.v"
+            <button v-for="f in [{v:'all',l:txt.type_all},{v:'online',l:txt.type_online},{v:'offline',l:txt.type_offline},{v:'vip',l:txt.own_patient}]" :key="f.v"
               @click="historyType = f.v"
-              :class="historyType === f.v ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+              :class="historyType === f.v ? (f.v === 'vip' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white') : 'bg-white text-gray-600 hover:bg-gray-50'"
               class="px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-200 transition">{{ f.l }}</button>
           </div>
           <div class="flex gap-2 flex-wrap">
@@ -600,7 +601,7 @@
   </div>
 
   <!-- Payment method modal (offline order confirmation) -->
-  <div v-if="showPayModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="closePayModal">
+  <div v-if="showPayModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" :class="{ 'night-mode': night }" @click.self="closePayModal">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
       <div class="text-center mb-5">
@@ -625,7 +626,7 @@
   </div>
 
   <!-- Chat panel -->
-  <div v-if="chatOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end" @click.self="chatOpen = false">
+  <div v-if="chatOpen" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end" :class="{ 'night-mode': night }" @click.self="chatOpen = false">
     <div class="w-full sm:w-96 h-[55vh] sm:h-[70vh] bg-white sm:rounded-tl-2xl sm:rounded-bl-2xl shadow-2xl flex flex-col sm:mr-0 sm:mt-0 rounded-t-2xl">
       <div class="flex items-center justify-between px-4 py-3 border-b bg-indigo-600 rounded-t-2xl sm:rounded-tl-2xl">
         <div>
@@ -671,9 +672,13 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
+import { useNight } from '../stores/night'
+import { Chart, registerables } from 'chart.js'
+Chart.register(...registerables)
 
 const authStore = useAuthStore()
 const router = useRouter()
+const { night, toggle: toggleNight } = useNight()
 
 const lang = ref(localStorage.getItem('pickupLang') || 'ru')
 const watchLang = () => { localStorage.setItem('pickupLang', lang.value) }
@@ -771,6 +776,7 @@ const texts = {
     type_all: 'Все',
     type_online: 'Онлайн',
     type_offline: 'Офлайн',
+    own_patient: 'Свой пациент',
     period_all: 'Всё время',
   },
   uz: {
@@ -865,6 +871,7 @@ const texts = {
     type_all: 'Hammasi',
     type_online: 'Onlayn',
     type_offline: 'Oflayn',
+    own_patient: "O'z bemori",
     period_all: 'Butun davr',
   }
 }
@@ -915,6 +922,7 @@ const displayedOrders = computed(() => {
   let list = orders.value
   if (historyType.value === 'online') list = list.filter(o => !o.is_offline)
   else if (historyType.value === 'offline') list = list.filter(o => o.is_offline)
+  else if (historyType.value === 'vip') list = list.filter(o => o.is_vip) // own patients — free
   if (historyStatus.value !== 'all') list = list.filter(o => o.status === historyStatus.value)
   return list.filter(inPeriod)
 })
@@ -1400,6 +1408,8 @@ const analyticsPeriod = ref('daily')
 const analyticsDate = ref('')
 const analyticsData = ref(null)
 const analyticsLoading = ref(false)
+const analyticsCanvas = ref(null)
+let analyticsChart = null
 
 async function loadAnalytics() {
   analyticsLoading.value = true
@@ -1408,7 +1418,57 @@ async function loadAnalytics() {
     if (analyticsPeriod.value === 'custom') params.date = analyticsDate.value
     const res = await api.get('/pickup/analytics', { params })
     analyticsData.value = res.data
+    await nextTick()
+    renderChart()
   } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
+}
+
+function renderChart() {
+  const canvas = analyticsCanvas.value
+  if (!canvas || !analyticsData.value) return
+  const points = analyticsData.value.points || []
+  const ctx = canvas.getContext('2d')
+  const gradient = ctx.createLinearGradient(0, 0, 0, 260)
+  gradient.addColorStop(0, 'rgba(99,102,241,0.35)')
+  gradient.addColorStop(1, 'rgba(99,102,241,0.02)')
+
+  const data = {
+    labels: points.map(p => p.label),
+    datasets: [{
+      label: txt.value.a_revenue,
+      data: points.map(p => p.revenue),
+      borderColor: '#6366f1',
+      backgroundColor: gradient,
+      borderWidth: 2.5,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: '#6366f1',
+    }],
+  }
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 800, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: (c) => formatPrice(c.parsed.y) + ' ' + txt.value.sum },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#94a3b8', font: { size: 10 } } },
+      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => formatPrice(v) } },
+    },
+  }
+  if (analyticsChart) {
+    analyticsChart.data = data
+    analyticsChart.options = options
+    analyticsChart.update()
+  } else {
+    analyticsChart = new Chart(canvas, { type: 'line', data, options })
+  }
 }
 
 function selectAnalyticsPeriod(p) {
@@ -1416,13 +1476,11 @@ function selectAnalyticsPeriod(p) {
   if (p !== 'custom') loadAnalytics()
 }
 
-const analyticsMaxRevenue = computed(() => {
-  const pts = analyticsData.value?.points || []
-  return Math.max(1, ...pts.map(p => p.revenue))
-})
-
 watch(tab, (t) => {
-  if (t === 'analytics' && !analyticsData.value) loadAnalytics()
+  if (t === 'analytics') {
+    if (!analyticsData.value) loadAnalytics()
+    else nextTick(renderChart)
+  }
 })
 
 onMounted(() => {
