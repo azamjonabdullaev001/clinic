@@ -134,11 +134,12 @@ type Order struct {
 }
 
 type OrderItem struct {
-	ID        uint    `gorm:"primaryKey" json:"id"`
-	OrderID   uint    `gorm:"not null" json:"order_id"`
-	ProductID uint    `gorm:"not null" json:"product_id"`
-	Product   Product `json:"product"`
-	Quantity  int     `gorm:"not null" json:"quantity"`
-	UnitType  string  `gorm:"default:'pack';not null" json:"unit_type"`
-	Price     float64 `gorm:"not null" json:"price"`
+	ID               uint    `gorm:"primaryKey" json:"id"`
+	OrderID          uint    `gorm:"not null" json:"order_id"`
+	ProductID        uint    `gorm:"not null" json:"product_id"`
+	Product          Product `json:"product"`
+	Quantity         int     `gorm:"not null" json:"quantity"`
+	OriginalQuantity int     `gorm:"default:0" json:"original_quantity"`
+	UnitType         string  `gorm:"default:'pack';not null" json:"unit_type"`
+	Price            float64 `gorm:"not null" json:"price"`
 }

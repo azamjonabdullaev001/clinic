@@ -40,6 +40,11 @@ type OfflineItemInput struct {
 	UnitType  string `json:"unit_type"`
 }
 
+// validOfflinePayment reports whether m is an accepted offline payment method.
+func validOfflinePayment(m string) bool {
+	return m == "cash" || m == "terminal" || m == "card"
+}
+
 type OfflineSaleInput struct {
 	Items         []OfflineItemInput `json:"items" binding:"required,min=1"`
 	OfflineNote   string             `json:"offline_note"`
@@ -64,17 +69,9 @@ func CreateOfflineSale(c *gin.Context) {
 		if paymentMethod == "" {
 			paymentMethod = "cash"
 		}
-		if paymentMethod != "cash" && paymentMethod != "card" {
+		if !validOfflinePayment(paymentMethod) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный способ оплаты"})
 			return
-		}
-		if paymentMethod == "card" {
-			validCards := map[string]bool{"humo": true, "uzcard": true, "visa": true, "mastercard": true}
-			cardType = input.CardType
-			if !validCards[cardType] {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Выберите тип карты"})
-				return
-			}
 		}
 	}
 
@@ -122,11 +119,12 @@ func CreateOfflineSale(c *gin.Context) {
 		}
 
 		orderItem := models.OrderItem{
-			OrderID:   order.ID,
-			ProductID: item.ProductID,
-			Quantity:  item.Quantity,
-			UnitType:  "pack",
-			Price:     price,
+			OrderID:          order.ID,
+			ProductID:        item.ProductID,
+			Quantity:         item.Quantity,
+			OriginalQuantity: item.Quantity,
+			UnitType:         "pack",
+			Price:            price,
 		}
 
 		if err := tx.Create(&orderItem).Error; err != nil {

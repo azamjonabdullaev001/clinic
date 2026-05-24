@@ -80,11 +80,12 @@ func CreateNurseOrder(c *gin.Context) {
 		}
 
 		orderItem := models.OrderItem{
-			OrderID:   order.ID,
-			ProductID: item.ProductID,
-			Quantity:  item.Quantity,
-			UnitType:  unitType,
-			Price:     price,
+			OrderID:          order.ID,
+			ProductID:        item.ProductID,
+			Quantity:         item.Quantity,
+			OriginalQuantity: item.Quantity,
+			UnitType:         unitType,
+			Price:            price,
 		}
 
 		if err := tx.Create(&orderItem).Error; err != nil {

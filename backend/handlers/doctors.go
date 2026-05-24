@@ -152,6 +152,9 @@ func GetDoctorStats(c *gin.Context) {
 	statsMap := make(map[uint]*DoctorStatProduct)
 	for _, order := range orders {
 		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue // skip items removed at the till
+			}
 			s, ok := statsMap[item.ProductID]
 			if !ok {
 				s = &DoctorStatProduct{
@@ -250,11 +253,12 @@ func CreateDoctorOrder(c *gin.Context) {
 		}
 
 		orderItem := models.OrderItem{
-			OrderID:   order.ID,
-			ProductID: item.ProductID,
-			Quantity:  item.Quantity,
-			UnitType:  unitType,
-			Price:     price,
+			OrderID:          order.ID,
+			ProductID:        item.ProductID,
+			Quantity:         item.Quantity,
+			OriginalQuantity: item.Quantity,
+			UnitType:         unitType,
+			Price:            price,
 		}
 
 		if err := tx.Create(&orderItem).Error; err != nil {
@@ -317,6 +321,9 @@ func GetDoctorAnalytics(c *gin.Context) {
 
 	for _, order := range orders {
 		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue // skip items removed at the till
+			}
 			item.Product.ComputePackPrice()
 			totalRevenue += item.Price
 			s, ok := statsMap[item.ProductID]

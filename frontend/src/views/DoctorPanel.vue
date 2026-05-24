@@ -193,8 +193,8 @@
               </div>
             </div>
             <div class="border-t pt-3 space-y-1">
-              <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'pack' ? txt.pack : txt.piece }}</span></span>
+              <div v-for="item in order.items.filter(i => i.quantity > 0)" :key="item.id" class="flex justify-between text-sm text-gray-600">
+                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ txt.pack }}</span></span>
                 <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
               </div>
             </div>
@@ -303,7 +303,7 @@ const texts = {
     order_form: 'Оформление заказа',
     patient_fname: 'Имя пациента',
     patient_lname: 'Фамилия пациента',
-    pack: 'упак.',
+    pack: 'капс.',
     piece: 'шт.',
     total: 'Итого',
     sum: 'сўм',
@@ -342,7 +342,7 @@ const texts = {
     order_form: 'Buyurtmani rasmiylashtirish',
     patient_fname: 'Bemorning ismi',
     patient_lname: 'Bemorning familiyasi',
-    pack: 'quti',
+    pack: 'kapsula',
     piece: 'dona',
     total: 'Jami',
     sum: "so'm",

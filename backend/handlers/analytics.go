@@ -160,6 +160,9 @@ func GetAnalytics(c *gin.Context) {
 	statsMap := make(map[uint]*ProductStat)
 	for _, order := range orders {
 		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue // skip items removed at the till
+			}
 			s, ok := statsMap[item.ProductID]
 			if !ok {
 				s = &ProductStat{

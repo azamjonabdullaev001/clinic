@@ -33,6 +33,9 @@ func Migrate() {
 	// Set default role for existing workers
 	DB.Exec("UPDATE workers SET role = 'pickup' WHERE role IS NULL OR role = ''")
 
+	// Detect whether order_items.original_quantity already exists (for one-time backfill below)
+	hadOrigQty := DB.Migrator().HasColumn(&models.OrderItem{}, "OriginalQuantity")
+
 	err := DB.AutoMigrate(
 		&models.User{},
 		&models.Admin{},
@@ -50,6 +53,12 @@ func Migrate() {
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
+	}
+
+	// One-time backfill: existing items had no original quantity, so treat current
+	// quantity as the originally ordered amount. Runs only when the column is first added.
+	if !hadOrigQty {
+		DB.Exec("UPDATE order_items SET original_quantity = quantity")
 	}
 
 	DB.Exec("UPDATE workers SET role = 'pickup' WHERE role IS NULL OR role = ''")

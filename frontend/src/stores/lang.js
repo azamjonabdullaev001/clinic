@@ -121,7 +121,7 @@ const translations = {
 
     // Product card
     product_one_pill: '1 таблетка',
-    product_pack: 'Упаковка',
+    product_pack: 'Капсула',
     add_to_cart: 'В корзину',
     product_read_more: 'Ещё',
     product_description: 'Описание препарата',
@@ -129,7 +129,7 @@ const translations = {
     no_photo: 'Нет фото',
     currency: 'сўм',
     unit_piece: 'шт',
-    unit_pack: 'коробка',
+    unit_pack: 'капсула',
 
     // Footer
     footer_trich: 'Ваше здоровье - наша ответственность',
@@ -285,7 +285,7 @@ const translations = {
 
     // Product card
     product_one_pill: '1 tabletka',
-    product_pack: 'Quti',
+    product_pack: 'Kapsula',
     add_to_cart: 'Savatga',
     product_read_more: 'Batafsil',
     product_description: 'Dori tavsifi',
@@ -293,7 +293,7 @@ const translations = {
     no_photo: 'Rasm yo\'q',
     currency: 'so\'m',
     unit_piece: 'dona',
-    unit_pack: 'quti',
+    unit_pack: 'kapsula',
 
     // Footer
     footer_trich: 'Sog\'ligingiz - bizning mas\'uliyatimiz',

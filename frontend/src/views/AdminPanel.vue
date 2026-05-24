@@ -55,10 +55,10 @@
                 <tr>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Фото</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Название</th>
-                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">В упаковке</th>
+                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">В капсуле</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">На складе</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/шт</th>
-                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/упак.</th>
+                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/капс.</th>
                   <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
@@ -79,7 +79,7 @@
                   <td class="px-5 py-3 text-gray-600">{{ product.quantity_per_pack }} шт</td>
                   <td class="px-5 py-3">
                     <span :class="product.stock_quantity > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2 py-0.5 rounded text-sm font-semibold">
-                      {{ product.stock_quantity }} упак.
+                      {{ product.stock_quantity }} капс.
                     </span>
                   </td>
                   <td class="px-5 py-3 text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</td>
@@ -135,7 +135,7 @@
                     {{ statusLabel(order.status) }}
                   </span>
                   <span v-if="order.is_offline" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Офлайн</span>
-                  <span v-if="order.is_offline && paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
+                  <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
                 </div>
                 <h3 class="font-semibold text-gray-800 text-lg">
                   <template v-if="order.is_offline">
@@ -216,9 +216,13 @@
             </div>
 
             <div class="border-t pt-4 space-y-2">
-              <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm py-1">
-                <span class="text-gray-600">{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'упак.' }}</span></span>
-                <span class="font-medium text-gray-700">{{ formatPrice(item.price) }} сўм</span>
+              <div v-for="item in order.items" :key="item.id" class="flex justify-between items-center text-sm py-1">
+                <span class="text-gray-600">
+                  {{ item.product?.name }}
+                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} капс.</span>
+                  <span v-if="itemDiffLabel(item)" :class="itemDiffClass(item)" class="ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded">{{ itemDiffLabel(item) }}</span>
+                </span>
+                <span class="font-medium text-gray-700">{{ item.quantity === 0 ? '—' : formatPrice(item.price) + ' сўм' }}</span>
               </div>
               <div class="flex justify-between font-bold text-base pt-3 border-t mt-2">
                 <span>Итого:</span>
@@ -396,7 +400,7 @@
                           <thead class="bg-purple-100/60">
                             <tr>
                               <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
-                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Упаковок</th>
+                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
                               <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
                               <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Выручка</th>
                             </tr>
@@ -404,7 +408,7 @@
                           <tbody class="divide-y divide-purple-100">
                             <tr v-for="p in doctorStats.products" :key="p.product_id" class="hover:bg-purple-50 transition">
                               <td class="px-4 py-2 font-medium text-gray-800">{{ p.product_name }}</td>
-                              <td class="px-4 py-2 text-gray-600">{{ p.total_packs }} упак.</td>
+                              <td class="px-4 py-2 text-gray-600">{{ p.total_packs }} капс.</td>
                               <td class="px-4 py-2 text-gray-600">{{ p.total_pieces }} шт</td>
                               <td class="px-4 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }} сўм</td>
                             </tr>
@@ -492,7 +496,7 @@
                 <tr>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Препарат</th>
-                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Упаковок</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Капсул</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Штук</th>
                   <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Выручка</th>
                 </tr>
@@ -501,7 +505,7 @@
                 <tr v-for="(p, i) in analyticsData.top_products" :key="p.product_id" class="hover:bg-gray-50 transition">
                   <td class="px-5 py-3 text-gray-400 font-medium">{{ i + 1 }}</td>
                   <td class="px-5 py-3 font-medium text-gray-800">{{ p.product_name }}</td>
-                  <td class="px-5 py-3 text-gray-600">{{ p.total_packs }} упак.</td>
+                  <td class="px-5 py-3 text-gray-600">{{ p.total_packs }} капс.</td>
                   <td class="px-5 py-3 text-gray-600">{{ p.total_qty }} шт</td>
                   <td class="px-5 py-3 text-right font-bold text-teal-600">{{ formatPrice(p.revenue) }} сўм</td>
                 </tr>
@@ -587,7 +591,7 @@
                   <thead class="bg-indigo-50">
                     <tr>
                       <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Препарат</th>
-                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Упаковок</th>
+                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Капсул</th>
                       <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Штук</th>
                       <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Заказов</th>
                       <th class="text-right px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Выручка</th>
@@ -596,7 +600,7 @@
                   <tbody class="divide-y divide-indigo-50">
                     <tr v-for="p in perDoctorStats.products" :key="p.product_id" class="hover:bg-indigo-50 transition">
                       <td class="px-4 py-2.5 font-medium text-gray-800">{{ p.product_name }}</td>
-                      <td class="px-4 py-2.5 text-gray-600">{{ p.total_packs }} упак.</td>
+                      <td class="px-4 py-2.5 text-gray-600">{{ p.total_packs }} капс.</td>
                       <td class="px-4 py-2.5 text-gray-600">{{ p.total_pieces }} шт</td>
                       <td class="px-4 py-2.5 text-gray-600">{{ p.order_count }}</td>
                       <td class="px-4 py-2.5 text-right font-bold text-indigo-700">{{ formatPrice(p.revenue) }} сўм</td>
@@ -1047,7 +1051,7 @@
             <input v-model.number="aOfflineQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div class="flex items-end pb-0.5">
-            <span class="text-sm text-gray-600 font-medium px-2">упак.</span>
+            <span class="text-sm text-gray-600 font-medium px-2">капс.</span>
           </div>
           <button @click="aAddOfflineItem" :disabled="!aOfflineProductId || aOfflineQty < 1"
             class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium disabled:opacity-40">
@@ -1060,7 +1064,7 @@
           <div v-for="(item, idx) in aOfflineItems" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
             <div>
               <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
-              <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} упак.</span>
+              <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} капс.</span>
             </div>
             <div class="flex items-center gap-3">
               <span class="font-semibold text-sm">{{ formatPrice(aOfflineVip ? 0 : item.price) }} сўм</span>
@@ -1088,17 +1092,9 @@
           <div v-if="!aOfflineVip">
             <label class="block text-xs font-medium text-gray-500 mb-1.5">Способ оплаты</label>
             <div class="flex gap-2">
-              <button @click="aOfflinePaymentMethod = 'cash'; aOfflineCardType = ''"
-                :class="aOfflinePaymentMethod === 'cash' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition">Наличные</button>
-              <button @click="aOfflinePaymentMethod = 'card'"
-                :class="aOfflinePaymentMethod === 'card' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition">Карта</button>
-            </div>
-            <div v-if="aOfflinePaymentMethod === 'card'" class="grid grid-cols-2 gap-2 mt-2">
-              <button v-for="ct in cardTypes" :key="ct.value" @click="aOfflineCardType = ct.value"
-                :class="aOfflineCardType === ct.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ ct.label }}</button>
+              <button v-for="pm in paymentMethods" :key="pm.value" @click="aOfflinePaymentMethod = pm.value"
+                :class="aOfflinePaymentMethod === pm.value ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition">{{ pm.label }}</button>
             </div>
           </div>
         </div>
@@ -1169,7 +1165,7 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в упаковке <span class="text-red-400">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в капсуле <span class="text-red-400">*</span></label>
               <input v-model.number="productForm.quantity_per_pack" type="number" min="1" required
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
@@ -1181,7 +1177,7 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (упаковок)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (капсул)</label>
             <input v-model.number="productForm.stock_quantity" type="number" min="0"
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
               placeholder="0" />
@@ -1189,13 +1185,13 @@
               <span v-if="productForm.stock_quantity > 0 && productForm.quantity_per_pack > 0">
                 = {{ productForm.stock_quantity * productForm.quantity_per_pack }} шт на складе
               </span>
-              <span v-else>Считается в упаковках</span>
+              <span v-else>Считается в капсулах</span>
             </p>
           </div>
 
           <div v-if="productForm.quantity_per_pack > 0 && productForm.price_per_pill > 0" class="bg-teal-50 rounded-lg p-3.5 border border-teal-100">
             <div class="text-sm text-teal-800">
-              <span class="text-teal-600">Цена за упаковку ({{ productForm.quantity_per_pack }} шт):</span>
+              <span class="text-teal-600">Цена за капсулу ({{ productForm.quantity_per_pack }} шт):</span>
               <span class="font-bold text-teal-700 ml-1">{{ formatPrice(productForm.quantity_per_pack * productForm.price_per_pill) }} сўм</span>
             </div>
           </div>
@@ -1395,19 +1391,41 @@ function orderTotal(order) {
   return order.items?.reduce((sum, item) => sum + item.price, 0) || 0
 }
 
-const cardLabels = { humo: 'Humo', uzcard: 'Uzcard', visa: 'Visa', mastercard: 'Mastercard' }
-
 function paymentLabel(order) {
   if (order.is_vip) return 'VIP · Бесплатно'
-  if (order.payment_method === 'card') return 'Карта · ' + (cardLabels[order.card_type] || order.card_type)
-  if (order.payment_method === 'cash') return 'Наличные'
+  const m = {
+    cash: 'Наличные',
+    terminal: 'Терминал',
+    card: 'Карта',
+    online: 'Онлайн (карта)',
+  }
+  return m[order.payment_method] || ''
+}
+
+// Difference between what the doctor prescribed and what was actually bought at the till.
+function itemDiffLabel(item) {
+  const orig = item.original_quantity || 0
+  const qty = item.quantity || 0
+  if (orig === 0 && qty > 0) return 'добавлено'
+  if (qty === 0 && orig > 0) return 'убрано'
+  if (qty < orig) return 'убрано ' + (orig - qty)
+  if (qty > orig) return 'добавлено ' + (qty - orig)
   return ''
+}
+
+function itemDiffClass(item) {
+  const orig = item.original_quantity || 0
+  const qty = item.quantity || 0
+  if (qty === 0) return 'bg-red-100 text-red-600'
+  if (qty < orig) return 'bg-orange-100 text-orange-700'
+  return 'bg-emerald-100 text-emerald-700'
 }
 
 function paymentBadgeClass(order) {
   if (order.is_vip) return 'bg-amber-100 text-amber-700'
-  if (order.payment_method === 'card') return 'bg-blue-100 text-blue-700'
-  return 'bg-green-100 text-green-700'
+  if (order.payment_method === 'cash') return 'bg-green-100 text-green-700'
+  if (order.payment_method === 'online') return 'bg-indigo-100 text-indigo-700'
+  return 'bg-blue-100 text-blue-700'
 }
 
 function statusLabel(status) {
@@ -1917,28 +1935,20 @@ const aOfflineSubmitting = ref(false)
 const aOfflineSuccess = ref('')
 const aOfflineVip = ref(false)
 const aOfflinePaymentMethod = ref('cash')
-const aOfflineCardType = ref('')
 
-const cardTypes = [
-  { value: 'humo', label: 'Humo' },
-  { value: 'uzcard', label: 'Uzcard' },
-  { value: 'visa', label: 'Visa' },
-  { value: 'mastercard', label: 'Mastercard' },
+const paymentMethods = [
+  { value: 'cash', label: 'Наличные' },
+  { value: 'terminal', label: 'Терминал' },
+  { value: 'card', label: 'Карта' },
 ]
 
-const aOfflineCanSubmit = computed(() => {
-  if (!aOfflineItems.value.length) return false
-  if (aOfflineVip.value) return true
-  if (aOfflinePaymentMethod.value === 'card' && !aOfflineCardType.value) return false
-  return true
-})
+const aOfflineCanSubmit = computed(() => aOfflineItems.value.length > 0)
 
 function resetAdminOffline() {
   aOfflineItems.value = []
   aOfflineNote.value = ''
   aOfflineVip.value = false
   aOfflinePaymentMethod.value = 'cash'
-  aOfflineCardType.value = ''
 }
 
 function closeAdminOffline() {
@@ -1977,7 +1987,6 @@ async function aSubmitOfflineSale() {
       offline_note: aOfflineNote.value,
       is_vip: aOfflineVip.value,
       payment_method: aOfflineVip.value ? '' : aOfflinePaymentMethod.value,
-      card_type: (!aOfflineVip.value && aOfflinePaymentMethod.value === 'card') ? aOfflineCardType.value : '',
     })
     aOfflineSuccess.value = res.data.order_code
     resetAdminOffline()

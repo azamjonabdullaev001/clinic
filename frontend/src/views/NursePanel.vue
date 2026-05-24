@@ -151,8 +151,8 @@
               </div>
             </div>
             <div class="border-t pt-3 space-y-1">
-              <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'pack' ? txt.pack : txt.piece }}</span></span>
+              <div v-for="item in order.items.filter(i => i.quantity > 0)" :key="item.id" class="flex justify-between text-sm text-gray-600">
+                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ txt.pack }}</span></span>
                 <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
               </div>
             </div>
@@ -190,7 +190,7 @@ const texts = {
     add_product: 'Добавить препарат',
     select_product: 'Выберите препарат',
     quantity: 'Количество',
-    pack: 'упак.',
+    pack: 'капс.',
     piece: 'шт',
     add: 'Добавить',
     total: 'Итого',
@@ -216,7 +216,7 @@ const texts = {
     add_product: "Dori qo'shish",
     select_product: 'Dori tanlang',
     quantity: 'Miqdor',
-    pack: 'quti',
+    pack: 'kapsula',
     piece: 'dona',
     add: "Qo'shish",
     total: 'Jami',
