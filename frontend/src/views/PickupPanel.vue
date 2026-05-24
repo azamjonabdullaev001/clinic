@@ -27,10 +27,23 @@
       </div>
     </header>
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-12 space-y-6">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-12 flex flex-col md:flex-row gap-6">
+
+      <!-- ===== Left sidebar / sections ===== -->
+      <nav class="md:w-52 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible flex-shrink-0">
+        <button v-for="s in [{k:'online',l:txt.nav_online},{k:'offline',l:txt.nav_offline},{k:'analytics',l:txt.nav_analytics},{k:'history',l:txt.nav_history}]" :key="s.k"
+          @click="tab = s.k"
+          :class="tab === s.k ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50'"
+          class="px-4 py-2.5 rounded-xl text-sm font-medium transition text-left whitespace-nowrap flex-shrink-0">
+          {{ s.l }}
+        </button>
+      </nav>
+
+      <!-- ===== Section content ===== -->
+      <div class="flex-1 min-w-0 space-y-6">
 
       <!-- ===== OFFLINE (Nurse) Order Section ===== -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div v-show="tab === 'offline'" class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b flex items-center gap-3">
           <div class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
             <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -169,7 +182,7 @@
       </div>
 
       <!-- ===== Direct Offline Sale (existing) ===== -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div v-show="tab === 'offline'" class="bg-white rounded-xl shadow-sm overflow-hidden">
         <button
           @click="offlineOpen = !offlineOpen"
           class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition"
@@ -279,24 +292,22 @@
             >{{ offlineSubmitting ? txt.saving : txt.record_sale }}</button>
           </div>
 
-          <div v-if="offlineSuccess" class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">
-            {{ txt.sale_recorded }} <strong>{{ offlineSuccess }}</strong>
+          <div v-if="offlineSuccess" class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700 flex items-center gap-2">
+            <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ txt.sold_ok }}
           </div>
         </div>
       </div>
 
       <!-- ===== My analytics ===== -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <button @click="toggleAnalytics" class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            </div>
-            <span class="font-semibold text-gray-800">{{ txt.analytics }}</span>
+      <div v-show="tab === 'analytics'" class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b flex items-center gap-3">
+          <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
           </div>
-          <svg class="w-5 h-5 text-gray-400 transition-transform" :class="analyticsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-        </button>
-        <div v-if="analyticsOpen" class="border-t px-6 py-5 space-y-4">
+          <span class="font-semibold text-gray-800">{{ txt.analytics }}</span>
+        </div>
+        <div class="px-6 py-5 space-y-4">
           <div class="flex gap-2 flex-wrap items-center">
             <button v-for="p in [{v:'daily',l:txt.a_today},{v:'weekly',l:txt.a_week},{v:'monthly',l:txt.a_month},{v:'custom',l:txt.a_date}]" :key="p.v"
               @click="selectAnalyticsPeriod(p.v)"
@@ -324,7 +335,7 @@
       </div>
 
       <!-- ===== Online order search by 6-digit code ===== -->
-      <div class="bg-white rounded-xl shadow-sm p-6">
+      <div v-show="tab === 'online'" class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4">{{ txt.search_online }}</h2>
         <div class="flex gap-3">
           <input
@@ -409,27 +420,41 @@
         </div>
       </div>
 
-      <!-- ===== All orders list ===== -->
-      <div>
+      <!-- ===== Orders list (shared by online / offline / history) ===== -->
+      <div v-show="tab !== 'analytics'">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold text-gray-800">{{ txt.all_orders }}</h2>
+          <h2 class="text-xl font-bold text-gray-800">{{ listHeading }}</h2>
           <button @click="loadOrders" class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             {{ txt.refresh }}
           </button>
         </div>
 
-        <div class="flex gap-2 mb-4 flex-wrap">
-          <button v-for="f in filters" :key="f.value" @click="activeFilter = f.value"
-            :class="activeFilter === f.value ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-            class="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200 transition">
-            {{ f.label }}
-            <span v-if="f.value !== 'all'" class="ml-1.5 text-xs opacity-75">({{ orderCountByStatus(f.value) }})</span>
-          </button>
+        <!-- History filters: type + status + period -->
+        <div v-if="tab === 'history'" class="space-y-2 mb-4">
+          <div class="flex gap-2 flex-wrap">
+            <button v-for="f in [{v:'all',l:txt.type_all},{v:'online',l:txt.type_online},{v:'offline',l:txt.type_offline}]" :key="f.v"
+              @click="historyType = f.v"
+              :class="historyType === f.v ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+              class="px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-200 transition">{{ f.l }}</button>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button v-for="f in statusFilters" :key="f.value" @click="historyStatus = f.value"
+              :class="historyStatus === f.value ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 transition">{{ f.label }}</button>
+          </div>
+          <div class="flex gap-2 flex-wrap items-center">
+            <button v-for="f in [{v:'all',l:txt.period_all},{v:'daily',l:txt.a_today},{v:'weekly',l:txt.a_week},{v:'monthly',l:txt.a_month},{v:'custom',l:txt.a_date}]" :key="f.v"
+              @click="historyPeriod = f.v"
+              :class="historyPeriod === f.v ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 transition">{{ f.l }}</button>
+            <input v-if="historyPeriod === 'custom'" v-model="historyDate" type="date"
+              class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
         </div>
 
         <div class="space-y-3">
-          <div v-for="order in filteredOrders" :key="order.id"
+          <div v-for="order in displayedOrders" :key="order.id"
             class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
             <div class="flex flex-col sm:flex-row justify-between items-start gap-3">
               <div class="flex-1">
@@ -561,13 +586,15 @@
             </div>
           </div>
 
-          <div v-if="filteredOrders.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+          <div v-if="displayedOrders.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
             <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             {{ txt.no_orders }}
           </div>
         </div>
+      </div>
+      <!-- /Section content -->
       </div>
     </div>
   </div>
@@ -641,7 +668,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 
@@ -733,6 +760,18 @@ const texts = {
     a_revenue: 'Выручка',
     a_created: 'Создано',
     a_confirmed: 'Подтверждено',
+    sold_ok: 'Продано ✓ Продажа записана',
+    nav_online: 'Онлайн',
+    nav_offline: 'Офлайн',
+    nav_analytics: 'Аналитика',
+    nav_history: 'История',
+    pending_online: 'Ожидаемые онлайн-заказы',
+    pending_offline: 'Ожидаемые офлайн-заказы',
+    history_title: 'История заказов',
+    type_all: 'Все',
+    type_online: 'Онлайн',
+    type_offline: 'Офлайн',
+    period_all: 'Всё время',
   },
   uz: {
     title: 'Berish punkti',
@@ -815,6 +854,18 @@ const texts = {
     a_revenue: 'Tushum',
     a_created: 'Yaratilgan',
     a_confirmed: 'Tasdiqlangan',
+    sold_ok: 'Sotildi ✓ Sotuv yozildi',
+    nav_online: 'Onlayn',
+    nav_offline: 'Oflayn',
+    nav_analytics: 'Tahlil',
+    nav_history: 'Tarix',
+    pending_online: 'Kutilayotgan onlayn buyurtmalar',
+    pending_offline: 'Kutilayotgan oflayn buyurtmalar',
+    history_title: 'Buyurtmalar tarixi',
+    type_all: 'Hammasi',
+    type_online: 'Onlayn',
+    type_offline: 'Oflayn',
+    period_all: 'Butun davr',
   }
 }
 
@@ -823,28 +874,56 @@ const txt = computed(() => {
   return texts[lang.value] || texts.ru
 })
 
-// ===== Orders =====
+// ===== Orders & sections =====
 const orders = ref([])
-const activeFilter = ref('all')
+const tab = ref('online') // online | offline | analytics | history
 
-const filters = computed(() => [
-  { label: txt.value.status_pending.split(' ')[0] === 'Все' ? 'Все' : (lang.value === 'ru' ? 'Все' : 'Barchasi'), value: 'all' },
+// History filters
+const historyType = ref('all')   // all | online | offline
+const historyStatus = ref('all') // all | pending | confirmed | shipped | in_transit | delivered | cancelled
+const historyPeriod = ref('all') // all | daily | weekly | monthly | custom
+const historyDate = ref('')
+
+const statusFilters = computed(() => [
+  { label: txt.value.type_all, value: 'all' },
   { label: txt.value.status_pending, value: 'pending' },
   { label: txt.value.status_confirmed, value: 'confirmed' },
-  { label: txt.value.status_shipped, value: 'shipped' },
   { label: txt.value.status_in_transit, value: 'in_transit' },
   { label: txt.value.status_delivered, value: 'delivered' },
   { label: txt.value.status_cancelled, value: 'cancelled' },
 ])
 
-const filteredOrders = computed(() => {
-  if (activeFilter.value === 'all') return orders.value
-  return orders.value.filter(o => o.status === activeFilter.value)
+function inPeriod(order) {
+  if (historyPeriod.value === 'all') return true
+  const d = new Date(order.created_at)
+  const now = new Date()
+  if (historyPeriod.value === 'daily') return d.toDateString() === now.toDateString()
+  if (historyPeriod.value === 'weekly') return d >= new Date(now.getTime() - 7 * 864e5)
+  if (historyPeriod.value === 'monthly') return d >= new Date(now.getTime() - 30 * 864e5)
+  if (historyPeriod.value === 'custom') return historyDate.value ? d.toDateString() === new Date(historyDate.value).toDateString() : true
+  return true
+}
+
+const displayedOrders = computed(() => {
+  if (tab.value === 'online') {
+    return orders.value.filter(o => !o.is_offline && o.status !== 'delivered' && o.status !== 'cancelled')
+  }
+  if (tab.value === 'offline') {
+    return orders.value.filter(o => o.is_offline && o.status !== 'delivered' && o.status !== 'cancelled')
+  }
+  // history
+  let list = orders.value
+  if (historyType.value === 'online') list = list.filter(o => !o.is_offline)
+  else if (historyType.value === 'offline') list = list.filter(o => o.is_offline)
+  if (historyStatus.value !== 'all') list = list.filter(o => o.status === historyStatus.value)
+  return list.filter(inPeriod)
 })
 
-function orderCountByStatus(status) {
-  return orders.value.filter(o => o.status === status).length
-}
+const listHeading = computed(() => {
+  if (tab.value === 'online') return txt.value.pending_online
+  if (tab.value === 'offline') return txt.value.pending_offline
+  return txt.value.history_title
+})
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price || 0))
@@ -1240,7 +1319,7 @@ async function saveListEdit(order) {
 }
 
 // ===== Direct Offline Sale =====
-const offlineOpen = ref(false)
+const offlineOpen = ref(true)
 const allProducts = ref([])
 const offlineProductId = ref('')
 const offlineQty = ref(1)
@@ -1308,7 +1387,7 @@ async function submitOfflineSale() {
       payment_method: offlineVip.value ? '' : offlinePaymentMethod.value,
       referred_by: offlineReferral.value.trim(),
     })
-    offlineSuccess.value = res.data.order_code
+    offlineSuccess.value = true
     resetOfflineSale()
     loadOrders()
   } catch (e) {
@@ -1317,7 +1396,6 @@ async function submitOfflineSale() {
 }
 
 // ===== My analytics =====
-const analyticsOpen = ref(false)
 const analyticsPeriod = ref('daily')
 const analyticsDate = ref('')
 const analyticsData = ref(null)
@@ -1338,14 +1416,13 @@ function selectAnalyticsPeriod(p) {
   if (p !== 'custom') loadAnalytics()
 }
 
-function toggleAnalytics() {
-  analyticsOpen.value = !analyticsOpen.value
-  if (analyticsOpen.value && !analyticsData.value) loadAnalytics()
-}
-
 const analyticsMaxRevenue = computed(() => {
   const pts = analyticsData.value?.points || []
   return Math.max(1, ...pts.map(p => p.revenue))
+})
+
+watch(tab, (t) => {
+  if (t === 'analytics' && !analyticsData.value) loadAnalytics()
 })
 
 onMounted(() => {
