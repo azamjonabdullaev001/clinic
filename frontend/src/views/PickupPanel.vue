@@ -210,7 +210,7 @@
               <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.product }}</label>
               <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="">{{ txt.select_product }}</option>
-                <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+                <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }} ({{ txt.my_stock }}: {{ stockOf(p.id) }})</option>
               </select>
             </div>
             <div class="w-24">
@@ -328,8 +328,8 @@
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_created }}</p><p class="text-2xl font-bold text-blue-600">{{ analyticsData.created_count }}</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_confirmed }}</p><p class="text-2xl font-bold text-teal-600">{{ analyticsData.confirmed_count }}</p></div>
             </div>
-            <div class="pt-2" style="position:relative;height:260px;width:100%">
-              <canvas ref="analyticsCanvas"></canvas>
+            <div class="pt-2">
+              <LineChart :points="analyticsData.points || []" color="#6366f1" />
             </div>
           </template>
         </div>
@@ -708,8 +708,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
+import LineChart from '../components/LineChart.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -1428,6 +1427,11 @@ function addOfflineItem() {
   if (!offlineProductId.value || offlineQty.value < 1) return
   const product = allProducts.value.find(p => p.id === offlineProductId.value)
   if (!product) return
+  const already = offlineItems.value.filter(i => i.product_id === product.id).reduce((s, i) => s + i.quantity, 0)
+  if (already + offlineQty.value > stockOf(product.id)) {
+    alert(`${txt.value.my_stock}: ${stockOf(product.id)}. ${product.name}`)
+    return
+  }
   const price = product.price_per_pack * offlineQty.value
   offlineItems.value.push({ product_id: product.id, name: product.name, quantity: offlineQty.value, unit_type: 'pack', price })
   offlineProductId.value = ''
@@ -1467,8 +1471,6 @@ const analyticsPeriod = ref('daily')
 const analyticsDate = ref('')
 const analyticsData = ref(null)
 const analyticsLoading = ref(false)
-const analyticsCanvas = ref(null)
-let analyticsChart = null
 
 async function loadAnalytics() {
   analyticsLoading.value = true
@@ -1477,57 +1479,7 @@ async function loadAnalytics() {
     if (analyticsPeriod.value === 'custom') params.date = analyticsDate.value
     const res = await api.get('/pickup/analytics', { params })
     analyticsData.value = res.data
-    await nextTick()
-    renderChart()
   } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
-}
-
-function renderChart() {
-  const canvas = analyticsCanvas.value
-  if (!canvas || !analyticsData.value) return
-  const points = analyticsData.value.points || []
-  const ctx = canvas.getContext('2d')
-  const gradient = ctx.createLinearGradient(0, 0, 0, 260)
-  gradient.addColorStop(0, 'rgba(99,102,241,0.35)')
-  gradient.addColorStop(1, 'rgba(99,102,241,0.02)')
-
-  const data = {
-    labels: points.map(p => p.label),
-    datasets: [{
-      label: txt.value.a_revenue,
-      data: points.map(p => p.revenue),
-      borderColor: '#6366f1',
-      backgroundColor: gradient,
-      borderWidth: 2.5,
-      fill: true,
-      tension: 0.4,
-      pointRadius: 0,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: '#6366f1',
-    }],
-  }
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 800, easing: 'easeOutQuart' },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: { label: (c) => formatPrice(c.parsed.y) + ' ' + txt.value.sum },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#94a3b8', font: { size: 10 } } },
-      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => formatPrice(v) } },
-    },
-  }
-  if (analyticsChart) {
-    analyticsChart.data = data
-    analyticsChart.options = options
-    analyticsChart.update()
-  } else {
-    analyticsChart = new Chart(canvas, { type: 'line', data, options })
-  }
 }
 
 function selectAnalyticsPeriod(p) {
@@ -1540,6 +1492,13 @@ const stock = ref([])
 const stockProductId = ref('')
 const stockQty = ref(1)
 const addingStock = ref(false)
+
+const stockMap = computed(() => {
+  const m = {}
+  for (const s of stock.value) m[s.product_id] = s.quantity
+  return m
+})
+function stockOf(productId) { return stockMap.value[productId] || 0 }
 
 async function loadStock() {
   try { stock.value = (await api.get('/pickup/stock')).data || [] } catch (e) { console.error(e) }
@@ -1557,11 +1516,9 @@ async function addStock() {
 }
 
 watch(tab, (t) => {
-  if (t === 'analytics') {
-    if (!analyticsData.value) loadAnalytics()
-    else nextTick(renderChart)
-  }
+  if (t === 'analytics' && !analyticsData.value) loadAnalytics()
   if (t === 'stock') loadStock()
+  if (t === 'offline') loadStock()
 })
 
 onMounted(() => {

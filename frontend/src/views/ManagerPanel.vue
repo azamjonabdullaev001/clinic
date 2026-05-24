@@ -176,7 +176,7 @@
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Выручка</p><p class="text-lg font-bold text-emerald-600">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул продано</p><p class="text-2xl font-bold text-purple-600">{{ soldCapsules }}</p></div>
               </div>
-              <div style="position:relative;height:260px;width:100%"><canvas ref="analyticsCanvas"></canvas></div>
+              <LineChart :points="analytics.points || []" color="#a855f7" />
             </template>
           </div>
         </div>
@@ -186,12 +186,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
+import LineChart from '../components/LineChart.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -305,13 +304,10 @@ const period = ref('daily')
 const customDate = ref('')
 const analytics = ref(null)
 const analyticsLoading = ref(false)
-const analyticsCanvas = ref(null)
-let analyticsChart = null
 
-const soldCapsules = computed(() => {
-  // approximate from current orders within shown analytics is not exact; show from orders list total
-  return orders.value.reduce((s, o) => s + (o.items || []).reduce((a, i) => a + (i.quantity || 0), 0), 0)
-})
+const soldCapsules = computed(() =>
+  orders.value.reduce((s, o) => s + (o.items || []).reduce((a, i) => a + (i.quantity || 0), 0), 0)
+)
 
 async function loadAnalytics() {
   analyticsLoading.value = true
@@ -319,25 +315,9 @@ async function loadAnalytics() {
     const params = { period: period.value }
     if (period.value === 'custom') params.date = customDate.value
     analytics.value = (await api.get('/manager/analytics', { params })).data
-    await nextTick(); renderChart()
   } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
 }
-function renderChart() {
-  const canvas = analyticsCanvas.value
-  if (!canvas || !analytics.value) return
-  const points = analytics.value.points || []
-  const ctx = canvas.getContext('2d')
-  const gradient = ctx.createLinearGradient(0, 0, 0, 260)
-  gradient.addColorStop(0, 'rgba(168,85,247,0.35)')
-  gradient.addColorStop(1, 'rgba(168,85,247,0.02)')
-  const data = { labels: points.map(p => p.label), datasets: [{ label: 'Выручка', data: points.map(p => p.revenue), borderColor: '#a855f7', backgroundColor: gradient, borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5 }] }
-  const options = { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => formatPrice(c.parsed.y) + ' сўм' } } }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#94a3b8', font: { size: 10 } } }, y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => formatPrice(v) } } } }
-  if (analyticsChart) { analyticsChart.data = data; analyticsChart.options = options; analyticsChart.update() }
-  else analyticsChart = new Chart(canvas, { type: 'line', data, options })
-}
 function selectPeriod(p) { period.value = p; if (p !== 'custom') loadAnalytics() }
-
-watch(tab, (t) => { if (t === 'analytics') nextTick(renderChart) })
 
 function logout() { authStore.workerLogout(); router.push('/admin/login') }
 

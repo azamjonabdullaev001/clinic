@@ -48,18 +48,23 @@ func AddWorkerStock(c *gin.Context) {
 
 	var ws models.WorkerStock
 	err := database.DB.Where("worker_id = ? AND product_id = ?", wid, input.ProductID).First(&ws).Error
+	var saveErr error
 	if err == gorm.ErrRecordNotFound {
 		ws = models.WorkerStock{WorkerID: wid, ProductID: input.ProductID, Quantity: input.Quantity}
 		if ws.Quantity < 0 {
 			ws.Quantity = 0
 		}
-		database.DB.Create(&ws)
+		saveErr = database.DB.Create(&ws).Error
 	} else {
 		ws.Quantity += input.Quantity
 		if ws.Quantity < 0 {
 			ws.Quantity = 0
 		}
-		database.DB.Save(&ws)
+		saveErr = database.DB.Save(&ws).Error
+	}
+	if saveErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении склада"})
+		return
 	}
 
 	database.DB.Preload("Product").First(&ws, ws.ID)
@@ -68,25 +73,31 @@ func AddWorkerStock(c *gin.Context) {
 }
 
 // reserveWorkerStock verifies a worker has enough stock for the given items and
-// decrements it. Returns an error naming the first out-of-stock product.
+// decrements it. Quantities are aggregated per product so the same product added
+// as several lines is checked correctly. Returns an error naming the first
+// out-of-stock product.
 func reserveWorkerStock(tx *gorm.DB, workerID uint, items []OfflineItemInput) error {
+	need := map[uint]int{}
 	for _, item := range items {
+		need[item.ProductID] += item.Quantity
+	}
+	for productID, qty := range need {
 		var ws models.WorkerStock
-		err := tx.Where("worker_id = ? AND product_id = ?", workerID, item.ProductID).First(&ws).Error
-		if err != nil || ws.Quantity < item.Quantity {
+		err := tx.Where("worker_id = ? AND product_id = ?", workerID, productID).First(&ws).Error
+		if err != nil || ws.Quantity < qty {
 			var p models.Product
-			tx.First(&p, item.ProductID)
+			tx.First(&p, productID)
 			name := p.Name
 			if name == "" {
-				name = fmt.Sprintf("#%d", item.ProductID)
+				name = fmt.Sprintf("#%d", productID)
 			}
 			return fmt.Errorf("Недостаточно на складе: %s", name)
 		}
 	}
-	for _, item := range items {
+	for productID, qty := range need {
 		tx.Model(&models.WorkerStock{}).
-			Where("worker_id = ? AND product_id = ?", workerID, item.ProductID).
-			UpdateColumn("quantity", gorm.Expr("quantity - ?", item.Quantity))
+			Where("worker_id = ? AND product_id = ?", workerID, productID).
+			UpdateColumn("quantity", gorm.Expr("quantity - ?", qty))
 	}
 	return nil
 }

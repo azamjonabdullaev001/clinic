@@ -132,9 +132,7 @@
                   <p v-if="comments.length === 0" class="text-sm text-stone-400">{{ t.comments_empty }}</p>
                 </div>
 
-                <div class="space-y-2">
-                  <input v-model="commentName" :placeholder="t.comments_name"
-                    class="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                <div v-if="authStore.isLoggedIn" class="space-y-2">
                   <textarea v-model="commentText" rows="2" :placeholder="t.comments_placeholder"
                     class="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none"></textarea>
                   <button @click="addComment" :disabled="!commentText.trim() || postingComment"
@@ -142,6 +140,10 @@
                     {{ postingComment ? '...' : t.comments_send }}
                   </button>
                 </div>
+                <router-link v-else to="/login" @click="closeDescription"
+                  class="block bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-3 text-sm text-stone-500 hover:text-brand-700 hover:border-brand-300 transition">
+                  {{ t.comments_login }}
+                </router-link>
               </div>
             </div>
           </div>
@@ -154,9 +156,10 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useLangStore } from '../stores/lang'
-import { api } from '../stores/auth'
+import { api, useAuthStore } from '../stores/auth'
 
 const langStore = useLangStore()
+const authStore = useAuthStore()
 const t = computed(() => langStore.t)
 
 const props = defineProps({
@@ -170,7 +173,6 @@ const isAdding = ref(false)
 
 // Comments / reviews
 const comments = ref([])
-const commentName = ref('')
 const commentText = ref('')
 const postingComment = ref(false)
 
@@ -185,7 +187,6 @@ async function addComment() {
   postingComment.value = true
   try {
     const res = await api.post(`/products/${props.product.id}/comments`, {
-      author_name: commentName.value.trim(),
       text: commentText.value.trim(),
     })
     comments.value.unshift(res.data)

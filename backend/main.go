@@ -92,7 +92,7 @@ func main() {
 			products.GET("", handlers.GetProducts)
 			products.GET("/:id", handlers.GetProduct)
 			products.GET("/:id/comments", handlers.GetProductComments)
-			products.POST("/:id/comments", handlers.AddProductComment)
+			products.POST("/:id/comments", middleware.UserAuth(), handlers.AddProductComment)
 		}
 
 		api.GET("/faqs", handlers.GetFAQs)

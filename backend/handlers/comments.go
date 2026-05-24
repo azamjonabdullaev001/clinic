@@ -18,11 +18,11 @@ func GetProductComments(c *gin.Context) {
 }
 
 type CommentInput struct {
-	AuthorName string `json:"author_name"`
-	Text       string `json:"text" binding:"required"`
+	Text string `json:"text" binding:"required"`
 }
 
-// AddProductComment lets a buyer/patient leave a public comment on a product.
+// AddProductComment lets a logged-in user leave a public comment on a product.
+// The author name is taken from their account; anonymous users cannot comment.
 func AddProductComment(c *gin.Context) {
 	id := c.Param("id")
 	var product models.Product
@@ -41,9 +41,18 @@ func AddProductComment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Текст комментария обязателен"})
 		return
 	}
-	name := strings.TrimSpace(input.AuthorName)
-	if name == "" {
-		name = "Аноним"
+
+	name := "Пользователь"
+	if uid, ok := c.Get("userID"); ok {
+		var user models.User
+		if database.DB.First(&user, uid).Error == nil {
+			full := strings.TrimSpace(user.FirstName + " " + user.LastName)
+			if full != "" {
+				name = full
+			} else if user.Phone != "" {
+				name = user.Phone
+			}
+		}
 	}
 
 	comment := models.ProductComment{ProductID: product.ID, AuthorName: name, Text: text}
