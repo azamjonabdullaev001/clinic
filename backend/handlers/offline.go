@@ -49,8 +49,10 @@ type OfflineSaleInput struct {
 	Items         []OfflineItemInput `json:"items" binding:"required,min=1"`
 	OfflineNote   string             `json:"offline_note"`
 	IsVIP         bool               `json:"is_vip"`
-	PaymentMethod string             `json:"payment_method"` // "cash" or "card"
+	PaymentMethod string             `json:"payment_method"` // "cash", "terminal", "card"
 	CardType      string             `json:"card_type"`      // "humo", "uzcard", "visa", "mastercard"
+	ReferredBy    string             `json:"referred_by"`    // doctor who referred the patient
+	SalesChannel  string             `json:"sales_channel"`  // marketplace for manager sales
 }
 
 func CreateOfflineSale(c *gin.Context) {
@@ -60,10 +62,13 @@ func CreateOfflineSale(c *gin.Context) {
 		return
 	}
 
-	// VIP sales are free, so payment method is irrelevant. Otherwise validate it.
+	// Determine payment method. Manager marketplace sales are paid through the platform;
+	// "own patient" sales are free; otherwise the cashier picks cash/terminal/card.
 	paymentMethod := input.PaymentMethod
 	cardType := ""
-	if input.IsVIP {
+	if input.SalesChannel != "" {
+		paymentMethod = "marketplace"
+	} else if input.IsVIP {
 		paymentMethod = ""
 	} else {
 		if paymentMethod == "" {
@@ -89,11 +94,13 @@ func CreateOfflineSale(c *gin.Context) {
 		WorkerID:      workerIDPtr,
 		Status:        "delivered",
 		Phone:         "offline",
-		OrderCode:     generateOrderCode(),
+		OrderCode:     generateNurseCode(), // offline orders use a 5-digit code
 		IsOffline:     true,
 		IsVIP:         input.IsVIP,
 		PaymentMethod: paymentMethod,
 		CardType:      cardType,
+		SalesChannel:  input.SalesChannel,
+		ReferredBy:    input.ReferredBy,
 		OfflineNote:   input.OfflineNote,
 	}
 

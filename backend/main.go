@@ -124,9 +124,19 @@ func main() {
 			pickup.PUT("/orders/:id/status", handlers.UpdatePickupOrderStatus)
 			pickup.PUT("/orders/:id/items", handlers.UpdateOrderItems)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
+			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)
+		}
+
+		manager := api.Group("/manager")
+		manager.Use(middleware.WorkerAuth())
+		{
+			manager.GET("/products", handlers.GetProducts)
+			manager.POST("/sale", handlers.CreateOfflineSale)
+			manager.GET("/orders", handlers.GetManagerOrders)
+			manager.GET("/analytics", handlers.GetWorkerAnalytics)
 		}
 
 		nurse := api.Group("/nurse")

@@ -245,3 +245,123 @@ func GetAnalytics(c *gin.Context) {
 		TotalOrders:     len(orders),
 	})
 }
+
+// buildAnalyticsPeriod returns the time range and empty chart points for a period.
+func buildAnalyticsPeriod(period, dateStr string) (time.Time, time.Time, []AnalyticsPoint) {
+	loc := time.Local
+	now := time.Now().In(loc)
+	var startTime, endTime time.Time
+	var points []AnalyticsPoint
+
+	switch period {
+	case "weekly":
+		startTime = now.AddDate(0, 0, -7)
+		endTime = now
+		for i := 0; i < 14; i++ {
+			t := startTime.Add(time.Duration(i) * 12 * time.Hour)
+			points = append(points, AnalyticsPoint{Label: t.Format("02.01 15:04")})
+		}
+	case "monthly":
+		startTime = now.AddDate(0, 0, -29)
+		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
+		for i := 0; i < 30; i++ {
+			t := startTime.AddDate(0, 0, i)
+			points = append(points, AnalyticsPoint{Label: t.Format("02.01")})
+		}
+		endTime = startTime.AddDate(0, 0, 30)
+	case "custom":
+		chosenDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+		if dateStr != "" {
+			if parsed, err := time.ParseInLocation("2006-01-02", dateStr, loc); err == nil {
+				chosenDay = parsed
+			}
+		}
+		startTime = chosenDay
+		endTime = chosenDay.Add(24 * time.Hour)
+		for h := 0; h < 24; h++ {
+			points = append(points, AnalyticsPoint{Label: chosenDay.Add(time.Duration(h) * time.Hour).Format("15:04")})
+		}
+	default:
+		today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+		startTime = today
+		endTime = today.Add(24 * time.Hour)
+		for h := 0; h < 24; h++ {
+			points = append(points, AnalyticsPoint{Label: today.Add(time.Duration(h) * time.Hour).Format("15:04")})
+		}
+	}
+	return startTime, endTime, points
+}
+
+// addRevenueToPoint places an order's revenue into the correct chart slot.
+func addRevenueToPoint(points []AnalyticsPoint, period string, startTime, orderTime time.Time, revenue float64) {
+	switch period {
+	case "weekly":
+		for pi := range points {
+			slotStart := startTime.Add(time.Duration(pi) * 12 * time.Hour)
+			slotEnd := slotStart.Add(12 * time.Hour)
+			if !orderTime.Before(slotStart) && orderTime.Before(slotEnd) {
+				points[pi].Revenue += revenue
+				points[pi].Orders++
+				return
+			}
+		}
+	case "monthly":
+		for pi := range points {
+			slotStart := startTime.AddDate(0, 0, pi)
+			slotEnd := slotStart.AddDate(0, 0, 1)
+			if !orderTime.Before(slotStart) && orderTime.Before(slotEnd) {
+				points[pi].Revenue += revenue
+				points[pi].Orders++
+				return
+			}
+		}
+	default:
+		hour := orderTime.Hour()
+		if hour >= 0 && hour < len(points) {
+			points[hour].Revenue += revenue
+			points[hour].Orders++
+		}
+	}
+}
+
+// GetWorkerAnalytics returns the logged-in worker's own report (orders they
+// delivered/created and revenue) for the requested period.
+func GetWorkerAnalytics(c *gin.Context) {
+	workerID, _ := c.Get("workerID")
+	period := c.Query("period")
+	dateStr := c.Query("date")
+	loc := time.Local
+
+	startTime, endTime, points := buildAnalyticsPeriod(period, dateStr)
+
+	var orders []models.Order
+	database.DB.Where("worker_id = ? AND status = ? AND created_at >= ? AND created_at < ?",
+		workerID, "delivered", startTime, endTime).
+		Preload("Items").
+		Find(&orders)
+
+	var totalRevenue float64
+	createdCount := 0
+	confirmedCount := 0
+	for _, order := range orders {
+		var revenue float64
+		for _, item := range order.Items {
+			revenue += item.Price
+		}
+		totalRevenue += revenue
+		addRevenueToPoint(points, period, startTime, order.CreatedAt.In(loc), revenue)
+		if order.IsOffline && !order.IsNurseOrder {
+			createdCount++ // sale the worker created directly
+		} else {
+			confirmedCount++ // online / doctor order the worker confirmed
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"points":          points,
+		"total_revenue":   totalRevenue,
+		"total_orders":    len(orders),
+		"created_count":   createdCount,
+		"confirmed_count": confirmedCount,
+	})
+}

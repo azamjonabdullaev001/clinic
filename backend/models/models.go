@@ -32,7 +32,7 @@ type Worker struct {
 	Name     string `gorm:"not null" json:"name"`
 	Phone    string `gorm:"uniqueIndex;not null" json:"phone"`
 	Password string `gorm:"not null" json:"-"`
-	Role     string `gorm:"default:'pickup';not null" json:"role"` // "pickup" or "nurse"
+	Role     string `gorm:"default:'pickup';not null" json:"role"` // "pickup", "nurse" or "manager"
 }
 
 type Product struct {
@@ -121,9 +121,10 @@ type Order struct {
 	ReferredBy      string      `json:"referred_by"`
 	IsOffline       bool        `gorm:"default:false" json:"is_offline"`
 	IsNurseOrder    bool        `gorm:"default:false" json:"is_nurse_order"`
-	IsVIP           bool        `gorm:"default:false" json:"is_vip"`
-	PaymentMethod   string      `json:"payment_method"` // "cash" or "card" (empty for VIP/online)
-	CardType        string      `json:"card_type"`      // "humo", "uzcard", "visa", "mastercard"
+	IsVIP           bool        `gorm:"default:false" json:"is_vip"` // own hospital patient — free
+	PaymentMethod   string      `json:"payment_method"`              // "cash", "terminal", "card", "online", "marketplace"
+	CardType        string      `json:"card_type"`                   // "humo", "uzcard", "visa", "mastercard"
+	SalesChannel    string      `json:"sales_channel"`               // marketplace for manager sales: "ozon", "yandex", ...
 	OfflineNote     string      `json:"offline_note"`
 	PatientFName    string      `json:"patient_first_name"`
 	PatientLName    string      `json:"patient_last_name"`

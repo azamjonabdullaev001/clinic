@@ -252,6 +252,20 @@
             </div>
           </div>
 
+          <div v-if="offlineItems.length">
+            <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.referral_label }}</label>
+            <input
+              v-model="offlineReferral"
+              list="offline-doctors"
+              :placeholder="txt.referral_ph"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <datalist id="offline-doctors">
+              <option value="Самостоятельно"></option>
+              <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty ? ' (' + d.specialty + ')' : '')"></option>
+            </datalist>
+          </div>
+
           <div class="flex gap-2 flex-wrap">
             <input
               v-model="offlineNote"
@@ -268,6 +282,44 @@
           <div v-if="offlineSuccess" class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">
             {{ txt.sale_recorded }} <strong>{{ offlineSuccess }}</strong>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== My analytics ===== -->
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <button @click="toggleAnalytics" class="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            </div>
+            <span class="font-semibold text-gray-800">{{ txt.analytics }}</span>
+          </div>
+          <svg class="w-5 h-5 text-gray-400 transition-transform" :class="analyticsOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div v-if="analyticsOpen" class="border-t px-6 py-5 space-y-4">
+          <div class="flex gap-2 flex-wrap items-center">
+            <button v-for="p in [{v:'daily',l:txt.a_today},{v:'weekly',l:txt.a_week},{v:'monthly',l:txt.a_month},{v:'custom',l:txt.a_date}]" :key="p.v"
+              @click="selectAnalyticsPeriod(p.v)"
+              :class="analyticsPeriod===p.v ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition">{{ p.l }}</button>
+            <input v-if="analyticsPeriod==='custom'" v-model="analyticsDate" type="date" @change="loadAnalytics"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div v-if="analyticsLoading" class="text-gray-400 text-sm py-6 text-center">{{ txt.loading }}</div>
+          <template v-else-if="analyticsData">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_orders }}</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.total_orders }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_revenue }}</p><p class="text-lg font-bold text-emerald-600">{{ formatPrice(analyticsData.total_revenue) }} {{ txt.sum }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_created }}</p><p class="text-2xl font-bold text-blue-600">{{ analyticsData.created_count }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">{{ txt.a_confirmed }}</p><p class="text-2xl font-bold text-teal-600">{{ analyticsData.confirmed_count }}</p></div>
+            </div>
+            <div class="flex items-end gap-0.5 h-28 pt-2">
+              <div v-for="(pt,i) in analyticsData.points" :key="i"
+                class="flex-1 bg-indigo-200 hover:bg-indigo-400 rounded-t transition-all min-h-[2px]"
+                :style="{ height: (pt.revenue / analyticsMaxRevenue * 100) + '%' }"
+                :title="pt.label + ': ' + formatPrice(pt.revenue) + ' ' + txt.sum"></div>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -392,6 +444,10 @@
                 </p>
                 <p class="text-sm text-gray-500" v-if="!order.is_offline">+{{ order.phone }}</p>
                 <p class="text-xs text-gray-400 mt-0.5">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
+                <div v-if="order.referred_by" class="mt-1 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  <span class="text-xs text-purple-700">{{ txt.referred_by }}: {{ order.referred_by }}</span>
+                </div>
                 <div v-if="order.delivery_address" class="mt-1.5 flex items-start gap-1.5">
                   <svg class="w-3.5 h-3.5 text-orange-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -655,16 +711,28 @@ const texts = {
     saving_items: 'Сохранение...',
     cancel_edit: 'Отмена',
     view_on_map: 'На карте',
-    vip_free: 'VIP-пациент — бесплатно',
+    vip_free: 'Свой пациент — бесплатно',
     payment_method: 'Способ оплаты',
     pay_cash: 'Наличные',
     pay_terminal: 'Терминал',
     pay_card: 'Карта',
     pay_online: 'Онлайн (карта)',
     payment_label: 'Оплата',
-    vip_badge: 'VIP · Бесплатно',
+    vip_badge: 'Свой пациент · Бесплатно',
     choose_payment: 'Выберите способ оплаты',
     payment_hint: 'Как клиент оплатил этот заказ?',
+    referral_label: 'Откуда пациент / доктор',
+    referral_ph: 'Самостоятельно или имя доктора',
+    referred_by: 'Рекомендовал',
+    analytics: 'Моя аналитика',
+    a_today: 'Сегодня',
+    a_week: 'Неделя',
+    a_month: 'Месяц',
+    a_date: 'Дата',
+    a_orders: 'Заказов',
+    a_revenue: 'Выручка',
+    a_created: 'Создано',
+    a_confirmed: 'Подтверждено',
   },
   uz: {
     title: 'Berish punkti',
@@ -725,16 +793,28 @@ const texts = {
     saving_items: "Saqlanmoqda...",
     cancel_edit: "Bekor qilish",
     view_on_map: "Xaritada ko'rish",
-    vip_free: 'VIP-bemor — bepul',
+    vip_free: "O'z bemori — bepul",
     payment_method: "To'lov usuli",
     pay_cash: 'Naqd',
     pay_terminal: 'Terminal',
     pay_card: 'Karta',
     pay_online: 'Onlayn (karta)',
     payment_label: "To'lov",
-    vip_badge: 'VIP · Bepul',
+    vip_badge: "O'z bemori · Bepul",
     choose_payment: "To'lov usulini tanlang",
     payment_hint: "Mijoz buyurtmani qanday to'ladi?",
+    referral_label: 'Bemor qayerdan / shifokor',
+    referral_ph: 'Mustaqil yoki shifokor ismi',
+    referred_by: 'Tavsiya qildi',
+    analytics: 'Mening tahlilim',
+    a_today: 'Bugun',
+    a_week: 'Hafta',
+    a_month: 'Oy',
+    a_date: 'Sana',
+    a_orders: 'Buyurtmalar',
+    a_revenue: 'Tushum',
+    a_created: 'Yaratilgan',
+    a_confirmed: 'Tasdiqlangan',
   }
 }
 
@@ -1170,6 +1250,8 @@ const offlineSubmitting = ref(false)
 const offlineSuccess = ref('')
 const offlineVip = ref(false)
 const offlinePaymentMethod = ref('cash')
+const offlineReferral = ref('')
+const allDoctors = ref([])
 
 const paymentMethods = computed(() => [
   { value: 'cash', label: txt.value.pay_cash },
@@ -1189,6 +1271,13 @@ async function loadProducts() {
   } catch (e) { console.error(e) }
 }
 
+async function loadDoctors() {
+  try {
+    const res = await api.get('/doctors')
+    allDoctors.value = res.data || []
+  } catch (e) { console.error(e) }
+}
+
 function addOfflineItem() {
   if (!offlineProductId.value || offlineQty.value < 1) return
   const product = allProducts.value.find(p => p.id === offlineProductId.value)
@@ -1204,6 +1293,7 @@ function resetOfflineSale() {
   offlineNote.value = ''
   offlineVip.value = false
   offlinePaymentMethod.value = 'cash'
+  offlineReferral.value = ''
 }
 
 async function submitOfflineSale() {
@@ -1216,6 +1306,7 @@ async function submitOfflineSale() {
       offline_note: offlineNote.value,
       is_vip: offlineVip.value,
       payment_method: offlineVip.value ? '' : offlinePaymentMethod.value,
+      referred_by: offlineReferral.value.trim(),
     })
     offlineSuccess.value = res.data.order_code
     resetOfflineSale()
@@ -1225,8 +1316,41 @@ async function submitOfflineSale() {
   } finally { offlineSubmitting.value = false }
 }
 
+// ===== My analytics =====
+const analyticsOpen = ref(false)
+const analyticsPeriod = ref('daily')
+const analyticsDate = ref('')
+const analyticsData = ref(null)
+const analyticsLoading = ref(false)
+
+async function loadAnalytics() {
+  analyticsLoading.value = true
+  try {
+    const params = { period: analyticsPeriod.value }
+    if (analyticsPeriod.value === 'custom') params.date = analyticsDate.value
+    const res = await api.get('/pickup/analytics', { params })
+    analyticsData.value = res.data
+  } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
+}
+
+function selectAnalyticsPeriod(p) {
+  analyticsPeriod.value = p
+  if (p !== 'custom') loadAnalytics()
+}
+
+function toggleAnalytics() {
+  analyticsOpen.value = !analyticsOpen.value
+  if (analyticsOpen.value && !analyticsData.value) loadAnalytics()
+}
+
+const analyticsMaxRevenue = computed(() => {
+  const pts = analyticsData.value?.points || []
+  return Math.max(1, ...pts.map(p => p.revenue))
+})
+
 onMounted(() => {
   loadOrders()
   loadProducts()
+  loadDoctors()
 })
 </script>

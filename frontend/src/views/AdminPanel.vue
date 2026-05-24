@@ -266,9 +266,9 @@
                   <td class="px-5 py-3 font-medium text-gray-800">{{ w.name }}</td>
                   <td class="px-5 py-3 text-gray-500 font-mono">+{{ w.phone }}</td>
                   <td class="px-5 py-3">
-                    <span :class="w.role === 'nurse' ? 'bg-teal-50 text-teal-700' : 'bg-blue-50 text-blue-700'"
+                    <span :class="w.role === 'nurse' ? 'bg-teal-50 text-teal-700' : w.role === 'manager' ? 'bg-purple-50 text-purple-700' : 'bg-blue-50 text-blue-700'"
                       class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium">
-                      {{ w.role === 'nurse' ? 'Медсестра' : 'Пункт выдачи' }}
+                      {{ w.role === 'nurse' ? 'Медсестра' : w.role === 'manager' ? 'Менеджер' : 'Пункт выдачи' }}
                     </span>
                   </td>
                   <td class="px-5 py-3 text-right">
@@ -1086,7 +1086,7 @@
               class="w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
             <span class="text-sm font-semibold text-amber-700 flex items-center gap-1">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6l4 2 4-5 4 5 4-2-2 9H4L2 6z"/></svg>
-              VIP-пациент — бесплатно
+              Свой пациент — бесплатно
             </span>
           </label>
           <div v-if="!aOfflineVip">
@@ -1237,6 +1237,7 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition">
               <option value="pickup">Пункт выдачи</option>
               <option value="nurse">Медсестра / Медбрат</option>
+              <option value="manager">Менеджер (маркетплейсы)</option>
             </select>
           </div>
           <div>
@@ -1392,7 +1393,7 @@ function orderTotal(order) {
 }
 
 function paymentLabel(order) {
-  if (order.is_vip) return 'VIP · Бесплатно'
+  if (order.is_vip) return 'Свой пациент · Бесплатно'
   const m = {
     cash: 'Наличные',
     terminal: 'Терминал',
