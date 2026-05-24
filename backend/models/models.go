@@ -131,7 +131,29 @@ type Order struct {
 	CancellationReason string   `json:"cancellation_reason"`
 	CancelledByName    string   `json:"cancelled_by_name"`
 	CancelledByRole    string   `json:"cancelled_by_role"`
+	IsReturned         bool     `gorm:"default:false" json:"is_returned"` // delivered order edited as a return
+	ReturnReason       string   `json:"return_reason"`
 	CreatedAt       time.Time   `json:"created_at"`
+}
+
+// WorkerStock is the personal inventory of a worker (pickup point or manager).
+// Each worker keeps their own stock per product.
+type WorkerStock struct {
+	ID        uint    `gorm:"primaryKey" json:"id"`
+	WorkerID  uint    `gorm:"uniqueIndex:idx_worker_product;not null" json:"worker_id"`
+	ProductID uint    `gorm:"uniqueIndex:idx_worker_product;not null" json:"product_id"`
+	Product   Product `json:"product"`
+	Quantity  int     `gorm:"default:0" json:"quantity"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// ProductComment is a public review/comment left on a specific product.
+type ProductComment struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	ProductID  uint      `gorm:"index;not null" json:"product_id"`
+	AuthorName string    `json:"author_name"`
+	Text       string    `gorm:"type:text;not null" json:"text"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type OrderItem struct {

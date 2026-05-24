@@ -125,7 +125,8 @@
           </button>
         </div>
         <div class="space-y-4">
-          <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-6">
+          <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-6"
+            :class="order.is_returned ? 'border-2 border-red-400' : ''">
             <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
               <div>
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -136,6 +137,7 @@
                   </span>
                   <span v-if="order.is_offline" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Офлайн</span>
                   <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
+                  <span v-if="order.is_returned" class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">Возврат</span>
                 </div>
                 <h3 class="font-semibold text-gray-800 text-lg">
                   <template v-if="order.is_offline">
@@ -192,6 +194,11 @@
                   </svg>
                 </button>
               </div>
+            </div>
+
+            <div v-if="order.is_returned && order.return_reason" class="mb-4 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-start gap-2">
+              <svg class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+              <div class="text-sm"><span class="font-semibold text-red-700">Причина возврата:</span><span class="text-red-600 ml-1">{{ order.return_reason }}</span></div>
             </div>
 
             <div v-if="order.status === 'cancelled' && (order.cancellation_reason || order.cancelled_by_name)" class="mb-4 bg-red-50 border border-red-200 rounded-lg px-3 py-2 space-y-1">

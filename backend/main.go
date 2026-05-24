@@ -78,6 +78,7 @@ func main() {
 				protected.DELETE("/news/:id", handlers.DeleteNewsPost)
 				protected.DELETE("/news/images/:id", handlers.DeleteNewsImage)
 				protected.DELETE("/products/:id/comment", handlers.DeleteProductComment)
+				protected.DELETE("/product-comments/:commentId", handlers.DeleteProductCommentByID)
 				protected.GET("/doctors", handlers.GetDoctors)
 				protected.POST("/doctors", handlers.CreateDoctor)
 				protected.PUT("/doctors/:id", handlers.UpdateDoctor)
@@ -90,6 +91,8 @@ func main() {
 		{
 			products.GET("", handlers.GetProducts)
 			products.GET("/:id", handlers.GetProduct)
+			products.GET("/:id/comments", handlers.GetProductComments)
+			products.POST("/:id/comments", handlers.AddProductComment)
 		}
 
 		api.GET("/faqs", handlers.GetFAQs)
@@ -125,6 +128,8 @@ func main() {
 			pickup.PUT("/orders/:id/items", handlers.UpdateOrderItems)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
 			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
+			pickup.GET("/stock", handlers.GetWorkerStock)
+			pickup.POST("/stock", handlers.AddWorkerStock)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)
@@ -137,6 +142,8 @@ func main() {
 			manager.POST("/sale", handlers.CreateOfflineSale)
 			manager.GET("/orders", handlers.GetManagerOrders)
 			manager.GET("/analytics", handlers.GetWorkerAnalytics)
+			manager.GET("/stock", handlers.GetWorkerStock)
+			manager.POST("/stock", handlers.AddWorkerStock)
 		}
 
 		nurse := api.Group("/nurse")

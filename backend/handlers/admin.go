@@ -206,7 +206,7 @@ func CreateWorker(c *gin.Context) {
 	}
 
 	role := input.Role
-	if role != "nurse" {
+	if role != "nurse" && role != "manager" {
 		role = "pickup"
 	}
 
@@ -251,7 +251,7 @@ func UpdateWorker(c *gin.Context) {
 	if input.Phone != "" && phoneRegex.MatchString(input.Phone) {
 		worker.Phone = input.Phone
 	}
-	if input.Role == "nurse" || input.Role == "pickup" {
+	if input.Role == "nurse" || input.Role == "pickup" || input.Role == "manager" {
 		worker.Role = input.Role
 	}
 	if len(input.Password) >= 6 {

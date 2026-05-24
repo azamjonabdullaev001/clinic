@@ -122,6 +122,11 @@ const translations = {
     // Product card
     product_one_pill: '1 таблетка',
     product_pack: 'Капсула',
+    comments_title: 'Отзывы',
+    comments_empty: 'Пока нет отзывов. Будьте первым!',
+    comments_name: 'Ваше имя (необязательно)',
+    comments_placeholder: 'Оставьте отзыв об этом препарате...',
+    comments_send: 'Отправить отзыв',
     add_to_cart: 'В корзину',
     product_read_more: 'Ещё',
     product_description: 'Описание препарата',
@@ -286,6 +291,11 @@ const translations = {
     // Product card
     product_one_pill: '1 tabletka',
     product_pack: 'Kapsula',
+    comments_title: 'Sharhlar',
+    comments_empty: "Hozircha sharhlar yo'q. Birinchi bo'ling!",
+    comments_name: 'Ismingiz (ixtiyoriy)',
+    comments_placeholder: 'Ushbu dori haqida sharh qoldiring...',
+    comments_send: 'Sharh yuborish',
     add_to_cart: 'Savatga',
     product_read_more: 'Batafsil',
     product_description: 'Dori tavsifi',

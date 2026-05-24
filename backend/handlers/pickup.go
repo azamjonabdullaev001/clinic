@@ -17,30 +17,43 @@ func UpdateOrderItems(c *gin.Context) {
 		return
 	}
 
-	if order.Status == "delivered" || order.Status == "cancelled" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить завершённый заказ"})
+	if order.Status == "cancelled" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить отменённый заказ"})
 		return
 	}
 
+	// Editing a delivered order is a return: the customer brought goods back.
+	isReturn := order.Status == "delivered"
+
 	var input struct {
-		Items []OfflineItemInput `json:"items" binding:"required,min=1"`
+		Items        []OfflineItemInput `json:"items" binding:"required,min=1"`
+		ReturnReason string             `json:"return_reason"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Список товаров обязателен"})
 		return
 	}
 
+	if isReturn && strings.TrimSpace(input.ReturnReason) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите причину возврата"})
+		return
+	}
+
 	// Preserve the originally ordered quantity per product (the doctor's prescription),
 	// so the admin can later see what was bought / added / removed.
 	origByProduct := map[uint]int{}
+	prevQtyByProduct := map[uint]int{}
 	for _, it := range order.Items {
 		if it.OriginalQuantity > origByProduct[it.ProductID] {
 			origByProduct[it.ProductID] = it.OriginalQuantity
 		}
+		prevQtyByProduct[it.ProductID] += it.Quantity
 	}
 	boughtProducts := map[uint]bool{}
+	newQtyByProduct := map[uint]int{}
 	for _, it := range input.Items {
 		boughtProducts[it.ProductID] = true
+		newQtyByProduct[it.ProductID] += it.Quantity
 	}
 
 	tx := database.DB.Begin()
@@ -102,6 +115,23 @@ func UpdateOrderItems(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	// On a return, flag the order and put the brought-back goods back into the
+	// seller's stock (only for direct offline sales that drew from worker stock).
+	if isReturn {
+		order.IsReturned = true
+		order.ReturnReason = strings.TrimSpace(input.ReturnReason)
+		database.DB.Model(&models.Order{}).Where("id = ?", order.ID).
+			Updates(map[string]interface{}{"is_returned": true, "return_reason": order.ReturnReason})
+		if order.WorkerID != nil && order.IsOffline && !order.IsNurseOrder {
+			for productID, prevQty := range prevQtyByProduct {
+				returned := prevQty - newQtyByProduct[productID]
+				if returned > 0 {
+					restockWorker(*order.WorkerID, productID, returned)
+				}
+			}
+		}
+	}
 
 	database.DB.Preload("Items.Product").First(&order, order.ID)
 	for i := range order.Items {

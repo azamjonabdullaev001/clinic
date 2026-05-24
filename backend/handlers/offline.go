@@ -89,6 +89,16 @@ func CreateOfflineSale(c *gin.Context) {
 		}
 	}
 
+	// Offline & marketolog sales draw from the worker's personal stock and cannot
+	// exceed it. (Admin sales have no worker context and are not stock-checked.)
+	if workerIDPtr != nil {
+		if err := reserveWorkerStock(tx, *workerIDPtr, input.Items); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
 	order := models.Order{
 		UserID:        nil,
 		WorkerID:      workerIDPtr,
@@ -147,8 +157,6 @@ func CreateOfflineSale(c *gin.Context) {
 	for i := range order.Items {
 		order.Items[i].Product.ComputePackPrice()
 	}
-
-	decrementStockForOrder(order)
 
 	c.JSON(http.StatusCreated, order)
 }

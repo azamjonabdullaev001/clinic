@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-100" :class="{ 'night-mode': night }">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -10,7 +10,7 @@
             </svg>
           </div>
           <div>
-            <h1 class="text-base font-bold text-gray-800">Панель менеджера</h1>
+            <h1 class="text-base font-bold text-gray-800">Панель маркетолога</h1>
             <p v-if="authStore.worker" class="text-xs text-gray-400">{{ authStore.worker.name }}</p>
           </div>
         </div>
@@ -24,133 +24,161 @@
       </div>
     </header>
 
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 mt-6 pb-12 space-y-6">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 mt-6 pb-12 flex flex-col md:flex-row gap-6">
+      <!-- Sidebar -->
+      <nav class="md:w-52 flex md:flex-col gap-1 overflow-x-auto flex-shrink-0">
+        <button v-for="s in [{k:'sale',l:'Продажа'},{k:'stock',l:'Склад и заказы'},{k:'analytics',l:'Аналитика'}]" :key="s.k"
+          @click="tab = s.k"
+          :class="tab === s.k ? 'bg-purple-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50'"
+          class="px-4 py-2.5 rounded-xl text-sm font-medium transition text-left whitespace-nowrap flex-shrink-0">
+          {{ s.l }}
+        </button>
+      </nav>
 
-      <!-- ===== Create marketplace sale ===== -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b flex items-center gap-3">
-          <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      <div class="flex-1 min-w-0 space-y-6">
+
+        <!-- ===== SALE ===== -->
+        <div v-show="tab === 'sale'" class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b flex items-center gap-3">
+            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17"/></svg>
+            </div>
+            <h2 class="font-bold text-gray-800">Продажа на маркетплейсе</h2>
           </div>
-          <h2 class="font-bold text-gray-800">Продажа на маркетплейсе</h2>
-        </div>
-        <div class="px-6 py-5 space-y-4">
-          <!-- Add item -->
-          <div class="flex gap-2 flex-wrap items-end">
-            <div class="flex-1 min-w-[180px]">
-              <label class="block text-xs font-medium text-gray-500 mb-1">Препарат</label>
-              <select v-model="productId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="">Выберите препарат</option>
-                <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
-              </select>
+          <div class="px-6 py-5 space-y-4">
+            <!-- Product grid (tap to add) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <button v-for="p in products" :key="p.id" @click="addToCart(p)" :disabled="stockOf(p.id) <= cartQty(p.id)"
+                class="text-left bg-gray-50 rounded-xl p-3 border-2 transition relative disabled:opacity-50"
+                :class="cartQty(p.id) > 0 ? 'border-purple-400 bg-purple-50' : 'border-transparent hover:border-purple-200'">
+                <div v-if="cartQty(p.id) > 0" class="absolute -top-2 -right-2 w-6 h-6 bg-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center">{{ cartQty(p.id) }}</div>
+                <p class="text-xs font-semibold text-gray-800 leading-tight mb-1 line-clamp-2">{{ p.name }}</p>
+                <p class="text-xs font-bold text-purple-600">{{ formatPrice(p.price_per_pack) }} сўм</p>
+                <p class="text-[11px]" :class="stockOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">на складе: {{ stockOf(p.id) }}</p>
+              </button>
             </div>
-            <div class="w-24">
-              <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во</label>
-              <input v-model.number="qty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-            </div>
-            <div class="flex items-end pb-1.5"><span class="text-sm text-gray-600 font-medium px-1">капс.</span></div>
-            <button @click="addItem" :disabled="!productId || qty < 1"
-              class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-medium disabled:opacity-40">+ Добавить</button>
-          </div>
 
-          <!-- Items -->
-          <div v-if="items.length" class="border rounded-xl overflow-hidden">
-            <div v-for="(item, idx) in items" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
-              <div>
-                <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
-                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} капс.</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(item.price) }} сўм</span>
-                <button @click="items.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-              </div>
-            </div>
-            <div class="flex items-center justify-between px-4 py-2 bg-white">
-              <span class="text-sm font-semibold text-gray-700">Итого:</span>
-              <span class="font-bold text-purple-600">{{ formatPrice(total) }} сўм</span>
-            </div>
-          </div>
-
-          <!-- Marketplace -->
-          <div v-if="items.length">
-            <label class="block text-xs font-medium text-gray-500 mb-1.5">Площадка</label>
-            <div class="flex gap-2 flex-wrap">
-              <button v-for="m in marketplaces" :key="m.value" @click="channel = m.value"
-                :class="channel === m.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ m.label }}</button>
-            </div>
-          </div>
-
-          <input v-if="items.length" v-model="note" placeholder="Покупатель / заметка (необязательно)"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
-
-          <button @click="submitSale" :disabled="!canSubmit || submitting"
-            class="w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition font-medium text-sm disabled:opacity-40">
-            {{ submitting ? 'Запись...' : 'Записать продажу' }}
-          </button>
-
-          <div v-if="success" class="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 text-sm text-purple-700">
-            Продажа записана. Код: <strong>{{ success }}</strong>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== My analytics ===== -->
-      <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b flex items-center justify-between">
-          <h2 class="font-bold text-gray-800">Моя аналитика</h2>
-          <div class="flex gap-1.5 flex-wrap items-center">
-            <button v-for="p in periods" :key="p.v" @click="selectPeriod(p.v)"
-              :class="period === p.v ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition">{{ p.l }}</button>
-            <input v-if="period === 'custom'" v-model="customDate" type="date" @change="loadAnalytics"
-              class="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
-          </div>
-        </div>
-        <div class="px-6 py-5">
-          <div v-if="analyticsLoading" class="text-gray-400 text-sm py-6 text-center">Загрузка...</div>
-          <template v-else-if="analytics">
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Продаж</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_orders }}</p></div>
-              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Выручка</p><p class="text-lg font-bold text-emerald-600">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
-              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Создано</p><p class="text-2xl font-bold text-purple-600">{{ analytics.created_count }}</p></div>
-            </div>
-            <div class="pt-3" style="position:relative;height:260px;width:100%">
-              <canvas ref="analyticsCanvas"></canvas>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- ===== My sales ===== -->
-      <div>
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-gray-800">Мои продажи</h2>
-          <button @click="loadOrders" class="text-sm text-purple-600 hover:text-purple-800">Обновить</button>
-        </div>
-        <div class="space-y-3">
-          <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-5">
-            <div class="flex justify-between items-start gap-3">
-              <div>
-                <div class="flex items-center gap-2 mb-1 flex-wrap">
-                  <span class="text-lg font-bold text-purple-700 tracking-widest">{{ order.order_code }}</span>
-                  <span v-if="order.sales_channel" class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">{{ channelLabel(order.sales_channel) }}</span>
+            <!-- Cart -->
+            <div v-if="items.length" class="border rounded-xl overflow-hidden">
+              <div v-for="item in items" :key="item.product_id" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
+                <span class="font-medium text-gray-800 text-sm flex-1 truncate">{{ item.name }}</span>
+                <div class="flex items-center gap-1.5 mx-2">
+                  <button @click="decQty(item)" class="w-7 h-7 bg-gray-200 rounded-lg font-bold text-sm">−</button>
+                  <span class="w-7 text-center text-sm font-bold">{{ item.quantity }}</span>
+                  <button @click="addToCart(productById(item.product_id))" :disabled="stockOf(item.product_id) <= item.quantity" class="w-7 h-7 bg-purple-100 text-purple-700 rounded-lg font-bold text-sm disabled:opacity-40">+</button>
                 </div>
-                <p v-if="order.offline_note" class="text-sm text-gray-600">{{ order.offline_note }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
+                <span class="font-semibold text-gray-700 text-sm w-24 text-right">{{ formatPrice(item.price) }} сўм</span>
               </div>
-              <p class="font-bold text-gray-800">{{ formatPrice(orderTotal(order)) }} сўм</p>
+              <div class="flex items-center justify-between px-4 py-2 bg-white">
+                <span class="text-sm font-semibold text-gray-700">Итого:</span>
+                <span class="font-bold text-purple-600">{{ formatPrice(total) }} сўм</span>
+              </div>
             </div>
-            <div class="mt-3 pt-3 border-t border-gray-100 space-y-1">
-              <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} капс.</span></span>
-                <span class="font-medium">{{ formatPrice(item.price) }} сўм</span>
+
+            <div v-if="items.length">
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">Площадка</label>
+              <div class="flex gap-2 flex-wrap">
+                <button v-for="m in marketplaces" :key="m.value" @click="channel = m.value"
+                  :class="channel === m.value ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                  class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ m.label }}</button>
+              </div>
+            </div>
+
+            <input v-if="items.length" v-model="note" placeholder="Покупатель / заметка (необязательно)"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+
+            <button @click="submitSale" :disabled="!canSubmit || submitting"
+              class="w-full bg-purple-600 text-white py-2.5 rounded-lg hover:bg-purple-700 transition font-medium text-sm disabled:opacity-40">
+              {{ submitting ? 'Запись...' : 'Подтвердить продажу' }}
+            </button>
+            <div v-if="success" class="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3 text-sm text-purple-700">Продажа записана ✓ Списано со склада.</div>
+            <div v-if="saleError" class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-600">{{ saleError }}</div>
+          </div>
+        </div>
+
+        <!-- ===== STOCK + ORDERS ===== -->
+        <div v-show="tab === 'stock'" class="space-y-6">
+          <!-- Add incoming stock -->
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">Склад — приход товара</h2></div>
+            <div class="px-6 py-5 space-y-3">
+              <div class="flex gap-2 flex-wrap items-end">
+                <div class="flex-1 min-w-[180px]">
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Препарат</label>
+                  <select v-model="stockProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">Выберите препарат</option>
+                    <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
+                  </select>
+                </div>
+                <div class="w-28">
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во (капс.)</label>
+                  <input v-model.number="stockQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+                <button @click="addStock" :disabled="!stockProductId || stockQty < 1 || addingStock"
+                  class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition text-sm font-medium disabled:opacity-40">+ Пополнить</button>
               </div>
             </div>
           </div>
-          <div v-if="orders.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">Продаж пока нет</div>
+
+          <!-- Stock list -->
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">Мой склад</h2></div>
+            <div class="divide-y divide-gray-100">
+              <div v-for="s in stock" :key="s.id" class="flex justify-between px-6 py-3 text-sm">
+                <span class="text-gray-700">{{ s.product?.name }}</span>
+                <span class="font-bold" :class="s.quantity > 0 ? 'text-gray-800' : 'text-red-500'">{{ s.quantity }} капс.</span>
+              </div>
+              <div v-if="stock.length === 0" class="px-6 py-8 text-center text-gray-400 text-sm">Склад пуст</div>
+            </div>
+          </div>
+
+          <!-- My orders -->
+          <div>
+            <h2 class="text-lg font-bold text-gray-800 mb-3">Мои продажи</h2>
+            <div class="space-y-3">
+              <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-5">
+                <div class="flex justify-between items-start gap-3">
+                  <div>
+                    <span v-if="order.sales_channel" class="text-xs font-semibold px-2 py-0.5 rounded bg-purple-100 text-purple-700">{{ channelLabel(order.sales_channel) }}</span>
+                    <p v-if="order.offline_note" class="text-sm text-gray-600 mt-1">{{ order.offline_note }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
+                  </div>
+                  <p class="font-bold text-gray-800">{{ formatPrice(orderTotal(order)) }} сўм</p>
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                  <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
+                    <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} капс.</span></span>
+                    <span class="font-medium">{{ formatPrice(item.price) }} сўм</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="orders.length === 0" class="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">Продаж пока нет</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== ANALYTICS ===== -->
+        <div v-show="tab === 'analytics'" class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b flex items-center justify-between flex-wrap gap-2">
+            <h2 class="font-bold text-gray-800">Аналитика</h2>
+            <div class="flex gap-1.5 flex-wrap items-center">
+              <button v-for="p in periods" :key="p.v" @click="selectPeriod(p.v)"
+                :class="period === p.v ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition">{{ p.l }}</button>
+              <input v-if="period === 'custom'" v-model="customDate" type="date" @change="loadAnalytics" class="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
+            </div>
+          </div>
+          <div class="px-6 py-5">
+            <div v-if="analyticsLoading" class="text-gray-400 text-sm py-6 text-center">Загрузка...</div>
+            <template v-else-if="analytics">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Продаж</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_orders }}</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Выручка</p><p class="text-lg font-bold text-emerald-600">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул продано</p><p class="text-2xl font-bold text-purple-600">{{ soldCapsules }}</p></div>
+              </div>
+              <div style="position:relative;height:260px;width:100%"><canvas ref="analyticsCanvas"></canvas></div>
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -158,7 +186,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
@@ -168,6 +196,8 @@ Chart.register(...registerables)
 const authStore = useAuthStore()
 const router = useRouter()
 const { night, toggle: toggleNight } = useNight()
+
+const tab = ref('sale')
 
 const marketplaces = [
   { value: 'ozon', label: 'Ozon' },
@@ -187,17 +217,31 @@ const periods = [
 ]
 
 const products = ref([])
-const productId = ref('')
-const qty = ref(1)
+const stock = ref([])
 const items = ref([])
 const channel = ref('ozon')
 const note = ref('')
 const submitting = ref(false)
 const success = ref('')
+const saleError = ref('')
 const orders = ref([])
+
+// Add-stock form
+const stockProductId = ref('')
+const stockQty = ref(1)
+const addingStock = ref(false)
 
 const total = computed(() => items.value.reduce((s, i) => s + i.price, 0))
 const canSubmit = computed(() => items.value.length > 0 && !!channel.value)
+
+const stockMap = computed(() => {
+  const m = {}
+  for (const s of stock.value) m[s.product_id] = s.quantity
+  return m
+})
+function stockOf(productId) { return stockMap.value[productId] || 0 }
+function productById(id) { return products.value.find(p => p.id === id) }
+function cartQty(productId) { const i = items.value.find(x => x.product_id === productId); return i ? i.quantity : 0 }
 
 function formatPrice(p) { return new Intl.NumberFormat('ru-RU').format(Math.round(p || 0)) }
 function orderTotal(order) { return order.items?.reduce((s, i) => s + i.price, 0) || 0 }
@@ -209,42 +253,51 @@ async function loadProducts() {
     for (const p of products.value) p.price_per_pack = p.price_per_pill * p.quantity_per_pack
   } catch (e) { console.error(e) }
 }
-
+async function loadStock() {
+  try { stock.value = (await api.get('/manager/stock')).data || [] } catch (e) { console.error(e) }
+}
 async function loadOrders() {
-  try {
-    const res = await api.get('/manager/orders')
-    orders.value = res.data || []
-  } catch (e) { console.error(e) }
+  try { orders.value = (await api.get('/manager/orders')).data || [] } catch (e) { console.error(e) }
 }
 
-function addItem() {
-  if (!productId.value || qty.value < 1) return
-  const product = products.value.find(p => p.id === productId.value)
+function addToCart(product) {
   if (!product) return
-  items.value.push({ product_id: product.id, name: product.name, quantity: qty.value, price: product.price_per_pack * qty.value })
-  productId.value = ''
-  qty.value = 1
+  if (stockOf(product.id) <= cartQty(product.id)) return // not enough stock
+  const existing = items.value.find(i => i.product_id === product.id)
+  if (existing) { existing.quantity++; existing.price = existing.quantity * product.price_per_pack }
+  else items.value.push({ product_id: product.id, name: product.name, quantity: 1, price: product.price_per_pack })
+}
+function decQty(item) {
+  item.quantity--
+  if (item.quantity <= 0) { items.value = items.value.filter(i => i.product_id !== item.product_id) }
+  else item.price = item.quantity * (productById(item.product_id)?.price_per_pack || 0)
 }
 
 async function submitSale() {
   if (!canSubmit.value) return
-  submitting.value = true
-  success.value = ''
+  submitting.value = true; success.value = ''; saleError.value = ''
   try {
-    const res = await api.post('/manager/sale', {
+    await api.post('/manager/sale', {
       items: items.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: 'pack' })),
       offline_note: note.value,
       sales_channel: channel.value,
     })
-    success.value = res.data.order_code
-    items.value = []
-    note.value = ''
-    channel.value = 'ozon'
-    loadOrders()
-    loadAnalytics()
+    success.value = '1'
+    items.value = []; note.value = ''; channel.value = 'ozon'
+    loadStock(); loadOrders(); loadAnalytics()
   } catch (e) {
-    alert(e.response?.data?.error || 'Ошибка при записи')
+    saleError.value = e.response?.data?.error || 'Ошибка при записи'
   } finally { submitting.value = false }
+}
+
+async function addStock() {
+  if (!stockProductId.value || stockQty.value < 1) return
+  addingStock.value = true
+  try {
+    await api.post('/manager/stock', { product_id: stockProductId.value, quantity: stockQty.value })
+    stockProductId.value = ''; stockQty.value = 1
+    loadStock()
+  } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { addingStock.value = false }
 }
 
 // Analytics
@@ -255,18 +308,20 @@ const analyticsLoading = ref(false)
 const analyticsCanvas = ref(null)
 let analyticsChart = null
 
+const soldCapsules = computed(() => {
+  // approximate from current orders within shown analytics is not exact; show from orders list total
+  return orders.value.reduce((s, o) => s + (o.items || []).reduce((a, i) => a + (i.quantity || 0), 0), 0)
+})
+
 async function loadAnalytics() {
   analyticsLoading.value = true
   try {
     const params = { period: period.value }
     if (period.value === 'custom') params.date = customDate.value
-    const res = await api.get('/manager/analytics', { params })
-    analytics.value = res.data
-    await nextTick()
-    renderChart()
+    analytics.value = (await api.get('/manager/analytics', { params })).data
+    await nextTick(); renderChart()
   } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
 }
-
 function renderChart() {
   const canvas = analyticsCanvas.value
   if (!canvas || !analytics.value) return
@@ -275,56 +330,16 @@ function renderChart() {
   const gradient = ctx.createLinearGradient(0, 0, 0, 260)
   gradient.addColorStop(0, 'rgba(168,85,247,0.35)')
   gradient.addColorStop(1, 'rgba(168,85,247,0.02)')
-  const data = {
-    labels: points.map(p => p.label),
-    datasets: [{
-      label: 'Выручка',
-      data: points.map(p => p.revenue),
-      borderColor: '#a855f7',
-      backgroundColor: gradient,
-      borderWidth: 2.5,
-      fill: true,
-      tension: 0.4,
-      pointRadius: 0,
-      pointHoverRadius: 5,
-      pointHoverBackgroundColor: '#a855f7',
-    }],
-  }
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 800, easing: 'easeOutQuart' },
-    plugins: {
-      legend: { display: false },
-      tooltip: { callbacks: { label: (c) => formatPrice(c.parsed.y) + ' сўм' } },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#94a3b8', font: { size: 10 } } },
-      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => formatPrice(v) } },
-    },
-  }
-  if (analyticsChart) {
-    analyticsChart.data = data
-    analyticsChart.options = options
-    analyticsChart.update()
-  } else {
-    analyticsChart = new Chart(canvas, { type: 'line', data, options })
-  }
+  const data = { labels: points.map(p => p.label), datasets: [{ label: 'Выручка', data: points.map(p => p.revenue), borderColor: '#a855f7', backgroundColor: gradient, borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5 }] }
+  const options = { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => formatPrice(c.parsed.y) + ' сўм' } } }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: '#94a3b8', font: { size: 10 } } }, y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8', font: { size: 10 }, callback: (v) => formatPrice(v) } } } }
+  if (analyticsChart) { analyticsChart.data = data; analyticsChart.options = options; analyticsChart.update() }
+  else analyticsChart = new Chart(canvas, { type: 'line', data, options })
 }
+function selectPeriod(p) { period.value = p; if (p !== 'custom') loadAnalytics() }
 
-function selectPeriod(p) {
-  period.value = p
-  if (p !== 'custom') loadAnalytics()
-}
+watch(tab, (t) => { if (t === 'analytics') nextTick(renderChart) })
 
-function logout() {
-  authStore.workerLogout()
-  router.push('/admin/login')
-}
+function logout() { authStore.workerLogout(); router.push('/admin/login') }
 
-onMounted(() => {
-  loadProducts()
-  loadOrders()
-  loadAnalytics()
-})
+onMounted(() => { loadProducts(); loadStock(); loadOrders(); loadAnalytics() })
 </script>

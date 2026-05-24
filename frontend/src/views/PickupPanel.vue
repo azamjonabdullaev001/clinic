@@ -35,7 +35,7 @@
 
       <!-- ===== Left sidebar / sections ===== -->
       <nav class="md:w-52 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible flex-shrink-0">
-        <button v-for="s in [{k:'online',l:txt.nav_online},{k:'offline',l:txt.nav_offline},{k:'analytics',l:txt.nav_analytics},{k:'history',l:txt.nav_history}]" :key="s.k"
+        <button v-for="s in [{k:'online',l:txt.nav_online},{k:'offline',l:txt.nav_offline},{k:'stock',l:txt.nav_stock},{k:'analytics',l:txt.nav_analytics},{k:'history',l:txt.nav_history}]" :key="s.k"
           @click="tab = s.k"
           :class="tab === s.k ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50'"
           class="px-4 py-2.5 rounded-xl text-sm font-medium transition text-left whitespace-nowrap flex-shrink-0">
@@ -335,6 +335,40 @@
         </div>
       </div>
 
+      <!-- ===== Warehouse / Склад ===== -->
+      <div v-show="tab === 'stock'" class="space-y-6">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">{{ txt.stock_in }}</h2></div>
+          <div class="px-6 py-5">
+            <div class="flex gap-2 flex-wrap items-end">
+              <div class="flex-1 min-w-[180px]">
+                <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.product }}</label>
+                <select v-model="stockProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">{{ txt.select_product }}</option>
+                  <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+                </select>
+              </div>
+              <div class="w-28">
+                <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.stock_qty }}</label>
+                <input v-model.number="stockQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <button @click="addStock" :disabled="!stockProductId || stockQty < 1 || addingStock"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-40">+ {{ txt.stock_add }}</button>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">{{ txt.my_stock }}</h2></div>
+          <div class="divide-y divide-gray-100">
+            <div v-for="s in stock" :key="s.id" class="flex justify-between px-6 py-3 text-sm">
+              <span class="text-gray-700">{{ s.product?.name }}</span>
+              <span class="font-bold" :class="s.quantity > 0 ? 'text-gray-800' : 'text-red-500'">{{ s.quantity }} {{ txt.pack }}</span>
+            </div>
+            <div v-if="stock.length === 0" class="px-6 py-8 text-center text-gray-400 text-sm">{{ txt.stock_empty }}</div>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== Online order search by 6-digit code ===== -->
       <div v-show="tab === 'online'" class="bg-white rounded-xl shadow-sm p-6">
         <h2 class="text-lg font-bold text-gray-800 mb-4">{{ txt.search_online }}</h2>
@@ -556,12 +590,13 @@
             </div>
 
             <div class="mt-3 flex gap-2 flex-wrap">
-              <!-- Edit items button: only for offline/nurse/doctor orders (5-digit), not online (6-digit) -->
-              <button v-if="order.is_offline && order.status !== 'delivered' && order.status !== 'cancelled' && !listEdit[order.id]?.editing"
+              <!-- Edit items: offline orders (incl. delivered, which becomes a return) -->
+              <button v-if="order.is_offline && order.status !== 'cancelled' && !listEdit[order.id]?.editing"
                 @click="startListEdit(order)"
-                class="bg-gray-100 text-gray-700 border border-gray-200 px-4 py-1.5 rounded-lg hover:bg-gray-200 transition text-sm font-medium flex items-center gap-1.5">
+                :class="order.status === 'delivered' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'"
+                class="border px-4 py-1.5 rounded-lg transition text-sm font-medium flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                {{ txt.edit_items }}
+                {{ order.status === 'delivered' ? txt.return_edit : txt.edit_items }}
               </button>
               <template v-if="!listEdit[order.id]?.editing">
                 <!-- Offline order: one-tap confirm → delivered immediately -->
@@ -739,6 +774,7 @@ const texts = {
     status_cancelled: 'Отменён',
     verify_error: 'Имя не совпадает. Проверьте данные пациента.',
     edit_items: 'Редактировать товары',
+    return_edit: 'Возврат',
     save_items: 'Сохранить изменения',
     saving_items: 'Сохранение...',
     cancel_edit: 'Отмена',
@@ -770,6 +806,12 @@ const texts = {
     nav_offline: 'Офлайн',
     nav_analytics: 'Аналитика',
     nav_history: 'История',
+    nav_stock: 'Склад',
+    stock_in: 'Приход товара',
+    my_stock: 'Мой склад',
+    stock_qty: 'Кол-во (капс.)',
+    stock_add: 'Пополнить',
+    stock_empty: 'Склад пуст',
     pending_online: 'Ожидаемые онлайн-заказы',
     pending_offline: 'Ожидаемые офлайн-заказы',
     history_title: 'История заказов',
@@ -834,6 +876,7 @@ const texts = {
     status_cancelled: 'Bekor qilindi',
     verify_error: "Ism mos kelmadi. Bemorning ma'lumotlarini tekshiring.",
     edit_items: "Mahsulotlarni tahrirlash",
+    return_edit: 'Qaytarish',
     save_items: "O'zgarishlarni saqlash",
     saving_items: "Saqlanmoqda...",
     cancel_edit: "Bekor qilish",
@@ -865,6 +908,12 @@ const texts = {
     nav_offline: 'Oflayn',
     nav_analytics: 'Tahlil',
     nav_history: 'Tarix',
+    nav_stock: 'Ombor',
+    stock_in: 'Tovar kirimi',
+    my_stock: 'Mening omborim',
+    stock_qty: 'Soni (kaps.)',
+    stock_add: "To'ldirish",
+    stock_empty: "Ombor bo'sh",
     pending_online: 'Kutilayotgan onlayn buyurtmalar',
     pending_offline: 'Kutilayotgan oflayn buyurtmalar',
     history_title: 'Buyurtmalar tarixi',
@@ -1308,6 +1357,14 @@ function listEditAddItem(orderId) {
 async function saveListEdit(order) {
   const state = listEdit.value[order.id]
   if (!state || state.items.length === 0) return
+  // Editing a delivered order is a return — ask the reason.
+  let returnReason = ''
+  if (order.status === 'delivered') {
+    const r = prompt('Причина возврата:')
+    if (r === null) return
+    returnReason = r.trim()
+    if (!returnReason) { alert('Причина возврата обязательна'); return }
+  }
   state.saving = true
   try {
     const res = await api.put(`/pickup/orders/${order.id}/items`, {
@@ -1316,10 +1373,12 @@ async function saveListEdit(order) {
         quantity: i.quantity,
         unit_type: i.unit_type,
       })),
+      return_reason: returnReason,
     })
     const idx = orders.value.findIndex(o => o.id === order.id)
     if (idx !== -1) orders.value[idx] = res.data
     delete listEdit.value[order.id]
+    loadStock()
   } catch (e) {
     alert(e.response?.data?.error || 'Ошибка при сохранении')
     state.saving = false
@@ -1476,14 +1535,37 @@ function selectAnalyticsPeriod(p) {
   if (p !== 'custom') loadAnalytics()
 }
 
+// ===== Warehouse (personal stock) =====
+const stock = ref([])
+const stockProductId = ref('')
+const stockQty = ref(1)
+const addingStock = ref(false)
+
+async function loadStock() {
+  try { stock.value = (await api.get('/pickup/stock')).data || [] } catch (e) { console.error(e) }
+}
+
+async function addStock() {
+  if (!stockProductId.value || stockQty.value < 1) return
+  addingStock.value = true
+  try {
+    await api.post('/pickup/stock', { product_id: stockProductId.value, quantity: stockQty.value })
+    stockProductId.value = ''
+    stockQty.value = 1
+    loadStock()
+  } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { addingStock.value = false }
+}
+
 watch(tab, (t) => {
   if (t === 'analytics') {
     if (!analyticsData.value) loadAnalytics()
     else nextTick(renderChart)
   }
+  if (t === 'stock') loadStock()
 })
 
 onMounted(() => {
+  loadStock()
   loadOrders()
   loadProducts()
   loadDoctors()

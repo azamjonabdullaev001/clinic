@@ -112,10 +112,37 @@
 
               <button
                 @click="$emit('add-to-cart', product); closeDescription()"
-                class="mt-auto w-full sm:w-auto sm:min-w-64 bg-brand-700 text-white py-3.5 px-7 rounded-2xl hover:bg-brand-800 hover:shadow-xl hover:shadow-brand-700/20 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 font-bold text-sm uppercase tracking-wide"
+                class="w-full sm:w-auto sm:min-w-64 bg-brand-700 text-white py-3.5 px-7 rounded-2xl hover:bg-brand-800 hover:shadow-xl hover:shadow-brand-700/20 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 font-bold text-sm uppercase tracking-wide"
               >
                 {{ t.add_to_cart }}
               </button>
+
+              <!-- Comments / reviews -->
+              <div class="mt-8 border-t border-stone-100 pt-5">
+                <h6 class="text-sm font-bold text-stone-800 mb-3">{{ t.comments_title }} <span class="text-stone-400 font-normal">({{ comments.length }})</span></h6>
+
+                <div class="space-y-3 mb-4 max-h-52 overflow-y-auto pr-1">
+                  <div v-for="c in comments" :key="c.id" class="bg-stone-50 rounded-xl px-3.5 py-2.5">
+                    <div class="flex items-center justify-between gap-2 mb-0.5">
+                      <span class="text-xs font-semibold text-stone-700">{{ c.author_name }}</span>
+                      <span class="text-[10px] text-stone-400">{{ new Date(c.created_at).toLocaleDateString('ru-RU') }}</span>
+                    </div>
+                    <p class="text-sm text-stone-600 leading-snug whitespace-pre-line">{{ c.text }}</p>
+                  </div>
+                  <p v-if="comments.length === 0" class="text-sm text-stone-400">{{ t.comments_empty }}</p>
+                </div>
+
+                <div class="space-y-2">
+                  <input v-model="commentName" :placeholder="t.comments_name"
+                    class="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                  <textarea v-model="commentText" rows="2" :placeholder="t.comments_placeholder"
+                    class="w-full border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none"></textarea>
+                  <button @click="addComment" :disabled="!commentText.trim() || postingComment"
+                    class="w-full sm:w-auto bg-stone-800 text-white py-2.5 px-6 rounded-xl text-sm font-semibold hover:bg-stone-900 transition disabled:opacity-40">
+                    {{ postingComment ? '...' : t.comments_send }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -127,6 +154,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useLangStore } from '../stores/lang'
+import { api } from '../stores/auth'
 
 const langStore = useLangStore()
 const t = computed(() => langStore.t)
@@ -139,6 +167,33 @@ const emit = defineEmits(['add-to-cart'])
 
 const isDescriptionOpen = ref(false)
 const isAdding = ref(false)
+
+// Comments / reviews
+const comments = ref([])
+const commentName = ref('')
+const commentText = ref('')
+const postingComment = ref(false)
+
+async function loadComments() {
+  try {
+    comments.value = (await api.get(`/products/${props.product.id}/comments`)).data || []
+  } catch { comments.value = [] }
+}
+
+async function addComment() {
+  if (!commentText.value.trim() || postingComment.value) return
+  postingComment.value = true
+  try {
+    const res = await api.post(`/products/${props.product.id}/comments`, {
+      author_name: commentName.value.trim(),
+      text: commentText.value.trim(),
+    })
+    comments.value.unshift(res.data)
+    commentText.value = ''
+  } catch (e) {
+    alert(e.response?.data?.error || 'Ошибка при отправке')
+  } finally { postingComment.value = false }
+}
 let addTimer = null
 const animationNonce = ref(0)
 const animatePanel = ref(false)
@@ -183,6 +238,7 @@ const animatedLines = computed(() => {
 function openDescription() {
   animationNonce.value++
   isDescriptionOpen.value = true
+  loadComments()
   requestAnimationFrame(() => {
     animatePanel.value = true
   })
