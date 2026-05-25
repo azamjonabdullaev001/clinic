@@ -4,6 +4,7 @@ import (
 	"clinic-backend/database"
 	"clinic-backend/models"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,7 +133,7 @@ func GetAnalytics(c *gin.Context) {
 	var orders []models.Order
 	var mktOrders []models.Order
 	for _, o := range allOrders {
-		if o.SalesChannel != "" {
+		if o.MarketologID != nil {
 			mktOrders = append(mktOrders, o)
 		} else {
 			orders = append(orders, o)
@@ -305,6 +306,82 @@ func GetAnalytics(c *gin.Context) {
 	})
 }
 
+// marketologAnalytics computes debt analytics for one marketolog over a period.
+func marketologAnalytics(marketologID uint, period, dateStr string) gin.H {
+	loc := time.Local
+	startTime, endTime, points := buildAnalyticsPeriod(period, dateStr)
+
+	var orders []models.Order
+	database.DB.Where("marketolog_id = ? AND status != ? AND created_at >= ? AND created_at < ?",
+		marketologID, "cancelled", startTime, endTime).
+		Preload("Items.Product").
+		Find(&orders)
+
+	var totalRevenue float64
+	capsules, pieces := 0, 0
+	prodMap := map[uint]*MarketologProduct{}
+	for _, order := range orders {
+		var revenue float64
+		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue
+			}
+			revenue += item.Price
+			p, ok := prodMap[item.ProductID]
+			if !ok {
+				p = &MarketologProduct{ProductName: item.Product.Name}
+				prodMap[item.ProductID] = p
+			}
+			p.Revenue += item.Price
+			if item.UnitType == "piece" {
+				pieces += item.Quantity
+				p.Pieces += item.Quantity
+			} else {
+				capsules += item.Quantity
+				p.Capsules += item.Quantity
+			}
+		}
+		totalRevenue += revenue
+		addRevenueToPoint(points, period, startTime, order.CreatedAt.In(loc), revenue)
+	}
+	var prods []MarketologProduct
+	for _, p := range prodMap {
+		prods = append(prods, *p)
+	}
+
+	return gin.H{
+		"points":         points,
+		"total_revenue":  totalRevenue,
+		"total_orders":   len(orders),
+		"total_capsules": capsules,
+		"total_pieces":   pieces,
+		"products":       prods,
+	}
+}
+
+// GetMarketologOwnAnalytics returns the logged-in marketolog's debt analytics.
+func GetMarketologOwnAnalytics(c *gin.Context) {
+	workerID, _ := c.Get("workerID")
+	c.JSON(http.StatusOK, marketologAnalytics(workerID.(uint), c.Query("period"), c.Query("date")))
+}
+
+// GetMarketologStatsAdmin returns one marketolog's debt analytics for the admin.
+func GetMarketologStatsAdmin(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+	var worker models.Worker
+	if database.DB.First(&worker, id).Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Маркетолог не найден"})
+		return
+	}
+	res := marketologAnalytics(uint(id), c.Query("period"), c.Query("date"))
+	res["marketolog"] = gin.H{"id": worker.ID, "name": worker.Name}
+	c.JSON(http.StatusOK, res)
+}
+
 // buildAnalyticsPeriod returns the time range and empty chart points for a period.
 func buildAnalyticsPeriod(period, dateStr string) (time.Time, time.Time, []AnalyticsPoint) {
 	loc := time.Local
@@ -399,6 +476,14 @@ func GetWorkerAnalytics(c *gin.Context) {
 		Preload("Items").
 		Find(&orders)
 
+	// Resolve marketolog id -> name for the breakdown.
+	mktNames := map[uint]string{}
+	var mgrs []models.Worker
+	database.DB.Where("role = ?", "manager").Find(&mgrs)
+	for _, w := range mgrs {
+		mktNames[w.ID] = w.Name
+	}
+
 	var totalRevenue float64
 	createdCount := 0
 	confirmedCount := 0
@@ -441,7 +526,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 
 		// Classify into a single category.
 		cat := "regular"
-		if order.SalesChannel != "" {
+		if order.MarketologID != nil {
 			cat = "marketolog"
 		} else if order.IsVIP {
 			cat = "vip"
@@ -466,10 +551,14 @@ func GetWorkerAnalytics(c *gin.Context) {
 			d.Revenue += revenue
 		}
 		if cat == "marketolog" {
-			m, ok := byMarketolog[order.SalesChannel]
+			name := mktNames[*order.MarketologID]
+			if name == "" {
+				name = "Маркетолог"
+			}
+			m, ok := byMarketolog[name]
 			if !ok {
 				m = &catAgg{}
-				byMarketolog[order.SalesChannel] = m
+				byMarketolog[name] = m
 			}
 			m.Orders++
 			m.Capsules += caps

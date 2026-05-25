@@ -8,11 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetManagerOrders returns only the marketplace sales created by the logged-in manager.
+// GetManagerOrders returns all sales assigned to the logged-in marketolog —
+// both their own and the ones a cashier recorded on their behalf.
 func GetManagerOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
 	var orders []models.Order
-	database.DB.Where("worker_id = ?", workerID).
+	database.DB.Where("marketolog_id = ?", workerID).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)

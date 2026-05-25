@@ -46,26 +46,31 @@
             <h2 class="font-bold text-gray-800">Продажа на маркетплейсе</h2>
           </div>
           <div class="px-6 py-5 space-y-4">
+            <!-- Unit toggle -->
+            <div class="flex gap-2">
+              <button @click="setUnit('pack')" :class="saleUnit === 'pack' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'" class="px-3 py-1.5 rounded-lg text-sm font-medium border transition">Капсула</button>
+              <button @click="setUnit('piece')" :class="saleUnit === 'piece' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'" class="px-3 py-1.5 rounded-lg text-sm font-medium border transition">Штука</button>
+            </div>
             <!-- Product grid (tap to add) -->
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              <button v-for="p in products" :key="p.id" @click="addToCart(p)" :disabled="capsulesOf(p.id) <= cartQty(p.id)"
+              <button v-for="p in products" :key="p.id" @click="addToCart(p)" :disabled="availOf(p.id) <= cartQty(p.id)"
                 class="text-left bg-gray-50 rounded-xl p-3 border-2 transition relative disabled:opacity-50"
                 :class="cartQty(p.id) > 0 ? 'border-purple-400 bg-purple-50' : 'border-transparent hover:border-purple-200'">
                 <div v-if="cartQty(p.id) > 0" class="absolute -top-2 -right-2 w-6 h-6 bg-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center">{{ cartQty(p.id) }}</div>
                 <p class="text-xs font-semibold text-gray-800 leading-tight mb-1 line-clamp-2">{{ p.name }}</p>
-                <p class="text-xs font-bold text-purple-600">{{ formatPrice(p.price_per_pack) }} сўм</p>
-                <p class="text-[11px]" :class="capsulesOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">склад: {{ capsulesOf(p.id) }} капс</p>
+                <p class="text-xs font-bold text-purple-600">{{ formatPrice(saleUnit === 'piece' ? p.price_per_pill : p.price_per_pack) }} сўм</p>
+                <p class="text-[11px]" :class="availOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">склад: {{ saleUnit === 'piece' ? (stockOf(p.id) + ' шт') : (capsulesOf(p.id) + ' капс') }}</p>
               </button>
             </div>
 
             <!-- Cart -->
             <div v-if="items.length" class="border rounded-xl overflow-hidden">
               <div v-for="item in items" :key="item.product_id" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
-                <span class="font-medium text-gray-800 text-sm flex-1 truncate">{{ item.name }}</span>
+                <span class="font-medium text-gray-800 text-sm flex-1 truncate">{{ item.name }} <span class="text-gray-400">({{ item.unit_type === 'piece' ? 'шт' : 'капс' }})</span></span>
                 <div class="flex items-center gap-1.5 mx-2">
                   <button @click="decQty(item)" class="w-7 h-7 bg-gray-200 rounded-lg font-bold text-sm">−</button>
                   <span class="w-7 text-center text-sm font-bold">{{ item.quantity }}</span>
-                  <button @click="addToCart(productById(item.product_id))" :disabled="capsulesOf(item.product_id) <= item.quantity" class="w-7 h-7 bg-purple-100 text-purple-700 rounded-lg font-bold text-sm disabled:opacity-40">+</button>
+                  <button @click="addToCart(productById(item.product_id))" :disabled="availOf(item.product_id) <= item.quantity" class="w-7 h-7 bg-purple-100 text-purple-700 rounded-lg font-bold text-sm disabled:opacity-40">+</button>
                 </div>
                 <span class="font-semibold text-gray-700 text-sm w-24 text-right">{{ formatPrice(item.price) }} сўм</span>
               </div>
@@ -147,7 +152,7 @@
                 </div>
                 <div class="mt-3 pt-3 border-t border-gray-100 space-y-1">
                   <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                    <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} капс.</span></span>
+                    <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'капс' }}</span></span>
                     <span class="font-medium">{{ formatPrice(item.price) }} сўм</span>
                   </div>
                 </div>
@@ -171,12 +176,33 @@
           <div class="px-6 py-5">
             <div v-if="analyticsLoading" class="text-gray-400 text-sm py-6 text-center">Загрузка...</div>
             <template v-else-if="analytics">
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Продаж</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_orders }}</p></div>
-                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Выручка</p><p class="text-lg font-bold text-emerald-600">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
-                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул продано</p><p class="text-2xl font-bold text-purple-600">{{ soldCapsules }}</p></div>
+                <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Сумма (долг)</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_capsules }}</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_pieces }}</p></div>
               </div>
               <LineChart :points="analytics.points || []" color="#a855f7" />
+              <div v-if="(analytics.products || []).length" class="mt-4 overflow-x-auto rounded-xl border border-purple-100">
+                <table class="w-full text-sm">
+                  <thead class="bg-purple-50">
+                    <tr>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
+                      <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Сумма</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-purple-50">
+                    <tr v-for="(p, i) in analytics.products" :key="i">
+                      <td class="px-4 py-2 font-medium text-gray-800">{{ p.product_name }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ p.capsules }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ p.pieces }}</td>
+                      <td class="px-4 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }} сўм</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </template>
           </div>
         </div>
@@ -220,6 +246,7 @@ const periods = [
 const products = ref([])
 const stock = ref([])
 const items = ref([])
+const saleUnit = ref('pack')
 const channel = ref('ozon')
 const note = ref('')
 const submitting = ref(false)
@@ -243,8 +270,10 @@ const stockMap = computed(() => {
 function stockOf(productId) { return displayStock(productId, stockMap.value[productId] || 0) }
 function qppOf(productId) { const p = products.value.find(x => x.id === productId); return p && p.quantity_per_pack > 0 ? p.quantity_per_pack : 1 }
 function capsulesOf(productId) { return Math.floor(stockOf(productId) / qppOf(productId)) }
+function availOf(productId) { return saleUnit.value === 'piece' ? stockOf(productId) : capsulesOf(productId) }
 function productById(id) { return products.value.find(p => p.id === id) }
 function cartQty(productId) { const i = items.value.find(x => x.product_id === productId); return i ? i.quantity : 0 }
+function setUnit(u) { if (u !== saleUnit.value) { items.value = []; saleUnit.value = u } }
 
 function formatPrice(p) { return new Intl.NumberFormat('ru-RU').format(Math.round(p || 0)) }
 function orderTotal(order) { return order.items?.reduce((s, i) => s + i.price, 0) || 0 }
@@ -263,17 +292,18 @@ async function loadOrders() {
   try { orders.value = (await api.get('/manager/orders')).data || [] } catch (e) { console.error(e) }
 }
 
+function unitPrice(product) { return saleUnit.value === 'piece' ? (product.price_per_pill || 0) : (product.price_per_pack || 0) }
 function addToCart(product) {
   if (!product) return
-  if (capsulesOf(product.id) <= cartQty(product.id)) return // not enough stock
+  if (availOf(product.id) <= cartQty(product.id)) return // not enough stock
   const existing = items.value.find(i => i.product_id === product.id)
-  if (existing) { existing.quantity++; existing.price = existing.quantity * product.price_per_pack }
-  else items.value.push({ product_id: product.id, name: product.name, quantity: 1, price: product.price_per_pack })
+  if (existing) { existing.quantity++; existing.price = existing.quantity * unitPrice(product) }
+  else items.value.push({ product_id: product.id, name: product.name, quantity: 1, unit_type: saleUnit.value, price: unitPrice(product) })
 }
 function decQty(item) {
   item.quantity--
   if (item.quantity <= 0) { items.value = items.value.filter(i => i.product_id !== item.product_id) }
-  else item.price = item.quantity * (productById(item.product_id)?.price_per_pack || 0)
+  else item.price = item.quantity * unitPrice(productById(item.product_id) || {})
 }
 
 async function submitSale() {
@@ -281,12 +311,12 @@ async function submitSale() {
   submitting.value = true; success.value = ''; saleError.value = ''
   try {
     await api.post('/manager/sale', {
-      items: items.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: 'pack' })),
+      items: items.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type || 'pack' })),
       offline_note: note.value,
       sales_channel: channel.value,
     })
     success.value = '1'
-    items.value = []; note.value = ''; channel.value = 'ozon'
+    items.value = []; note.value = ''; channel.value = 'ozon'; saleUnit.value = 'pack'
     loadStock(); loadOrders(); loadAnalytics()
   } catch (e) {
     saleError.value = e.response?.data?.error || 'Ошибка при записи'

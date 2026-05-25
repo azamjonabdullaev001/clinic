@@ -585,6 +585,50 @@
           </div>
         </div>
 
+        <!-- Per-Marketolog Detail Stats -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2">
+              <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5"/></svg>
+              <h3 class="text-lg font-semibold text-gray-800">Аналитика маркетолога</h3>
+            </div>
+            <select v-model="perMktId" @change="loadPerMktStats"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[180px]">
+              <option value="">Выберите маркетолога</option>
+              <option v-for="m in marketologList" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </div>
+          <div class="px-6 py-4">
+            <div v-if="perMktStats">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Заказов</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_orders }}</p></div>
+                <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Сумма (долг)</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(perMktStats.total_revenue) }} сўм</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_capsules }}</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_pieces }}</p></div>
+              </div>
+              <div v-if="(perMktStats.products || []).length" class="overflow-x-auto rounded-xl border border-purple-100">
+                <table class="w-full text-sm">
+                  <thead class="bg-purple-50"><tr>
+                    <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
+                    <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                    <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
+                    <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Сумма</th>
+                  </tr></thead>
+                  <tbody class="divide-y divide-purple-50">
+                    <tr v-for="(p, i) in perMktStats.products" :key="i">
+                      <td class="px-4 py-2 font-medium text-gray-800">{{ p.product_name }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ p.capsules }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ p.pieces }}</td>
+                      <td class="px-4 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }} сўм</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div v-else class="py-6 text-center text-gray-400 text-sm">Выберите маркетолога</div>
+          </div>
+        </div>
+
         <!-- Per-Doctor Detail Stats -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5">
           <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-2 flex-wrap">
@@ -1456,6 +1500,7 @@ async function loadAnalytics() {
     const res = await api.get(`/admin/analytics?${params}`)
     analyticsData.value = res.data
     analyticsLoading.value = false
+    if (perMktId.value) loadPerMktStats()
     await nextTick()
     renderAnalyticsChart(res.data)
   } catch (e) {
@@ -1906,6 +1951,23 @@ const perDoctorSelectedId = ref('')
 const perDoctorStats = ref(null)
 const perDoctorStatsLoading = ref(false)
 
+// Marketolog analytics detail
+const marketologList = ref([])
+const perMktId = ref('')
+const perMktStats = ref(null)
+
+async function loadMarketologList() {
+  try { marketologList.value = (await api.get('/admin/marketologs')).data || [] } catch { marketologList.value = [] }
+}
+async function loadPerMktStats() {
+  if (!perMktId.value) { perMktStats.value = null; return }
+  try {
+    const params = { period: analyticsPeriod.value }
+    if (analyticsPeriod.value === 'custom') params.date = analyticsCustomDate.value
+    perMktStats.value = (await api.get(`/admin/marketologs/${perMktId.value}/stats`, { params })).data
+  } catch { perMktStats.value = null }
+}
+
 async function loadDoctors() {
   try {
     const res = await api.get('/admin/doctors')
@@ -2237,6 +2299,7 @@ onUnmounted(() => {
 
 watch(activeTab, async (tab) => {
   if (tab === 'analytics') {
+    loadMarketologList()
     if (!analyticsData.value) {
       loadAnalytics()
     } else {

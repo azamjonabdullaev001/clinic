@@ -82,6 +82,8 @@ func main() {
 				protected.PUT("/doctors/:id", handlers.UpdateDoctor)
 				protected.DELETE("/doctors/:id", handlers.DeleteDoctor)
 				protected.GET("/doctors/:id/stats", handlers.GetDoctorStats)
+				protected.GET("/marketologs", handlers.GetMarketologs)
+				protected.GET("/marketologs/:id/stats", handlers.GetMarketologStatsAdmin)
 			}
 		}
 
@@ -143,7 +145,7 @@ func main() {
 			manager.GET("/products", handlers.GetProducts)
 			manager.POST("/sale", handlers.CreateOfflineSale)
 			manager.GET("/orders", handlers.GetManagerOrders)
-			manager.GET("/analytics", handlers.GetWorkerAnalytics)
+			manager.GET("/analytics", handlers.GetMarketologOwnAnalytics)
 			manager.GET("/stock", handlers.GetGlobalStock)
 			manager.POST("/stock", handlers.AddProductStock)
 		}

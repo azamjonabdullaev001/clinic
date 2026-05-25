@@ -112,6 +112,7 @@ type Order struct {
 	User            User        `json:"user"`
 	WorkerID        *uint       `json:"worker_id"`
 	DoctorID        *uint       `json:"doctor_id"`
+	MarketologID    *uint       `json:"marketolog_id"` // marketolog this debt-sale belongs to
 	Items           []OrderItem `json:"items"`
 	Status          string      `gorm:"default:'pending';not null" json:"status"`
 	Phone           string      `gorm:"not null" json:"phone"`

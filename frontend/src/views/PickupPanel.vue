@@ -271,8 +271,8 @@
             <div v-if="saleType === 'marketolog'">
               <label class="block text-xs font-medium text-gray-500 mb-1.5">{{ txt.choose_marketolog }}</label>
               <select v-model="offlineMarketolog" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="">{{ txt.choose_marketolog }}</option>
-                <option v-for="m in marketologs" :key="m.id" :value="m.name">{{ m.name }}</option>
+                <option :value="null">{{ txt.choose_marketolog }}</option>
+                <option v-for="m in marketologs" :key="m.id" :value="m.id">{{ m.name }}</option>
               </select>
               <p v-if="marketologs.length === 0" class="text-xs text-gray-400 mt-1">{{ txt.no_marketologs }}</p>
             </div>
@@ -726,14 +726,14 @@
 
             <div class="mt-3 flex gap-2 flex-wrap">
               <!-- Edit items: offline orders (incl. delivered, which becomes a return) -->
-              <button v-if="order.is_offline && order.status !== 'cancelled' && !listEdit[order.id]?.editing"
+              <button v-if="order.is_offline && !order.marketolog_id && order.status !== 'cancelled' && !listEdit[order.id]?.editing"
                 @click="startListEdit(order)"
                 :class="order.status === 'delivered' ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'"
                 class="border px-4 py-1.5 rounded-lg transition text-sm font-medium flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 {{ order.status === 'delivered' ? txt.return_edit : txt.edit_items }}
               </button>
-              <button v-if="order.is_offline && order.status === 'delivered' && !listEdit[order.id]?.editing"
+              <button v-if="order.is_offline && !order.marketolog_id && order.status === 'delivered' && !listEdit[order.id]?.editing"
                 @click="fullReturn(order)"
                 class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
@@ -1576,7 +1576,7 @@ const offlineNote = ref('')
 const offlineSubmitting = ref(false)
 const offlineSuccess = ref('')
 const saleType = ref('regular') // 'regular' | 'vip' | 'marketolog'
-const offlineMarketolog = ref('')
+const offlineMarketolog = ref(null)
 const marketologs = ref([])
 const offlinePaymentMethod = ref('cash')
 const offlineReferral = ref('')
@@ -1648,7 +1648,7 @@ function resetOfflineSale() {
   offlineItems.value = []
   offlineNote.value = ''
   saleType.value = 'regular'
-  offlineMarketolog.value = ''
+  offlineMarketolog.value = null
   offlinePaymentMethod.value = 'cash'
   offlineReferral.value = ''
   offlineUnit.value = 'pack'
@@ -1665,7 +1665,7 @@ async function submitOfflineSale() {
       items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
       offline_note: offlineNote.value,
       is_vip: isVip,
-      sales_channel: isMkt ? offlineMarketolog.value : '',
+      marketolog_id: isMkt ? offlineMarketolog.value : null,
       payment_method: (isVip || isMkt) ? '' : offlinePaymentMethod.value,
       referred_by: offlineReferral.value.trim(),
     })

@@ -48,6 +48,7 @@ type OfflineSaleInput struct {
 	CardType      string             `json:"card_type"`      // "humo", "uzcard", "visa", "mastercard"
 	ReferredBy    string             `json:"referred_by"`    // doctor who referred the patient
 	SalesChannel  string             `json:"sales_channel"`  // marketplace for manager sales
+	MarketologID  *uint              `json:"marketolog_id"`  // marketolog the debt-sale is assigned to
 }
 
 func CreateOfflineSale(c *gin.Context) {
@@ -57,11 +58,30 @@ func CreateOfflineSale(c *gin.Context) {
 		return
 	}
 
-	// Determine payment method. Manager marketplace sales are paid through the platform;
-	// "own patient" sales are free; otherwise the cashier picks cash/terminal/card.
+	tx := database.DB.Begin()
+
+	var workerIDPtr *uint
+	if wid, ok := c.Get("workerID"); ok {
+		if w, ok := wid.(uint); ok {
+			workerIDPtr = &w
+		}
+	}
+
+	// Resolve the marketolog this sale belongs to (debt). The cashier passes the
+	// chosen marketolog id; a manager selling in their own panel is the marketolog.
+	var marketologIDPtr *uint
+	if input.MarketologID != nil && *input.MarketologID > 0 {
+		marketologIDPtr = input.MarketologID
+	} else if input.SalesChannel != "" && workerIDPtr != nil {
+		marketologIDPtr = workerIDPtr
+	}
+	isDebt := marketologIDPtr != nil
+
+	// Determine payment method. Marketolog/debt sales are settled later; "own patient"
+	// sales are free; otherwise the cashier picks cash/terminal/card.
 	paymentMethod := input.PaymentMethod
 	cardType := ""
-	if input.SalesChannel != "" {
+	if isDebt {
 		paymentMethod = "marketplace"
 	} else if input.IsVIP {
 		paymentMethod = ""
@@ -70,17 +90,9 @@ func CreateOfflineSale(c *gin.Context) {
 			paymentMethod = "cash"
 		}
 		if !validOfflinePayment(paymentMethod) {
+			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный способ оплаты"})
 			return
-		}
-	}
-
-	tx := database.DB.Begin()
-
-	var workerIDPtr *uint
-	if wid, ok := c.Get("workerID"); ok {
-		if w, ok := wid.(uint); ok {
-			workerIDPtr = &w
 		}
 	}
 
@@ -94,6 +106,7 @@ func CreateOfflineSale(c *gin.Context) {
 	order := models.Order{
 		UserID:        nil,
 		WorkerID:      workerIDPtr,
+		MarketologID:  marketologIDPtr,
 		Status:        "delivered",
 		Phone:         "offline",
 		OrderCode:     generateNurseCode(), // offline orders use a 5-digit code
