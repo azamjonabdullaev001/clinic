@@ -350,6 +350,77 @@
             <div class="pt-2">
               <LineChart :points="analyticsData.points || []" color="#6366f1" />
             </div>
+
+            <!-- Breakdown by customer category -->
+            <div class="border-t pt-4 mt-2">
+              <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+                <h3 class="font-semibold text-gray-800 text-sm">{{ txt.by_category }}</h3>
+                <select v-model="analyticsCat" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="all">{{ txt.cat_all }}</option>
+                  <option value="vip">{{ txt.cat_vip }}</option>
+                  <option value="doctor">{{ txt.cat_doctor }}</option>
+                  <option value="marketolog">{{ txt.cat_marketolog }}</option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div v-for="cat in shownCats" :key="cat.key" class="bg-gray-50 rounded-xl p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-semibold" :class="cat.color">{{ cat.label }}</span>
+                    <span class="text-xs text-gray-400">{{ catData(cat.key).orders }} {{ txt.a_orders.toLowerCase() }}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                    <span>{{ txt.pack }}: <b>{{ catData(cat.key).capsules }}</b></span>
+                    <span>{{ txt.piece }}: <b>{{ catData(cat.key).pieces }}</b></span>
+                    <span class="text-emerald-600">{{ formatPrice(catData(cat.key).revenue) }} {{ txt.sum }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Per-doctor -->
+              <div v-if="(analyticsCat === 'all' || analyticsCat === 'doctor') && (analyticsData.by_doctor || []).length" class="mt-4 overflow-x-auto rounded-xl border border-gray-100">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">{{ txt.cat_doctor }}</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">{{ txt.pack }}</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-gray-500 uppercase">{{ txt.piece }}</th>
+                      <th class="text-right px-4 py-2 text-xs font-semibold text-gray-500 uppercase">{{ txt.a_revenue }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    <tr v-for="(d, i) in analyticsData.by_doctor" :key="i">
+                      <td class="px-4 py-2 font-medium text-gray-800">{{ d.name }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ d.capsules }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ d.pieces }}</td>
+                      <td class="px-4 py-2 text-right font-bold text-gray-700">{{ formatPrice(d.revenue) }} {{ txt.sum }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Per-marketolog -->
+              <div v-if="(analyticsCat === 'all' || analyticsCat === 'marketolog') && (analyticsData.by_marketolog || []).length" class="mt-4 overflow-x-auto rounded-xl border border-purple-100">
+                <table class="w-full text-sm">
+                  <thead class="bg-purple-50">
+                    <tr>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">{{ txt.cat_marketolog }}</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">{{ txt.pack }}</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">{{ txt.piece }}</th>
+                      <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">{{ txt.a_revenue }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-purple-50">
+                    <tr v-for="(m, i) in analyticsData.by_marketolog" :key="i">
+                      <td class="px-4 py-2 font-medium text-gray-800">{{ m.name }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ m.capsules }}</td>
+                      <td class="px-4 py-2 text-gray-600">{{ m.pieces }}</td>
+                      <td class="px-4 py-2 text-right font-bold text-purple-700">{{ formatPrice(m.revenue) }} {{ txt.sum }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </template>
         </div>
       </div>
@@ -878,6 +949,12 @@ const texts = {
     a_revenue: 'Выручка',
     a_created: 'Создано',
     a_confirmed: 'Подтверждено',
+    by_category: 'По категориям',
+    cat_all: 'Все категории',
+    cat_vip: 'Свой пациент',
+    cat_doctor: 'От доктора',
+    cat_marketolog: 'Маркетолог',
+    cat_regular: 'Обычные',
     sold_ok: 'Продано ✓ Продажа записана',
     nav_online: 'Онлайн',
     nav_offline: 'Офлайн',
@@ -986,6 +1063,12 @@ const texts = {
     a_revenue: 'Tushum',
     a_created: 'Yaratilgan',
     a_confirmed: 'Tasdiqlangan',
+    by_category: 'Toifalar bo\'yicha',
+    cat_all: 'Barcha toifalar',
+    cat_vip: 'O\'z bemori',
+    cat_doctor: 'Shifokordan',
+    cat_marketolog: 'Marketolog',
+    cat_regular: 'Oddiy',
     sold_ok: 'Sotildi ✓ Sotuv yozildi',
     nav_online: 'Onlayn',
     nav_offline: 'Oflayn',
@@ -1614,6 +1697,17 @@ function selectAnalyticsPeriod(p) {
   analyticsPeriod.value = p
   if (p !== 'custom') loadAnalytics()
 }
+
+const analyticsCat = ref('all')
+const emptyCat = { orders: 0, capsules: 0, pieces: 0, revenue: 0 }
+function catData(key) { return (analyticsData.value?.breakdown && analyticsData.value.breakdown[key]) || emptyCat }
+const allCats = computed(() => [
+  { key: 'vip', label: txt.value.cat_vip, color: 'text-amber-600' },
+  { key: 'doctor', label: txt.value.cat_doctor, color: 'text-purple-600' },
+  { key: 'marketolog', label: txt.value.cat_marketolog, color: 'text-indigo-600' },
+  { key: 'regular', label: txt.value.cat_regular, color: 'text-emerald-600' },
+])
+const shownCats = computed(() => analyticsCat.value === 'all' ? allCats.value : allCats.value.filter(c => c.key === analyticsCat.value))
 
 // ===== Warehouse (personal stock) =====
 const stock = ref([])

@@ -4,6 +4,7 @@ import (
 	"clinic-backend/database"
 	"clinic-backend/models"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -401,18 +402,96 @@ func GetWorkerAnalytics(c *gin.Context) {
 	var totalRevenue float64
 	createdCount := 0
 	confirmedCount := 0
+
+	type catAgg struct {
+		Orders   int     `json:"orders"`
+		Capsules int     `json:"capsules"`
+		Pieces   int     `json:"pieces"`
+		Revenue  float64 `json:"revenue"`
+	}
+	cats := map[string]*catAgg{
+		"vip":        {},
+		"marketolog": {},
+		"doctor":     {},
+		"regular":    {},
+	}
+	byDoctor := map[string]*catAgg{}
+	byMarketolog := map[string]*catAgg{}
+
 	for _, order := range orders {
-		var revenue float64
+		var revenue, caps, pcs = 0.0, 0, 0
 		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue
+			}
 			revenue += item.Price
+			if item.UnitType == "piece" {
+				pcs += item.Quantity
+			} else {
+				caps += item.Quantity
+			}
 		}
 		totalRevenue += revenue
 		addRevenueToPoint(points, period, startTime, order.CreatedAt.In(loc), revenue)
 		if order.IsOffline && !order.IsNurseOrder {
-			createdCount++ // sale the worker created directly
+			createdCount++
 		} else {
-			confirmedCount++ // online / doctor order the worker confirmed
+			confirmedCount++
 		}
+
+		// Classify into a single category.
+		cat := "regular"
+		if order.SalesChannel != "" {
+			cat = "marketolog"
+		} else if order.IsVIP {
+			cat = "vip"
+		} else if strings.TrimSpace(order.ReferredBy) != "" {
+			cat = "doctor"
+		}
+		c := cats[cat]
+		c.Orders++
+		c.Capsules += caps
+		c.Pieces += pcs
+		c.Revenue += revenue
+
+		if cat == "doctor" {
+			d, ok := byDoctor[order.ReferredBy]
+			if !ok {
+				d = &catAgg{}
+				byDoctor[order.ReferredBy] = d
+			}
+			d.Orders++
+			d.Capsules += caps
+			d.Pieces += pcs
+			d.Revenue += revenue
+		}
+		if cat == "marketolog" {
+			m, ok := byMarketolog[order.SalesChannel]
+			if !ok {
+				m = &catAgg{}
+				byMarketolog[order.SalesChannel] = m
+			}
+			m.Orders++
+			m.Capsules += caps
+			m.Pieces += pcs
+			m.Revenue += revenue
+		}
+	}
+
+	type namedAgg struct {
+		Name     string  `json:"name"`
+		Orders   int     `json:"orders"`
+		Capsules int     `json:"capsules"`
+		Pieces   int     `json:"pieces"`
+		Revenue  float64 `json:"revenue"`
+	}
+	doctorList := []namedAgg{}
+	for name, a := range byDoctor {
+		doctorList = append(doctorList, namedAgg{name, a.Orders, a.Capsules, a.Pieces, a.Revenue})
+	}
+	marketologList := []namedAgg{}
+	for name, a := range byMarketolog {
+		marketologList = append(marketologList, namedAgg{name, a.Orders, a.Capsules, a.Pieces, a.Revenue})
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -421,5 +500,8 @@ func GetWorkerAnalytics(c *gin.Context) {
 		"total_orders":    len(orders),
 		"created_count":   createdCount,
 		"confirmed_count": confirmedCount,
+		"breakdown":       cats,
+		"by_doctor":       doctorList,
+		"by_marketolog":   marketologList,
 	})
 }
