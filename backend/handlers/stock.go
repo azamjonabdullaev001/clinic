@@ -116,3 +116,25 @@ func restockWorker(workerID, productID uint, quantity int) {
 			UpdateColumn("quantity", gorm.Expr("quantity + ?", quantity))
 	}
 }
+
+// decrementWorkerStockNoBlock reduces a worker's stock for delivered order items
+// without blocking (quantity floors at 0). Used when a worker hands over an
+// online/doctor order — the goods leave that worker's warehouse.
+func decrementWorkerStockNoBlock(workerID uint, items []models.OrderItem) {
+	for _, it := range items {
+		if it.Quantity <= 0 {
+			continue
+		}
+		var ws models.WorkerStock
+		err := database.DB.Where("worker_id = ? AND product_id = ?", workerID, it.ProductID).First(&ws).Error
+		if err == gorm.ErrRecordNotFound {
+			database.DB.Create(&models.WorkerStock{WorkerID: workerID, ProductID: it.ProductID, Quantity: 0})
+			continue
+		}
+		newQty := ws.Quantity - it.Quantity
+		if newQty < 0 {
+			newQty = 0
+		}
+		database.DB.Model(&models.WorkerStock{}).Where("id = ?", ws.ID).UpdateColumn("quantity", newQty)
+	}
+}
