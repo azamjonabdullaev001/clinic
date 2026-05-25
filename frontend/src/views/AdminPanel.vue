@@ -79,7 +79,7 @@
                   <td class="px-5 py-3 text-gray-600">{{ product.quantity_per_pack }} шт</td>
                   <td class="px-5 py-3">
                     <span :class="liveQty(product) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2 py-0.5 rounded text-sm font-semibold">
-                      {{ liveQty(product) }} капс.
+                      {{ liveCaps(product) }} капс / {{ liveQty(product) }} шт
                     </span>
                   </td>
                   <td class="px-5 py-3 text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</td>
@@ -1088,15 +1088,15 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (капсул)</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (штук)</label>
             <input v-model.number="productForm.stock_quantity" type="number" min="0"
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition"
               placeholder="0" />
             <p class="text-xs text-gray-400 mt-1">
               <span v-if="productForm.stock_quantity > 0 && productForm.quantity_per_pack > 0">
-                = {{ productForm.stock_quantity * productForm.quantity_per_pack }} шт на складе
+                = {{ Math.floor(productForm.stock_quantity / productForm.quantity_per_pack) }} капсул на складе
               </span>
-              <span v-else>Считается в капсулах</span>
+              <span v-else>Указывается в штуках</span>
             </p>
           </div>
 
@@ -1220,6 +1220,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 useStockSocket()
 function liveQty(p) { return displayStock(p.id, p.stock_quantity) }
+function liveCaps(p) { return Math.floor(liveQty(p) / (p.quantity_per_pack > 0 ? p.quantity_per_pack : 1)) }
 
 const activeTab = ref('products')
 const tabs = [

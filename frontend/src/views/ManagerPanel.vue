@@ -48,13 +48,13 @@
           <div class="px-6 py-5 space-y-4">
             <!-- Product grid (tap to add) -->
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              <button v-for="p in products" :key="p.id" @click="addToCart(p)" :disabled="stockOf(p.id) <= cartQty(p.id)"
+              <button v-for="p in products" :key="p.id" @click="addToCart(p)" :disabled="capsulesOf(p.id) <= cartQty(p.id)"
                 class="text-left bg-gray-50 rounded-xl p-3 border-2 transition relative disabled:opacity-50"
                 :class="cartQty(p.id) > 0 ? 'border-purple-400 bg-purple-50' : 'border-transparent hover:border-purple-200'">
                 <div v-if="cartQty(p.id) > 0" class="absolute -top-2 -right-2 w-6 h-6 bg-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center">{{ cartQty(p.id) }}</div>
                 <p class="text-xs font-semibold text-gray-800 leading-tight mb-1 line-clamp-2">{{ p.name }}</p>
                 <p class="text-xs font-bold text-purple-600">{{ formatPrice(p.price_per_pack) }} сўм</p>
-                <p class="text-[11px]" :class="stockOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">на складе: {{ stockOf(p.id) }}</p>
+                <p class="text-[11px]" :class="capsulesOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">склад: {{ capsulesOf(p.id) }} капс</p>
               </button>
             </div>
 
@@ -65,7 +65,7 @@
                 <div class="flex items-center gap-1.5 mx-2">
                   <button @click="decQty(item)" class="w-7 h-7 bg-gray-200 rounded-lg font-bold text-sm">−</button>
                   <span class="w-7 text-center text-sm font-bold">{{ item.quantity }}</span>
-                  <button @click="addToCart(productById(item.product_id))" :disabled="stockOf(item.product_id) <= item.quantity" class="w-7 h-7 bg-purple-100 text-purple-700 rounded-lg font-bold text-sm disabled:opacity-40">+</button>
+                  <button @click="addToCart(productById(item.product_id))" :disabled="capsulesOf(item.product_id) <= item.quantity" class="w-7 h-7 bg-purple-100 text-purple-700 rounded-lg font-bold text-sm disabled:opacity-40">+</button>
                 </div>
                 <span class="font-semibold text-gray-700 text-sm w-24 text-right">{{ formatPrice(item.price) }} сўм</span>
               </div>
@@ -126,7 +126,7 @@
             <div class="divide-y divide-gray-100">
               <div v-for="s in stock" :key="s.id" class="flex justify-between items-center px-6 py-3 text-sm">
                 <span class="text-gray-700">{{ s.product?.name }}</span>
-                <span class="px-2.5 py-1 rounded-lg font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'">{{ stockOf(s.product_id) }} капс.</span>
+                <span class="px-2.5 py-1 rounded-lg font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'">{{ capsulesOf(s.product_id) }} капс / {{ stockOf(s.product_id) }} шт</span>
               </div>
               <div v-if="stock.length === 0" class="px-6 py-8 text-center text-gray-400 text-sm">Склад пуст</div>
             </div>
@@ -241,6 +241,8 @@ const stockMap = computed(() => {
   return m
 })
 function stockOf(productId) { return displayStock(productId, stockMap.value[productId] || 0) }
+function qppOf(productId) { const p = products.value.find(x => x.id === productId); return p && p.quantity_per_pack > 0 ? p.quantity_per_pack : 1 }
+function capsulesOf(productId) { return Math.floor(stockOf(productId) / qppOf(productId)) }
 function productById(id) { return products.value.find(p => p.id === id) }
 function cartQty(productId) { const i = items.value.find(x => x.product_id === productId); return i ? i.quantity : 0 }
 
@@ -263,7 +265,7 @@ async function loadOrders() {
 
 function addToCart(product) {
   if (!product) return
-  if (stockOf(product.id) <= cartQty(product.id)) return // not enough stock
+  if (capsulesOf(product.id) <= cartQty(product.id)) return // not enough stock
   const existing = items.value.find(i => i.product_id === product.id)
   if (existing) { existing.quantity++; existing.price = existing.quantity * product.price_per_pack }
   else items.value.push({ product_id: product.id, name: product.name, quantity: 1, price: product.price_per_pack })
@@ -295,7 +297,7 @@ async function addStock() {
   if (!stockProductId.value || stockQty.value < 1) return
   addingStock.value = true
   try {
-    await api.post('/manager/stock', { product_id: stockProductId.value, quantity: stockQty.value })
+    await api.post('/manager/stock', { product_id: stockProductId.value, quantity: stockQty.value, unit_type: 'pack' })
     stockProductId.value = ''; stockQty.value = 1
     loadStock()
   } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { addingStock.value = false }

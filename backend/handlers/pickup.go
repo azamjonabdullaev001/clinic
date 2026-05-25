@@ -7,7 +7,57 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+// ReturnOrderFull fully returns a delivered order: all pieces go back to the
+// warehouse, revenue is removed (order is cancelled) and the reason is recorded.
+func ReturnOrderFull(c *gin.Context) {
+	id := c.Param("id")
+	var order models.Order
+	if err := database.DB.Preload("Items").First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	if order.Status != "delivered" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Полный возврат доступен только для выданных заказов"})
+		return
+	}
+	var input struct {
+		ReturnReason string `json:"return_reason"`
+	}
+	c.ShouldBindJSON(&input)
+	reason := strings.TrimSpace(input.ReturnReason)
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите причину возврата"})
+		return
+	}
+
+	for _, it := range order.Items {
+		if it.Quantity <= 0 {
+			continue
+		}
+		var p models.Product
+		if database.DB.First(&p, it.ProductID).Error == nil {
+			restockProduct(it.ProductID, pieceCount(p, it.Quantity, it.UnitType))
+		}
+	}
+
+	order.Status = "cancelled"
+	order.IsReturned = true
+	order.ReturnReason = reason
+	if wid, ok := c.Get("workerID"); ok {
+		w := wid.(uint)
+		order.WorkerID = &w
+	}
+	database.DB.Save(&order)
+
+	database.DB.Preload("Items.Product").First(&order, order.ID)
+	for i := range order.Items {
+		order.Items[i].Product.ComputePackPrice()
+	}
+	c.JSON(http.StatusOK, order)
+}
 
 func UpdateOrderItems(c *gin.Context) {
 	id := c.Param("id")
@@ -39,22 +89,34 @@ func UpdateOrderItems(c *gin.Context) {
 		return
 	}
 
-	// Preserve the originally ordered quantity per product (the doctor's prescription),
-	// so the admin can later see what was bought / added / removed.
+	productCache := map[uint]models.Product{}
+	getProduct := func(tx *gorm.DB, id uint) (models.Product, bool) {
+		if p, ok := productCache[id]; ok {
+			return p, true
+		}
+		var p models.Product
+		if tx.First(&p, id).Error != nil {
+			return p, false
+		}
+		productCache[id] = p
+		return p, true
+	}
+
+	// Track original prescription and previous pieces (for the diff and for restock).
 	origByProduct := map[uint]int{}
-	prevQtyByProduct := map[uint]int{}
+	origUnitByProduct := map[uint]string{}
+	prevPiecesByProduct := map[uint]int{}
 	for _, it := range order.Items {
 		if it.OriginalQuantity > origByProduct[it.ProductID] {
 			origByProduct[it.ProductID] = it.OriginalQuantity
+			origUnitByProduct[it.ProductID] = it.UnitType
 		}
-		prevQtyByProduct[it.ProductID] += it.Quantity
+		if p, ok := getProduct(database.DB, it.ProductID); ok {
+			prevPiecesByProduct[it.ProductID] += pieceCount(p, it.Quantity, it.UnitType)
+		}
 	}
 	boughtProducts := map[uint]bool{}
-	newQtyByProduct := map[uint]int{}
-	for _, it := range input.Items {
-		boughtProducts[it.ProductID] = true
-		newQtyByProduct[it.ProductID] += it.Quantity
-	}
+	newPiecesByProduct := map[uint]int{}
 
 	tx := database.DB.Begin()
 
@@ -64,19 +126,29 @@ func UpdateOrderItems(c *gin.Context) {
 		return
 	}
 
-	// Bought items (products sold only by full capsule/pack; VIP = free).
 	for _, item := range input.Items {
-		var product models.Product
-		if err := tx.First(&product, item.ProductID).Error; err != nil {
+		product, ok := getProduct(tx, item.ProductID)
+		if !ok {
 			tx.Rollback()
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Товар не найден"})
 			return
 		}
 		product.ComputePackPrice()
+		boughtProducts[item.ProductID] = true
+
+		unitType := item.UnitType
+		if unitType != "piece" {
+			unitType = "pack"
+		}
+		newPiecesByProduct[item.ProductID] += pieceCount(product, item.Quantity, unitType)
 
 		var price float64
 		if !order.IsVIP {
-			price = product.PricePerPack * float64(item.Quantity)
+			if unitType == "piece" {
+				price = product.PricePerPill * float64(item.Quantity)
+			} else {
+				price = product.PricePerPack * float64(item.Quantity)
+			}
 		}
 
 		orderItem := models.OrderItem{
@@ -84,7 +156,7 @@ func UpdateOrderItems(c *gin.Context) {
 			ProductID:        item.ProductID,
 			Quantity:         item.Quantity,
 			OriginalQuantity: origByProduct[item.ProductID], // 0 means newly added at the till
-			UnitType:         "pack",
+			UnitType:         unitType,
 			Price:            price,
 		}
 		if err := tx.Create(&orderItem).Error; err != nil {
@@ -98,12 +170,16 @@ func UpdateOrderItems(c *gin.Context) {
 	// admin sees them marked as "убрано". Price 0, so they don't affect totals/analytics.
 	for productID, origQty := range origByProduct {
 		if origQty > 0 && !boughtProducts[productID] {
+			unit := origUnitByProduct[productID]
+			if unit != "piece" {
+				unit = "pack"
+			}
 			orderItem := models.OrderItem{
 				OrderID:          order.ID,
 				ProductID:        productID,
 				Quantity:         0,
 				OriginalQuantity: origQty,
-				UnitType:         "pack",
+				UnitType:         unit,
 				Price:            0,
 			}
 			if err := tx.Create(&orderItem).Error; err != nil {
@@ -116,15 +192,14 @@ func UpdateOrderItems(c *gin.Context) {
 
 	tx.Commit()
 
-	// On a return, flag the order and put the brought-back goods back into the
-	// seller's stock (only for direct offline sales that drew from worker stock).
+	// On a return, flag the order and put the brought-back pieces back into the warehouse.
 	if isReturn {
 		order.IsReturned = true
 		order.ReturnReason = strings.TrimSpace(input.ReturnReason)
 		database.DB.Model(&models.Order{}).Where("id = ?", order.ID).
 			Updates(map[string]interface{}{"is_returned": true, "return_reason": order.ReturnReason})
-		for productID, prevQty := range prevQtyByProduct {
-			returned := prevQty - newQtyByProduct[productID]
+		for productID, prevPieces := range prevPiecesByProduct {
+			returned := prevPieces - newPiecesByProduct[productID]
 			if returned > 0 {
 				restockProduct(productID, returned)
 			}

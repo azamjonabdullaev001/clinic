@@ -126,6 +126,7 @@ func main() {
 			pickup.GET("/nurse-order/:code", handlers.ConfirmNurseOrder)
 			pickup.PUT("/orders/:id/status", handlers.UpdatePickupOrderStatus)
 			pickup.PUT("/orders/:id/items", handlers.UpdateOrderItems)
+			pickup.POST("/orders/:id/return", handlers.ReturnOrderFull)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
 			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)

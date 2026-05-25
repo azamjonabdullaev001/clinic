@@ -11,21 +11,15 @@ import (
 // decrementStockForOrder reduces product stock_quantity when an order is delivered.
 func decrementStockForOrder(order models.Order) {
 	for _, item := range order.Items {
+		if item.Quantity <= 0 {
+			continue
+		}
 		var product models.Product
 		if database.DB.First(&product, item.ProductID).Error != nil {
 			continue
 		}
-		var packs int
-		if item.UnitType == "piece" {
-			if product.QuantityPerPack > 0 {
-				packs = (item.Quantity + product.QuantityPerPack - 1) / product.QuantityPerPack
-			} else {
-				packs = 1
-			}
-		} else {
-			packs = item.Quantity
-		}
-		newStock := product.StockQuantity - packs
+		pieces := pieceCount(product, item.Quantity, item.UnitType)
+		newStock := product.StockQuantity - pieces
 		if newStock < 0 {
 			newStock = 0
 		}
@@ -127,10 +121,17 @@ func CreateOfflineSale(c *gin.Context) {
 		}
 		product.ComputePackPrice()
 
-		// Products are sold only by full pack/capsule.
+		unitType := item.UnitType
+		if unitType != "piece" {
+			unitType = "pack"
+		}
 		var price float64
 		if !input.IsVIP {
-			price = product.PricePerPack * float64(item.Quantity)
+			if unitType == "piece" {
+				price = product.PricePerPill * float64(item.Quantity)
+			} else {
+				price = product.PricePerPack * float64(item.Quantity)
+			}
 		}
 
 		orderItem := models.OrderItem{
@@ -138,7 +139,7 @@ func CreateOfflineSale(c *gin.Context) {
 			ProductID:        item.ProductID,
 			Quantity:         item.Quantity,
 			OriginalQuantity: item.Quantity,
-			UnitType:         "pack",
+			UnitType:         unitType,
 			Price:            price,
 		}
 

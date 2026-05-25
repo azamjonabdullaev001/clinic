@@ -35,6 +35,8 @@ func Migrate() {
 
 	// Detect whether order_items.original_quantity already exists (for one-time backfill below)
 	hadOrigQty := DB.Migrator().HasColumn(&models.OrderItem{}, "OriginalQuantity")
+	// Detect whether products.stock_converted exists (one-time capsules->pieces conversion)
+	hadStockConverted := DB.Migrator().HasColumn(&models.Product{}, "StockConverted")
 
 	err := DB.AutoMigrate(
 		&models.User{},
@@ -61,6 +63,12 @@ func Migrate() {
 	// quantity as the originally ordered amount. Runs only when the column is first added.
 	if !hadOrigQty {
 		DB.Exec("UPDATE order_items SET original_quantity = quantity")
+	}
+
+	// One-time conversion: stock used to be counted in capsules; switch to pieces.
+	if !hadStockConverted {
+		DB.Exec("UPDATE products SET stock_quantity = stock_quantity * quantity_per_pack")
+		DB.Exec("UPDATE products SET stock_converted = true")
 	}
 
 	DB.Exec("UPDATE workers SET role = 'pickup' WHERE role IS NULL OR role = ''")

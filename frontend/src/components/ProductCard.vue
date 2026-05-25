@@ -37,7 +37,7 @@
         <div class="flex items-center justify-between">
           <span class="text-[10px] sm:text-xs font-medium text-stone-400">{{ t.in_stock }}</span>
           <span class="text-[10px] sm:text-xs font-semibold" :class="stockLeft > 0 ? 'text-emerald-600' : 'text-red-500'">
-            {{ stockLeft > 0 ? (stockLeft + ' ' + t.unit_pack) : t.out_of_stock }}
+            {{ stockLeft > 0 ? (capsulesLeft + ' ' + t.unit_pack) : t.out_of_stock }}
           </span>
         </div>
       </div>
@@ -177,6 +177,10 @@ const props = defineProps({
 const emit = defineEmits(['add-to-cart'])
 
 const stockLeft = computed(() => displayStock(props.product.id, props.product.stock_quantity))
+const capsulesLeft = computed(() => {
+  const qpp = props.product.quantity_per_pack > 0 ? props.product.quantity_per_pack : 1
+  return Math.floor(stockLeft.value / qpp)
+})
 
 const isDescriptionOpen = ref(false)
 const isAdding = ref(false)

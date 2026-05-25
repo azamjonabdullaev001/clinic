@@ -29,11 +29,24 @@ func GetGlobalStock(c *gin.Context) {
 }
 
 type AddStockInput struct {
-	ProductID uint `json:"product_id" binding:"required"`
-	Quantity  int  `json:"quantity" binding:"required"`
+	ProductID uint   `json:"product_id" binding:"required"`
+	Quantity  int    `json:"quantity" binding:"required"`
+	UnitType  string `json:"unit_type"` // "pack" (capsules) or "piece"
 }
 
-// AddProductStock increases the shared warehouse quantity of a product.
+// pieceCount converts a quantity in the given unit to pieces for a product.
+func pieceCount(p models.Product, quantity int, unitType string) int {
+	if unitType == "piece" {
+		return quantity
+	}
+	qpp := p.QuantityPerPack
+	if qpp < 1 {
+		qpp = 1
+	}
+	return quantity * qpp
+}
+
+// AddProductStock increases the shared warehouse quantity of a product (in pieces).
 func AddProductStock(c *gin.Context) {
 	var input AddStockInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -45,7 +58,7 @@ func AddProductStock(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Товар не найден"})
 		return
 	}
-	newQty := product.StockQuantity + input.Quantity
+	newQty := product.StockQuantity + pieceCount(product, input.Quantity, input.UnitType)
 	if newQty < 0 {
 		newQty = 0
 	}
@@ -58,43 +71,47 @@ func AddProductStock(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"product_id": product.ID, "quantity": newQty})
 }
 
-// reserveProductStock checks the shared warehouse has enough of each item and
-// decrements it. Quantities are aggregated per product. Blocks if insufficient.
+// reserveProductStock checks the shared warehouse has enough pieces for each item
+// and decrements it. Quantities are aggregated per product. Blocks if insufficient.
 func reserveProductStock(tx *gorm.DB, items []OfflineItemInput) error {
-	need := map[uint]int{}
+	need := map[uint]int{} // pieces needed per product
 	for _, item := range items {
-		need[item.ProductID] += item.Quantity
-	}
-	for pid, qty := range need {
 		var p models.Product
-		if tx.First(&p, pid).Error != nil {
+		if tx.First(&p, item.ProductID).Error != nil {
 			return fmt.Errorf("Товар не найден")
 		}
-		if p.StockQuantity < qty {
-			return fmt.Errorf("Недостаточно на складе: %s (осталось %d)", p.Name, p.StockQuantity)
+		need[item.ProductID] += pieceCount(p, item.Quantity, item.UnitType)
+	}
+	for pid, pieces := range need {
+		var p models.Product
+		tx.First(&p, pid)
+		if p.StockQuantity < pieces {
+			return fmt.Errorf("Недостаточно на складе: %s (осталось %d шт)", p.Name, p.StockQuantity)
 		}
 	}
-	for pid, qty := range need {
+	for pid, pieces := range need {
 		tx.Model(&models.Product{}).Where("id = ?", pid).
-			UpdateColumn("stock_quantity", gorm.Expr("stock_quantity - ?", qty))
+			UpdateColumn("stock_quantity", gorm.Expr("stock_quantity - ?", pieces))
 	}
 	return nil
 }
 
-// checkProductStock verifies the shared warehouse has enough for the items
-// without decrementing (used at online order placement).
+// checkProductStock verifies the warehouse has enough pieces for online items
+// (always whole capsules) without decrementing.
 func checkProductStock(tx *gorm.DB, items []OrderItemInput) error {
 	need := map[uint]int{}
 	for _, item := range items {
-		need[item.ProductID] += item.Quantity
-	}
-	for pid, qty := range need {
 		var p models.Product
-		if tx.First(&p, pid).Error != nil {
+		if tx.First(&p, item.ProductID).Error != nil {
 			return fmt.Errorf("Препарат не найден")
 		}
-		if p.StockQuantity < qty {
-			return fmt.Errorf("Недостаточно на складе: %s (осталось %d)", p.Name, p.StockQuantity)
+		need[item.ProductID] += pieceCount(p, item.Quantity, item.UnitType)
+	}
+	for pid, pieces := range need {
+		var p models.Product
+		tx.First(&p, pid)
+		if p.StockQuantity < pieces {
+			return fmt.Errorf("Недостаточно на складе: %s (осталось %d шт)", p.Name, p.StockQuantity)
 		}
 	}
 	return nil

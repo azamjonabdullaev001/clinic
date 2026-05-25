@@ -210,15 +210,19 @@
               <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.product }}</label>
               <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                 <option value="">{{ txt.select_product }}</option>
-                <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }} ({{ txt.my_stock }}: {{ stockOf(p.id) }})</option>
+                <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }} — {{ capsulesOf(p.id) }} {{ txt.pack }} / {{ stockOf(p.id) }} {{ txt.piece }}</option>
               </select>
             </div>
-            <div class="w-24">
+            <div class="w-20">
               <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.qty }}</label>
               <input v-model.number="offlineQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
-            <div class="flex items-end pb-1.5">
-              <span class="text-sm text-gray-600 font-medium px-1">{{ txt.pack }}</span>
+            <div class="w-28">
+              <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.unit }}</label>
+              <select v-model="offlineUnit" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="pack">{{ txt.pack }}</option>
+                <option value="piece">{{ txt.piece }}</option>
+              </select>
             </div>
             <button
               @click="addOfflineItem"
@@ -231,7 +235,7 @@
             <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
               <div>
                 <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
-                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ txt.pack }}</span>
+                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span>
               </div>
               <div class="flex items-center gap-3">
                 <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(offlineVip ? 0 : item.price) }} {{ txt.sum }}</span>
@@ -348,9 +352,16 @@
                   <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
               </div>
-              <div class="w-28">
+              <div class="w-24">
                 <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.stock_qty }}</label>
                 <input v-model.number="stockQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div class="w-28">
+                <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.unit }}</label>
+                <select v-model="stockUnit" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="pack">{{ txt.pack }}</option>
+                  <option value="piece">{{ txt.piece }}</option>
+                </select>
               </div>
               <button @click="addStock" :disabled="!stockProductId || stockQty < 1 || addingStock"
                 class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-40">+ {{ txt.stock_add }}</button>
@@ -384,7 +395,7 @@
                   <td class="px-5 py-3 text-gray-600 text-sm">{{ formatPrice(s.product?.price_per_pack) }} {{ txt.sum }}</td>
                   <td class="px-5 py-3 text-right">
                     <span :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2.5 py-1 rounded-lg text-sm font-bold">
-                      {{ stockOf(s.product_id) }} {{ txt.pack }}
+                      {{ capsulesOf(s.product_id) }} {{ txt.pack }} / {{ stockOf(s.product_id) }} {{ txt.piece }}
                     </span>
                   </td>
                 </tr>
@@ -493,26 +504,36 @@
           </button>
         </div>
 
-        <!-- History filters: type + status + period -->
-        <div v-if="tab === 'history'" class="space-y-2 mb-4">
-          <div class="flex gap-2 flex-wrap">
-            <button v-for="f in [{v:'all',l:txt.type_all},{v:'online',l:txt.type_online},{v:'offline',l:txt.type_offline},{v:'vip',l:txt.own_patient}]" :key="f.v"
-              @click="historyType = f.v"
-              :class="historyType === f.v ? (f.v === 'vip' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white') : 'bg-white text-gray-600 hover:bg-gray-50'"
-              class="px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-200 transition">{{ f.l }}</button>
+        <!-- History filters: type + status + period (dropdowns) -->
+        <div v-if="tab === 'history'" class="flex gap-3 flex-wrap mb-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.type_all }}</label>
+            <select v-model="historyType" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]">
+              <option value="all">{{ txt.type_all }}</option>
+              <option value="online">{{ txt.type_online }}</option>
+              <option value="offline">{{ txt.type_offline }}</option>
+              <option value="vip">{{ txt.own_patient }}</option>
+            </select>
           </div>
-          <div class="flex gap-2 flex-wrap">
-            <button v-for="f in statusFilters" :key="f.value" @click="historyStatus = f.value"
-              :class="historyStatus === f.value ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 transition">{{ f.label }}</button>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.status_pending }}</label>
+            <select v-model="historyStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 min-w-[150px]">
+              <option v-for="f in statusFilters" :key="f.value" :value="f.value">{{ f.label }}</option>
+            </select>
           </div>
-          <div class="flex gap-2 flex-wrap items-center">
-            <button v-for="f in [{v:'all',l:txt.period_all},{v:'daily',l:txt.a_today},{v:'weekly',l:txt.a_week},{v:'monthly',l:txt.a_month},{v:'custom',l:txt.a_date}]" :key="f.v"
-              @click="historyPeriod = f.v"
-              :class="historyPeriod === f.v ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 transition">{{ f.l }}</button>
-            <input v-if="historyPeriod === 'custom'" v-model="historyDate" type="date"
-              class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.a_date }}</label>
+            <select v-model="historyPeriod" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[130px]">
+              <option value="all">{{ txt.period_all }}</option>
+              <option value="daily">{{ txt.a_today }}</option>
+              <option value="weekly">{{ txt.a_week }}</option>
+              <option value="monthly">{{ txt.a_month }}</option>
+              <option value="custom">{{ txt.a_date }}</option>
+            </select>
+          </div>
+          <div v-if="historyPeriod === 'custom'">
+            <label class="block text-xs font-medium text-gray-500 mb-1">&nbsp;</label>
+            <input v-model="historyDate" type="date" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
         </div>
 
@@ -625,6 +646,12 @@
                 class="border px-4 py-1.5 rounded-lg transition text-sm font-medium flex items-center gap-1.5">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 {{ order.status === 'delivered' ? txt.return_edit : txt.edit_items }}
+              </button>
+              <button v-if="order.is_offline && order.status === 'delivered' && !listEdit[order.id]?.editing"
+                @click="fullReturn(order)"
+                class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                {{ txt.full_return }}
               </button>
               <template v-if="!listEdit[order.id]?.editing">
                 <!-- Offline order: one-tap confirm → delivered immediately -->
@@ -804,6 +831,7 @@ const texts = {
     verify_error: 'Имя не совпадает. Проверьте данные пациента.',
     edit_items: 'Редактировать товары',
     return_edit: 'Возврат',
+    full_return: 'Полный возврат',
     save_items: 'Сохранить изменения',
     saving_items: 'Сохранение...',
     cancel_edit: 'Отмена',
@@ -906,6 +934,7 @@ const texts = {
     verify_error: "Ism mos kelmadi. Bemorning ma'lumotlarini tekshiring.",
     edit_items: "Mahsulotlarni tahrirlash",
     return_edit: 'Qaytarish',
+    full_return: "To'liq qaytarish",
     save_items: "O'zgarishlarni saqlash",
     saving_items: "Saqlanmoqda...",
     cancel_edit: "Bekor qilish",
@@ -1383,6 +1412,21 @@ function listEditAddItem(orderId) {
   state.addUnit = 'pack'
 }
 
+async function fullReturn(order) {
+  const r = prompt('Полный возврат — укажите причину:')
+  if (r === null) return
+  const reason = r.trim()
+  if (!reason) { alert('Причина возврата обязательна'); return }
+  try {
+    const res = await api.post(`/pickup/orders/${order.id}/return`, { return_reason: reason })
+    const idx = orders.value.findIndex(o => o.id === order.id)
+    if (idx !== -1) orders.value[idx] = res.data
+    loadStock()
+  } catch (e) {
+    alert(e.response?.data?.error || 'Ошибка при возврате')
+  }
+}
+
 async function saveListEdit(order) {
   const state = listEdit.value[order.id]
   if (!state || state.items.length === 0) return
@@ -1426,7 +1470,15 @@ const offlineSuccess = ref('')
 const offlineVip = ref(false)
 const offlinePaymentMethod = ref('cash')
 const offlineReferral = ref('')
+const offlineUnit = ref('pack')
 const allDoctors = ref([])
+
+// Capsules available = pieces in stock / pieces per capsule.
+function qppOf(productId) {
+  const p = allProducts.value.find(x => x.id === productId)
+  return p && p.quantity_per_pack > 0 ? p.quantity_per_pack : 1
+}
+function capsulesOf(productId) { return Math.floor(stockOf(productId) / qppOf(productId)) }
 
 const paymentMethods = computed(() => [
   { value: 'cash', label: txt.value.pay_cash },
@@ -1457,13 +1509,19 @@ function addOfflineItem() {
   if (!offlineProductId.value || offlineQty.value < 1) return
   const product = allProducts.value.find(p => p.id === offlineProductId.value)
   if (!product) return
-  const already = offlineItems.value.filter(i => i.product_id === product.id).reduce((s, i) => s + i.quantity, 0)
-  if (already + offlineQty.value > stockOf(product.id)) {
-    alert(`${txt.value.my_stock}: ${stockOf(product.id)}. ${product.name}`)
+  const unit = offlineUnit.value === 'piece' ? 'piece' : 'pack'
+  const qpp = qppOf(product.id)
+  // pieces required by this addition + already in cart for this product
+  const piecesNeeded = unit === 'piece' ? offlineQty.value : offlineQty.value * qpp
+  const alreadyPieces = offlineItems.value
+    .filter(i => i.product_id === product.id)
+    .reduce((s, i) => s + (i.unit_type === 'piece' ? i.quantity : i.quantity * qpp), 0)
+  if (alreadyPieces + piecesNeeded > stockOf(product.id)) {
+    alert(`${product.name}: ${txt.value.my_stock} ${stockOf(product.id)} ${txt.value.piece}`)
     return
   }
-  const price = product.price_per_pack * offlineQty.value
-  offlineItems.value.push({ product_id: product.id, name: product.name, quantity: offlineQty.value, unit_type: 'pack', price })
+  const price = (unit === 'piece' ? product.price_per_pill : product.price_per_pack) * offlineQty.value
+  offlineItems.value.push({ product_id: product.id, name: product.name, quantity: offlineQty.value, unit_type: unit, price })
   offlineProductId.value = ''
   offlineQty.value = 1
 }
@@ -1474,6 +1532,7 @@ function resetOfflineSale() {
   offlineVip.value = false
   offlinePaymentMethod.value = 'cash'
   offlineReferral.value = ''
+  offlineUnit.value = 'pack'
 }
 
 async function submitOfflineSale() {
@@ -1482,7 +1541,7 @@ async function submitOfflineSale() {
   offlineSuccess.value = ''
   try {
     const res = await api.post('/pickup/offline-sale', {
-      items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: 'pack' })),
+      items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
       offline_note: offlineNote.value,
       is_vip: offlineVip.value,
       payment_method: offlineVip.value ? '' : offlinePaymentMethod.value,
@@ -1521,6 +1580,7 @@ function selectAnalyticsPeriod(p) {
 const stock = ref([])
 const stockProductId = ref('')
 const stockQty = ref(1)
+const stockUnit = ref('pack')
 const addingStock = ref(false)
 
 const stockMap = computed(() => {
@@ -1538,9 +1598,10 @@ async function addStock() {
   if (!stockProductId.value || stockQty.value < 1) return
   addingStock.value = true
   try {
-    await api.post('/pickup/stock', { product_id: stockProductId.value, quantity: stockQty.value })
+    await api.post('/pickup/stock', { product_id: stockProductId.value, quantity: stockQty.value, unit_type: stockUnit.value })
     stockProductId.value = ''
     stockQty.value = 1
+    stockUnit.value = 'pack'
     loadStock()
   } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { addingStock.value = false }
 }

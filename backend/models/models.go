@@ -43,7 +43,8 @@ type Product struct {
 	PricePerPill    float64   `gorm:"not null" json:"price_per_pill"`
 	PricePerPack    float64   `gorm:"-" json:"price_per_pack"`
 	ImagePath       string    `json:"image_path"`
-	StockQuantity   int       `gorm:"default:0" json:"stock_quantity"`
+	StockQuantity   int       `gorm:"default:0" json:"stock_quantity"` // total stock in PIECES
+	StockConverted  bool      `gorm:"default:false" json:"-"`          // migration marker: capsules -> pieces
 	CreatedAt       time.Time `json:"created_at"`
 }
 
