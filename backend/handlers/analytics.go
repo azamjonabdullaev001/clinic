@@ -29,12 +29,28 @@ type DoctorReferral struct {
 	TotalRevenue float64 `json:"total_revenue"`
 }
 
+type MarketologProduct struct {
+	ProductName string  `json:"product_name"`
+	Capsules    int     `json:"capsules"`
+	Pieces      int     `json:"pieces"`
+	Revenue     float64 `json:"revenue"`
+}
+
+type MarketologStat struct {
+	TotalRevenue  float64             `json:"total_revenue"`
+	TotalOrders   int                 `json:"total_orders"`
+	TotalCapsules int                 `json:"total_capsules"`
+	TotalPieces   int                 `json:"total_pieces"`
+	Products      []MarketologProduct `json:"products"`
+}
+
 type AnalyticsResponse struct {
 	Points          []AnalyticsPoint `json:"points"`
 	TopProducts     []TopProduct     `json:"top_products"`
 	DoctorReferrals []DoctorReferral `json:"doctor_referrals"`
 	TotalRevenue    float64          `json:"total_revenue"`
 	TotalOrders     int              `json:"total_orders"`
+	Marketolog      MarketologStat   `json:"marketolog"`
 }
 
 func GetAnalytics(c *gin.Context) {
@@ -105,10 +121,51 @@ func GetAnalytics(c *gin.Context) {
 	}
 
 	// Fetch all delivered/completed orders in range
-	var orders []models.Order
+	var allOrders []models.Order
 	database.DB.Where("created_at >= ? AND created_at < ? AND status != ?", startTime, endTime, "cancelled").
 		Preload("Items.Product").
-		Find(&orders)
+		Find(&allOrders)
+
+	// Marketolog (marketplace) sales are treated as a separate "debt" and are kept
+	// out of the main revenue/top-products figures.
+	var orders []models.Order
+	var mktOrders []models.Order
+	for _, o := range allOrders {
+		if o.SalesChannel != "" {
+			mktOrders = append(mktOrders, o)
+		} else {
+			orders = append(orders, o)
+		}
+	}
+
+	// Aggregate the marketolog debt section.
+	var marketolog MarketologStat
+	marketolog.TotalOrders = len(mktOrders)
+	mktMap := make(map[uint]*MarketologProduct)
+	for _, order := range mktOrders {
+		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue
+			}
+			marketolog.TotalRevenue += item.Price
+			m, ok := mktMap[item.ProductID]
+			if !ok {
+				m = &MarketologProduct{ProductName: item.Product.Name}
+				mktMap[item.ProductID] = m
+			}
+			m.Revenue += item.Price
+			if item.UnitType == "piece" {
+				marketolog.TotalPieces += item.Quantity
+				m.Pieces += item.Quantity
+			} else {
+				marketolog.TotalCapsules += item.Quantity
+				m.Capsules += item.Quantity
+			}
+		}
+	}
+	for _, m := range mktMap {
+		marketolog.Products = append(marketolog.Products, *m)
+	}
 
 	// Fill points with revenue/order counts
 	for _, order := range orders {
@@ -243,6 +300,7 @@ func GetAnalytics(c *gin.Context) {
 		DoctorReferrals: doctorSlice,
 		TotalRevenue:    totalRevenue,
 		TotalOrders:     len(orders),
+		Marketolog:      marketolog,
 	})
 }
 

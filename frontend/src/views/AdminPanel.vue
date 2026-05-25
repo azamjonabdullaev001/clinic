@@ -517,6 +517,43 @@
           Нет данных о продажах за выбранный период
         </div>
 
+        <!-- Marketolog (debt) -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5" v-if="analyticsData && analyticsData.marketolog && analyticsData.marketolog.total_orders > 0">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <h3 class="text-lg font-semibold text-gray-800">Маркетолог (долг)</h3>
+            <span class="text-xs text-gray-400">отдельно от выручки</span>
+          </div>
+          <div class="px-6 py-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Сумма (долг)</p><p class="text-xl font-bold text-purple-700">{{ formatPrice(analyticsData.marketolog.total_revenue) }} сўм</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Заказов</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_orders }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_capsules }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_pieces }}</p></div>
+            </div>
+            <div v-if="analyticsData.marketolog.products?.length" class="overflow-x-auto rounded-xl border border-purple-100">
+              <table class="w-full text-sm">
+                <thead class="bg-purple-50">
+                  <tr>
+                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
+                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Штук</th>
+                    <th class="text-right px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-purple-50">
+                  <tr v-for="(p, i) in analyticsData.marketolog.products" :key="i" class="hover:bg-purple-50 transition">
+                    <td class="px-4 py-2.5 font-medium text-gray-800">{{ p.product_name }}</td>
+                    <td class="px-4 py-2.5 text-gray-600">{{ p.capsules }}</td>
+                    <td class="px-4 py-2.5 text-gray-600">{{ p.pieces }}</td>
+                    <td class="px-4 py-2.5 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }} сўм</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- Doctor Referral Stats -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5" v-if="analyticsData && analyticsData.doctor_referrals?.length">
           <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
