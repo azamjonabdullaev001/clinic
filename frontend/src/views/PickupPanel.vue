@@ -704,7 +704,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
@@ -1521,10 +1521,16 @@ watch(tab, (t) => {
   if (t === 'offline') loadStock()
 })
 
+let stockPoll = null
 onMounted(() => {
   loadStock()
   loadOrders()
   loadProducts()
   loadDoctors()
+  // Keep stock fresh (near real-time) while selling or managing the warehouse.
+  stockPoll = setInterval(() => {
+    if (tab.value === 'offline' || tab.value === 'stock') loadStock()
+  }, 7000)
 })
+onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
 </script>

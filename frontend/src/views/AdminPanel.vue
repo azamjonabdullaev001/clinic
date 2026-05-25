@@ -92,9 +92,6 @@
                       <button @click="openProductModal(product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" title="Редактировать">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
-                      <button v-if="product.description" @click="deleteProductComment(product.id)" class="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition" title="Удалить комментарий">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
-                      </button>
                       <button @click="deleteProduct(product.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
@@ -119,10 +116,6 @@
       <div v-if="activeTab === 'orders'">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-gray-800">Заказы</h2>
-          <button @click="adminOfflineOpen = true" class="bg-emerald-600 text-white px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition font-medium flex items-center gap-2 text-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Офлайн продажа
-          </button>
         </div>
         <div class="space-y-4">
           <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-6"
@@ -1038,95 +1031,6 @@
       </div>
     </div>
 
-    <!-- Admin Offline Sale Modal -->
-    <div v-if="adminOfflineOpen" class="fixed inset-0 z-50 flex items-center justify-center">
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="adminOfflineOpen = false"></div>
-      <div class="relative bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-xl font-bold text-gray-800 mb-5">Офлайн продажа</h3>
-
-        <!-- Add item -->
-        <div class="flex gap-2 flex-wrap items-end mb-4">
-          <div class="flex-1 min-w-[160px]">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Препарат</label>
-            <select v-model="aOfflineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-              <option value="">Выберите</option>
-              <option v-for="p in products" :key="p.id" :value="p.id">{{ p.name }}</option>
-            </select>
-          </div>
-          <div class="w-20">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во</label>
-            <input v-model.number="aOfflineQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-          <div class="flex items-end pb-0.5">
-            <span class="text-sm text-gray-600 font-medium px-2">капс.</span>
-          </div>
-          <button @click="aAddOfflineItem" :disabled="!aOfflineProductId || aOfflineQty < 1"
-            class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition text-sm font-medium disabled:opacity-40">
-            + Добавить
-          </button>
-        </div>
-
-        <!-- Items -->
-        <div v-if="aOfflineItems.length" class="border rounded-xl overflow-hidden mb-4">
-          <div v-for="(item, idx) in aOfflineItems" :key="idx" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
-            <div>
-              <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
-              <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} капс.</span>
-            </div>
-            <div class="flex items-center gap-3">
-              <span class="font-semibold text-sm">{{ formatPrice(aOfflineVip ? 0 : item.price) }} сўм</span>
-              <button @click="aOfflineItems.splice(idx,1)" class="text-red-400 hover:text-red-600 transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="flex justify-between px-4 py-2 font-bold text-emerald-700 bg-white">
-            <span>Итого:</span>
-            <span>{{ formatPrice(aOfflineVip ? 0 : aOfflineItems.reduce((s,i)=>s+i.price,0)) }} сўм</span>
-          </div>
-        </div>
-
-        <!-- VIP + payment method -->
-        <div v-if="aOfflineItems.length" class="border rounded-xl px-4 py-3 space-y-3 mb-4">
-          <label class="flex items-center gap-2.5 cursor-pointer select-none">
-            <input type="checkbox" v-model="aOfflineVip"
-              class="w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
-            <span class="text-sm font-semibold text-amber-700 flex items-center gap-1">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6l4 2 4-5 4 5 4-2-2 9H4L2 6z"/></svg>
-              Свой пациент — бесплатно
-            </span>
-          </label>
-          <div v-if="!aOfflineVip">
-            <label class="block text-xs font-medium text-gray-500 mb-1.5">Способ оплаты</label>
-            <div class="flex gap-2">
-              <button v-for="pm in paymentMethods" :key="pm.value" @click="aOfflinePaymentMethod = pm.value"
-                :class="aOfflinePaymentMethod === pm.value ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                class="flex-1 px-3 py-2 rounded-lg text-sm font-medium border transition">{{ pm.label }}</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Note -->
-        <input v-model="aOfflineNote" placeholder="Имя покупателя (необязательно)"
-          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-
-        <div v-if="aOfflineSuccess" class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700 mb-4">
-          Продажа записана. Код: <strong>{{ aOfflineSuccess }}</strong>
-        </div>
-
-        <div class="flex gap-3">
-          <button @click="closeAdminOffline"
-            class="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl hover:bg-gray-50 transition font-medium text-sm">
-            Закрыть
-          </button>
-          <button @click="aSubmitOfflineSale" :disabled="!aOfflineCanSubmit || aOfflineSubmitting"
-            class="flex-1 bg-emerald-600 text-white py-2.5 rounded-xl hover:bg-emerald-700 transition font-medium text-sm disabled:opacity-40">
-            {{ aOfflineSubmitting ? 'Запись...' : 'Записать продажу' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Product Modal -->
     <div v-if="showProductModal" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showProductModal = false"></div>
@@ -1933,79 +1837,6 @@ function logout() {
   router.push('/admin/login')
 }
 
-// Admin offline sale
-const adminOfflineOpen = ref(false)
-const aOfflineProductId = ref('')
-const aOfflineQty = ref(1)
-const aOfflineItems = ref([])
-const aOfflineNote = ref('')
-const aOfflineSubmitting = ref(false)
-const aOfflineSuccess = ref('')
-const aOfflineVip = ref(false)
-const aOfflinePaymentMethod = ref('cash')
-
-const paymentMethods = [
-  { value: 'cash', label: 'Наличные' },
-  { value: 'terminal', label: 'Терминал' },
-  { value: 'card', label: 'Карта' },
-]
-
-const aOfflineCanSubmit = computed(() => aOfflineItems.value.length > 0)
-
-function resetAdminOffline() {
-  aOfflineItems.value = []
-  aOfflineNote.value = ''
-  aOfflineVip.value = false
-  aOfflinePaymentMethod.value = 'cash'
-}
-
-function closeAdminOffline() {
-  adminOfflineOpen.value = false
-  aOfflineSuccess.value = ''
-  resetAdminOffline()
-}
-
-function aAddOfflineItem() {
-  if (!aOfflineProductId.value || aOfflineQty.value < 1) return
-  const product = products.value.find(p => p.id === aOfflineProductId.value)
-  if (!product) return
-  const price = product.price_per_pack * aOfflineQty.value
-  aOfflineItems.value.push({
-    product_id: product.id,
-    name: product.name,
-    quantity: aOfflineQty.value,
-    unit_type: 'pack',
-    price,
-  })
-  aOfflineProductId.value = ''
-  aOfflineQty.value = 1
-}
-
-async function aSubmitOfflineSale() {
-  if (!aOfflineCanSubmit.value) return
-  aOfflineSubmitting.value = true
-  aOfflineSuccess.value = ''
-  try {
-    const res = await api.post('/admin/offline-sale', {
-      items: aOfflineItems.value.map(i => ({
-        product_id: i.product_id,
-        quantity: i.quantity,
-        unit_type: 'pack',
-      })),
-      offline_note: aOfflineNote.value,
-      is_vip: aOfflineVip.value,
-      payment_method: aOfflineVip.value ? '' : aOfflinePaymentMethod.value,
-    })
-    aOfflineSuccess.value = res.data.order_code
-    resetAdminOffline()
-    loadOrders()
-    loadProducts()
-  } catch (e) {
-    alert(e.response?.data?.error || 'Ошибка при записи')
-  } finally {
-    aOfflineSubmitting.value = false
-  }
-}
 
 // Doctors
 const doctors = ref([])
@@ -2156,14 +1987,6 @@ async function loadPerDoctorStats() {
   } finally {
     perDoctorStatsLoading.value = false
   }
-}
-
-async function deleteProductComment(id) {
-  if (!confirm('Удалить комментарий (описание) этого препарата?')) return
-  try {
-    await api.delete(`/admin/products/${id}/comment`)
-    await loadProducts()
-  } catch { alert('Ошибка при удалении комментария') }
 }
 
 // News

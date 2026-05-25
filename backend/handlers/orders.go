@@ -75,6 +75,13 @@ func CreateOrder(c *gin.Context) {
 
 	tx := database.DB.Begin()
 
+	// Block the order if the warehouse doesn't have enough of any item.
+	if err := checkProductStock(tx, input.Items); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	if err := tx.Create(&order).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании заказа"})

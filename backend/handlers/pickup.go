@@ -123,12 +123,10 @@ func UpdateOrderItems(c *gin.Context) {
 		order.ReturnReason = strings.TrimSpace(input.ReturnReason)
 		database.DB.Model(&models.Order{}).Where("id = ?", order.ID).
 			Updates(map[string]interface{}{"is_returned": true, "return_reason": order.ReturnReason})
-		if order.WorkerID != nil {
-			for productID, prevQty := range prevQtyByProduct {
-				returned := prevQty - newQtyByProduct[productID]
-				if returned > 0 {
-					restockWorker(*order.WorkerID, productID, returned)
-				}
+		for productID, prevQty := range prevQtyByProduct {
+			returned := prevQty - newQtyByProduct[productID]
+			if returned > 0 {
+				restockProduct(productID, returned)
 			}
 		}
 	}
@@ -260,12 +258,9 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 
 	if input.Status == "delivered" {
 		go sendTelegramNotification(order)
+		// Online & doctor orders draw down the shared warehouse on delivery.
+		// (Direct offline sales already decremented it at creation.)
 		decrementStockForOrder(order)
-		// The goods leave the delivering worker's personal warehouse (online & doctor
-		// orders; direct offline sales already drew stock at creation).
-		if order.WorkerID != nil {
-			decrementWorkerStockNoBlock(*order.WorkerID, order.Items)
-		}
 	}
 
 	c.JSON(http.StatusOK, order)

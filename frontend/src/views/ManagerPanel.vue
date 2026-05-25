@@ -186,7 +186,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
@@ -321,5 +321,12 @@ function selectPeriod(p) { period.value = p; if (p !== 'custom') loadAnalytics()
 
 function logout() { authStore.workerLogout(); router.push('/admin/login') }
 
-onMounted(() => { loadProducts(); loadStock(); loadOrders(); loadAnalytics() })
+let stockPoll = null
+onMounted(() => {
+  loadProducts(); loadStock(); loadOrders(); loadAnalytics()
+  stockPoll = setInterval(() => {
+    if (tab.value === 'sale' || tab.value === 'stock') loadStock()
+  }, 7000)
+})
+onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
 </script>

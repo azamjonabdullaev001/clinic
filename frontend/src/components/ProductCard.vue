@@ -34,6 +34,12 @@
           <span class="text-[10px] sm:text-xs font-medium text-stone-400 uppercase tracking-wide leading-tight">{{ t.product_pack }} <span class="normal-case">({{ product.quantity_per_pack }} {{ t.unit_piece }})</span></span>
           <span class="text-sm sm:text-lg font-bold text-brand-700">{{ formatPrice(product.price_per_pack) }} {{ t.currency }}</span>
         </div>
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] sm:text-xs font-medium text-stone-400">{{ t.in_stock }}</span>
+          <span class="text-[10px] sm:text-xs font-semibold" :class="(product.stock_quantity || 0) > 0 ? 'text-emerald-600' : 'text-red-500'">
+            {{ (product.stock_quantity || 0) > 0 ? (product.stock_quantity + ' ' + t.unit_pack) : t.out_of_stock }}
+          </span>
+        </div>
       </div>
 
       <!-- Add to cart -->
