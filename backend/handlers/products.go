@@ -91,6 +91,7 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	BroadcastStock(product.ID, product.StockQuantity)
 	product.ComputePackPrice()
 	c.JSON(http.StatusOK, product)
 }

@@ -31,6 +31,7 @@ func decrementStockForOrder(order models.Order) {
 		}
 		database.DB.Model(&models.Product{}).Where("id = ?", item.ProductID).
 			Update("stock_quantity", newStock)
+		BroadcastStock(item.ProductID, newStock)
 	}
 }
 
@@ -149,6 +150,10 @@ func CreateOfflineSale(c *gin.Context) {
 	}
 
 	tx.Commit()
+
+	for _, item := range input.Items {
+		broadcastProductStock(item.ProductID)
+	}
 
 	database.DB.Preload("Items.Product").First(&order, order.ID)
 	for i := range order.Items {

@@ -99,6 +99,8 @@ func main() {
 
 		api.GET("/doctors", handlers.GetDoctors)
 
+		api.GET("/ws/stock", handlers.StockWebSocket)
+
 		api.POST("/contact", handlers.SendContactMessage)
 
 		orders := api.Group("/orders")

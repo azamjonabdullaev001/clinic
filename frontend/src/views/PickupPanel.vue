@@ -359,12 +359,40 @@
         </div>
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
           <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">{{ txt.my_stock }}</h2></div>
-          <div class="divide-y divide-gray-100">
-            <div v-for="s in stock" :key="s.id" class="flex justify-between px-6 py-3 text-sm">
-              <span class="text-gray-700">{{ s.product?.name }}</span>
-              <span class="font-bold" :class="s.quantity > 0 ? 'text-gray-800' : 'text-red-500'">{{ s.quantity }} {{ txt.pack }}</span>
-            </div>
-            <div v-if="stock.length === 0" class="px-6 py-8 text-center text-gray-400 text-sm">{{ txt.stock_empty }}</div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b">
+                <tr>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ txt.product }}</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ txt.unit }}</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ txt.total }}</th>
+                  <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ txt.my_stock }}</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="s in stock" :key="s.id" class="hover:bg-gray-50 transition">
+                  <td class="px-5 py-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+                        <img v-if="s.product?.image_path" :src="s.product.image_path" class="w-full h-full object-cover" />
+                        <svg v-else class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                      </div>
+                      <span class="font-medium text-gray-800">{{ s.product?.name }}</span>
+                    </div>
+                  </td>
+                  <td class="px-5 py-3 text-gray-500 text-sm">{{ s.product?.quantity_per_pack }} {{ txt.piece }}</td>
+                  <td class="px-5 py-3 text-gray-600 text-sm">{{ formatPrice(s.product?.price_per_pack) }} {{ txt.sum }}</td>
+                  <td class="px-5 py-3 text-right">
+                    <span :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2.5 py-1 rounded-lg text-sm font-bold">
+                      {{ stockOf(s.product_id) }} {{ txt.pack }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="stock.length === 0">
+                  <td colspan="4" class="px-5 py-10 text-center text-gray-400 text-sm">{{ txt.stock_empty }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -708,9 +736,11 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
+import { useStockSocket, displayStock } from '../stores/stock'
 import LineChart from '../components/LineChart.vue'
 
 const authStore = useAuthStore()
+useStockSocket()
 const router = useRouter()
 const { night, toggle: toggleNight } = useNight()
 
@@ -1498,7 +1528,7 @@ const stockMap = computed(() => {
   for (const s of stock.value) m[s.product_id] = s.quantity
   return m
 })
-function stockOf(productId) { return stockMap.value[productId] || 0 }
+function stockOf(productId) { return displayStock(productId, stockMap.value[productId] || 0) }
 
 async function loadStock() {
   try { stock.value = (await api.get('/pickup/stock')).data || [] } catch (e) { console.error(e) }

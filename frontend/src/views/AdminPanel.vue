@@ -78,8 +78,8 @@
                   </td>
                   <td class="px-5 py-3 text-gray-600">{{ product.quantity_per_pack }} шт</td>
                   <td class="px-5 py-3">
-                    <span :class="product.stock_quantity > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2 py-0.5 rounded text-sm font-semibold">
-                      {{ product.stock_quantity }} капс.
+                    <span :class="liveQty(product) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2 py-0.5 rounded text-sm font-semibold">
+                      {{ liveQty(product) }} капс.
                     </span>
                   </td>
                   <td class="px-5 py-3 text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</td>
@@ -1210,6 +1210,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useStockSocket, displayStock } from '../stores/stock'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { Chart, registerables } from 'chart.js'
@@ -1217,6 +1218,8 @@ Chart.register(...registerables)
 
 const authStore = useAuthStore()
 const router = useRouter()
+useStockSocket()
+function liveQty(p) { return displayStock(p.id, p.stock_quantity) }
 
 const activeTab = ref('products')
 const tabs = [

@@ -54,6 +54,7 @@ func AddProductStock(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении склада"})
 		return
 	}
+	BroadcastStock(product.ID, newQty)
 	c.JSON(http.StatusOK, gin.H{"product_id": product.ID, "quantity": newQty})
 }
 
@@ -106,4 +107,5 @@ func restockProduct(productID uint, qty int) {
 	}
 	database.DB.Model(&models.Product{}).Where("id = ?", productID).
 		UpdateColumn("stock_quantity", gorm.Expr("stock_quantity + ?", qty))
+	broadcastProductStock(productID)
 }

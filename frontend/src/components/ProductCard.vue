@@ -36,8 +36,8 @@
         </div>
         <div class="flex items-center justify-between">
           <span class="text-[10px] sm:text-xs font-medium text-stone-400">{{ t.in_stock }}</span>
-          <span class="text-[10px] sm:text-xs font-semibold" :class="(product.stock_quantity || 0) > 0 ? 'text-emerald-600' : 'text-red-500'">
-            {{ (product.stock_quantity || 0) > 0 ? (product.stock_quantity + ' ' + t.unit_pack) : t.out_of_stock }}
+          <span class="text-[10px] sm:text-xs font-semibold" :class="stockLeft > 0 ? 'text-emerald-600' : 'text-red-500'">
+            {{ stockLeft > 0 ? (stockLeft + ' ' + t.unit_pack) : t.out_of_stock }}
           </span>
         </div>
       </div>
@@ -163,16 +163,20 @@
 import { computed, ref } from 'vue'
 import { useLangStore } from '../stores/lang'
 import { api, useAuthStore } from '../stores/auth'
+import { useStockSocket, displayStock } from '../stores/stock'
 
 const langStore = useLangStore()
 const authStore = useAuthStore()
 const t = computed(() => langStore.t)
+useStockSocket()
 
 const props = defineProps({
   product: { type: Object, required: true }
 })
 
 const emit = defineEmits(['add-to-cart'])
+
+const stockLeft = computed(() => displayStock(props.product.id, props.product.stock_quantity))
 
 const isDescriptionOpen = ref(false)
 const isAdding = ref(false)

@@ -122,11 +122,11 @@
 
           <!-- Stock list -->
           <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">Мой склад</h2></div>
+            <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800">Склад</h2></div>
             <div class="divide-y divide-gray-100">
-              <div v-for="s in stock" :key="s.id" class="flex justify-between px-6 py-3 text-sm">
+              <div v-for="s in stock" :key="s.id" class="flex justify-between items-center px-6 py-3 text-sm">
                 <span class="text-gray-700">{{ s.product?.name }}</span>
-                <span class="font-bold" :class="s.quantity > 0 ? 'text-gray-800' : 'text-red-500'">{{ s.quantity }} капс.</span>
+                <span class="px-2.5 py-1 rounded-lg font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'">{{ stockOf(s.product_id) }} капс.</span>
               </div>
               <div v-if="stock.length === 0" class="px-6 py-8 text-center text-gray-400 text-sm">Склад пуст</div>
             </div>
@@ -190,11 +190,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
+import { useStockSocket, displayStock } from '../stores/stock'
 import LineChart from '../components/LineChart.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const { night, toggle: toggleNight } = useNight()
+useStockSocket()
 
 const tab = ref('sale')
 
@@ -238,7 +240,7 @@ const stockMap = computed(() => {
   for (const s of stock.value) m[s.product_id] = s.quantity
   return m
 })
-function stockOf(productId) { return stockMap.value[productId] || 0 }
+function stockOf(productId) { return displayStock(productId, stockMap.value[productId] || 0) }
 function productById(id) { return products.value.find(p => p.id === id) }
 function cartQty(productId) { const i = items.value.find(x => x.product_id === productId); return i ? i.quantity : 0 }
 
