@@ -238,7 +238,7 @@
                 <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span>
               </div>
               <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(offlineVip ? 0 : item.price) }} {{ txt.sum }}</span>
+                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(saleType === 'vip' ? 0 : item.price) }} {{ txt.sum }}</span>
                 <button @click="offlineItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -246,24 +246,39 @@
             </div>
             <div class="flex items-center justify-between px-4 py-2 bg-white">
               <span class="text-sm font-semibold text-gray-700">{{ txt.total }}:</span>
-              <span class="font-bold text-emerald-600">{{ formatPrice(offlineVip ? 0 : offlineTotal) }} {{ txt.sum }}</span>
+              <span class="font-bold text-emerald-600">{{ formatPrice(saleType === 'vip' ? 0 : offlineTotal) }} {{ txt.sum }}</span>
             </div>
           </div>
 
-          <!-- VIP + payment method -->
+          <!-- Sale type + payment method -->
           <div v-if="offlineItems.length" class="border rounded-xl px-4 py-3 space-y-3 bg-white">
-            <!-- VIP toggle -->
-            <label class="flex items-center gap-2.5 cursor-pointer select-none">
-              <input type="checkbox" v-model="offlineVip"
-                class="w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-400" />
-              <span class="text-sm font-semibold text-amber-700 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6l4 2 4-5 4 5 4-2-2 9H4L2 6z"/></svg>
-                {{ txt.vip_free }}
-              </span>
-            </label>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">{{ txt.sale_type }}</label>
+              <div class="flex gap-2 flex-wrap">
+                <button @click="saleType = 'regular'"
+                  :class="saleType === 'regular' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                  class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ txt.sale_regular }}</button>
+                <button @click="saleType = 'vip'"
+                  :class="saleType === 'vip' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                  class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ txt.vip_free }}</button>
+                <button @click="saleType = 'marketolog'"
+                  :class="saleType === 'marketolog' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                  class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ txt.sale_marketolog }}</button>
+              </div>
+            </div>
 
-            <!-- Payment method (hidden for VIP since it's free) -->
-            <div v-if="!offlineVip">
+            <!-- Marketolog select -->
+            <div v-if="saleType === 'marketolog'">
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">{{ txt.choose_marketolog }}</label>
+              <select v-model="offlineMarketolog" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <option value="">{{ txt.choose_marketolog }}</option>
+                <option v-for="m in marketologs" :key="m.id" :value="m.name">{{ m.name }}</option>
+              </select>
+              <p v-if="marketologs.length === 0" class="text-xs text-gray-400 mt-1">{{ txt.no_marketologs }}</p>
+            </div>
+
+            <!-- Payment method (regular sales only) -->
+            <div v-if="saleType === 'regular'">
               <label class="block text-xs font-medium text-gray-500 mb-1.5">{{ txt.payment_method }}</label>
               <div class="flex gap-2">
                 <button v-for="pm in paymentMethods" :key="pm.value" @click="offlinePaymentMethod = pm.value"
@@ -836,7 +851,12 @@ const texts = {
     saving_items: 'Сохранение...',
     cancel_edit: 'Отмена',
     view_on_map: 'На карте',
-    vip_free: 'Свой пациент — бесплатно',
+    vip_free: 'Свой пациент (бесплатно)',
+    sale_type: 'Тип продажи',
+    sale_regular: 'Обычная',
+    sale_marketolog: 'Маркетолог (долг)',
+    choose_marketolog: 'Выберите маркетолога',
+    no_marketologs: 'Нет маркетологов. Добавьте работника с ролью «Менеджер» в админ-панели.',
     payment_method: 'Способ оплаты',
     pay_cash: 'Наличные',
     pay_terminal: 'Терминал',
@@ -939,7 +959,12 @@ const texts = {
     saving_items: "Saqlanmoqda...",
     cancel_edit: "Bekor qilish",
     view_on_map: "Xaritada ko'rish",
-    vip_free: "O'z bemori — bepul",
+    vip_free: "O'z bemori (bepul)",
+    sale_type: 'Sotuv turi',
+    sale_regular: 'Oddiy',
+    sale_marketolog: 'Marketolog (qarz)',
+    choose_marketolog: 'Marketologni tanlang',
+    no_marketologs: "Marketolog yo'q. Admin-panelda «Menejer» rolidagi xodim qo'shing.",
     payment_method: "To'lov usuli",
     pay_cash: 'Naqd',
     pay_terminal: 'Terminal',
@@ -1467,11 +1492,17 @@ const offlineItems = ref([])
 const offlineNote = ref('')
 const offlineSubmitting = ref(false)
 const offlineSuccess = ref('')
-const offlineVip = ref(false)
+const saleType = ref('regular') // 'regular' | 'vip' | 'marketolog'
+const offlineMarketolog = ref('')
+const marketologs = ref([])
 const offlinePaymentMethod = ref('cash')
 const offlineReferral = ref('')
 const offlineUnit = ref('pack')
 const allDoctors = ref([])
+
+async function loadMarketologs() {
+  try { marketologs.value = (await api.get('/pickup/marketologs')).data || [] } catch (e) { console.error(e) }
+}
 
 // Capsules available = pieces in stock / pieces per capsule.
 function qppOf(productId) {
@@ -1488,7 +1519,11 @@ const paymentMethods = computed(() => [
 
 const offlineTotal = computed(() => offlineItems.value.reduce((s, i) => s + i.price, 0))
 
-const offlineCanSubmit = computed(() => offlineItems.value.length > 0)
+const offlineCanSubmit = computed(() => {
+  if (offlineItems.value.length === 0) return false
+  if (saleType.value === 'marketolog' && !offlineMarketolog.value) return false
+  return true
+})
 
 async function loadProducts() {
   try {
@@ -1529,7 +1564,8 @@ function addOfflineItem() {
 function resetOfflineSale() {
   offlineItems.value = []
   offlineNote.value = ''
-  offlineVip.value = false
+  saleType.value = 'regular'
+  offlineMarketolog.value = ''
   offlinePaymentMethod.value = 'cash'
   offlineReferral.value = ''
   offlineUnit.value = 'pack'
@@ -1540,11 +1576,14 @@ async function submitOfflineSale() {
   offlineSubmitting.value = true
   offlineSuccess.value = ''
   try {
+    const isVip = saleType.value === 'vip'
+    const isMkt = saleType.value === 'marketolog'
     const res = await api.post('/pickup/offline-sale', {
       items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
       offline_note: offlineNote.value,
-      is_vip: offlineVip.value,
-      payment_method: offlineVip.value ? '' : offlinePaymentMethod.value,
+      is_vip: isVip,
+      sales_channel: isMkt ? offlineMarketolog.value : '',
+      payment_method: (isVip || isMkt) ? '' : offlinePaymentMethod.value,
       referred_by: offlineReferral.value.trim(),
     })
     offlineSuccess.value = true
@@ -1618,6 +1657,7 @@ onMounted(() => {
   loadOrders()
   loadProducts()
   loadDoctors()
+  loadMarketologs()
   // Keep stock fresh (near real-time) while selling or managing the warehouse.
   stockPoll = setInterval(() => {
     if (tab.value === 'offline' || tab.value === 'stock') loadStock()

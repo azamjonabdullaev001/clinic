@@ -131,6 +131,7 @@ func main() {
 			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)
 			pickup.POST("/stock", handlers.AddProductStock)
+			pickup.GET("/marketologs", handlers.GetMarketologs)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)
