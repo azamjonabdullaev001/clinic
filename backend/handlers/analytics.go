@@ -28,7 +28,17 @@ type TopProduct struct {
 type DoctorReferral struct {
 	DoctorName  string  `json:"doctor_name"`
 	OrderCount  int     `json:"order_count"`
+	Capsules    int     `json:"capsules"`
+	Pieces      int     `json:"pieces"`
 	TotalRevenue float64 `json:"total_revenue"`
+}
+
+// CategoryStat is a non-overlapping summary bucket (own patients / doctors / regular / marketolog).
+type CategoryStat struct {
+	Orders   int     `json:"orders"`
+	Capsules int     `json:"capsules"`
+	Pieces   int     `json:"pieces"`
+	Revenue  float64 `json:"revenue"`
 }
 
 type MarketologProduct struct {
@@ -47,12 +57,14 @@ type MarketologStat struct {
 }
 
 type AnalyticsResponse struct {
-	Points          []AnalyticsPoint `json:"points"`
-	TopProducts     []TopProduct     `json:"top_products"`
-	DoctorReferrals []DoctorReferral `json:"doctor_referrals"`
-	TotalRevenue    float64          `json:"total_revenue"`
-	TotalOrders     int              `json:"total_orders"`
-	Marketolog      MarketologStat   `json:"marketolog"`
+	Points          []AnalyticsPoint         `json:"points"`
+	TopProducts     []TopProduct             `json:"top_products"`
+	DoctorReferrals []DoctorReferral         `json:"doctor_referrals"`
+	TotalRevenue    float64                  `json:"total_revenue"`
+	TotalOrders     int                      `json:"total_orders"`
+	Marketolog      MarketologStat           `json:"marketolog"`
+	VIP             MarketologStat           `json:"vip"`
+	Breakdown       map[string]*CategoryStat `json:"breakdown"`
 }
 
 func GetAnalytics(c *gin.Context) {
@@ -268,21 +280,98 @@ func GetAnalytics(c *gin.Context) {
 		totalRevenue += p.Revenue
 	}
 
-	// Doctor referral stats
+	// Classify every non-marketolog order into exactly one bucket (priority:
+	// own patient > doctor referral > regular) and aggregate capsule/piece counts.
+	// Own-patient (свои пациенты) sales get a product-level breakdown, doctor
+	// referrals get per-doctor tablet counts, and the marketolog debt is mirrored
+	// into the summary so the admin sees every channel separately.
+	breakdown := map[string]*CategoryStat{
+		"vip":     {},
+		"doctor":  {},
+		"regular": {},
+		"marketolog": {
+			Orders:   marketolog.TotalOrders,
+			Capsules: marketolog.TotalCapsules,
+			Pieces:   marketolog.TotalPieces,
+			Revenue:  marketolog.TotalRevenue,
+		},
+	}
+	var vip MarketologStat
+	vipMap := make(map[uint]*MarketologProduct)
 	doctorMap := make(map[string]*DoctorReferral)
 	for _, order := range orders {
-		if order.ReferredBy == "" {
-			continue
-		}
-		d, ok := doctorMap[order.ReferredBy]
-		if !ok {
-			d = &DoctorReferral{DoctorName: order.ReferredBy}
-			doctorMap[order.ReferredBy] = d
-		}
-		d.OrderCount++
+		var revenue float64
+		caps, pcs := 0, 0
 		for _, item := range order.Items {
-			d.TotalRevenue += item.Price
+			if item.Quantity <= 0 {
+				continue
+			}
+			revenue += item.Price
+			if item.UnitType == "piece" {
+				pcs += item.Quantity
+			} else {
+				caps += item.Quantity
+			}
 		}
+
+		cat := "regular"
+		if order.IsVIP {
+			cat = "vip"
+		} else if strings.TrimSpace(order.ReferredBy) != "" {
+			cat = "doctor"
+		}
+		b := breakdown[cat]
+		b.Orders++
+		b.Capsules += caps
+		b.Pieces += pcs
+		b.Revenue += revenue
+
+		switch cat {
+		case "vip":
+			// Own-patient sales are free (item price 0), so report the retail value
+			// of the medicine handed out rather than the recorded 0.
+			vip.TotalOrders++
+			vip.TotalCapsules += caps
+			vip.TotalPieces += pcs
+			vipValue := 0.0
+			for _, item := range order.Items {
+				if item.Quantity <= 0 {
+					continue
+				}
+				item.Product.ComputePackPrice()
+				v := item.Product.PricePerPack * float64(item.Quantity)
+				if item.UnitType == "piece" {
+					v = item.Product.PricePerPill * float64(item.Quantity)
+				}
+				vipValue += v
+				m, ok := vipMap[item.ProductID]
+				if !ok {
+					m = &MarketologProduct{ProductName: item.Product.Name}
+					vipMap[item.ProductID] = m
+				}
+				m.Revenue += v
+				if item.UnitType == "piece" {
+					m.Pieces += item.Quantity
+				} else {
+					m.Capsules += item.Quantity
+				}
+			}
+			vip.TotalRevenue += vipValue
+			b.Revenue += vipValue
+		case "doctor":
+			d, ok := doctorMap[order.ReferredBy]
+			if !ok {
+				d = &DoctorReferral{DoctorName: order.ReferredBy}
+				doctorMap[order.ReferredBy] = d
+			}
+			d.OrderCount++
+			d.Capsules += caps
+			d.Pieces += pcs
+			d.TotalRevenue += revenue
+		}
+	}
+	for _, m := range vipMap {
+		vip.Products = append(vip.Products, *m)
 	}
 	var doctorSlice []DoctorReferral
 	for _, d := range doctorMap {
@@ -303,6 +392,8 @@ func GetAnalytics(c *gin.Context) {
 		TotalRevenue:    totalRevenue,
 		TotalOrders:     len(orders),
 		Marketolog:      marketolog,
+		VIP:             vip,
+		Breakdown:       breakdown,
 	})
 }
 
