@@ -116,6 +116,10 @@
       <div v-if="activeTab === 'orders'">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-gray-800">Заказы</h2>
+          <button v-if="orders.length" @click="deleteAllOrders"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+            Удалить все заказы
+          </button>
         </div>
         <div class="space-y-4">
           <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-6"
@@ -1890,6 +1894,16 @@ async function deleteOrder(id) {
     await loadOrders()
   } catch (e) {
     alert('Ошибка при удалении заказа')
+  }
+}
+
+async function deleteAllOrders() {
+  if (!confirm('Удалить ВСЕ заказы? Это действие нельзя отменить.')) return
+  try {
+    await api.delete('/admin/orders')
+    await loadOrders()
+  } catch (e) {
+    alert('Ошибка при удалении заказов')
   }
 }
 

@@ -232,6 +232,23 @@ func DeleteOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ удалён"})
 }
 
+// DeleteAllOrders removes every order and its items (admin only).
+func DeleteAllOrders(c *gin.Context) {
+	tx := database.DB.Begin()
+	if err := tx.Where("id > 0").Delete(&models.OrderItem{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении позиций"})
+		return
+	}
+	if err := tx.Where("id > 0").Delete(&models.Order{}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении заказов"})
+		return
+	}
+	tx.Commit()
+	c.JSON(http.StatusOK, gin.H{"message": "Все заказы удалены"})
+}
+
 func formatNumber(n float64) string {
 	s := fmt.Sprintf("%.0f", n)
 	if len(s) <= 3 {

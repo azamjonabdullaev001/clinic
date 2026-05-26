@@ -12,7 +12,7 @@ api.interceptors.request.use(config => {
   const userToken = localStorage.getItem('userToken') || ''
   if (config.url?.startsWith('/admin') && adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`
-  } else if ((config.url?.startsWith('/pickup') || config.url?.startsWith('/nurse')) && workerToken) {
+  } else if ((config.url?.startsWith('/pickup') || config.url?.startsWith('/nurse') || config.url?.startsWith('/manager')) && workerToken) {
     config.headers.Authorization = `Bearer ${workerToken}`
   } else if (config.url?.startsWith('/doctor') && doctorToken) {
     config.headers.Authorization = `Bearer ${doctorToken}`

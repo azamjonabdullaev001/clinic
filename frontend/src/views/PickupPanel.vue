@@ -288,7 +288,7 @@
             </div>
           </div>
 
-          <div v-if="offlineItems.length">
+          <div v-if="offlineItems.length && saleType !== 'marketolog'">
             <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.referral_label }}</label>
             <input
               v-model="offlineReferral"
@@ -304,6 +304,7 @@
 
           <div class="flex gap-2 flex-wrap">
             <input
+              v-if="saleType !== 'marketolog'"
               v-model="offlineNote"
               :placeholder="txt.buyer_name"
               class="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"

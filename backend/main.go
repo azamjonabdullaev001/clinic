@@ -58,6 +58,7 @@ func main() {
 				protected.GET("/orders", handlers.GetOrders)
 				protected.PUT("/orders/:id/status", handlers.UpdateOrderStatus)
 				protected.DELETE("/orders/:id", handlers.DeleteOrder)
+				protected.DELETE("/orders", handlers.DeleteAllOrders)
 				protected.GET("/workers", handlers.GetWorkers)
 				protected.POST("/workers", handlers.CreateWorker)
 				protected.PUT("/workers/:id", handlers.UpdateWorker)

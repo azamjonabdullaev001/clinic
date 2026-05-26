@@ -503,6 +503,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 	byDoctor := map[string]*catAgg{}
 	byMarketolog := map[string]*catAgg{}
 
+	mainOrders := 0
 	for _, order := range orders {
 		var revenue, caps, pcs = 0.0, 0, 0
 		for _, item := range order.Items {
@@ -516,13 +517,6 @@ func GetWorkerAnalytics(c *gin.Context) {
 				caps += item.Quantity
 			}
 		}
-		totalRevenue += revenue
-		addRevenueToPoint(points, period, startTime, order.CreatedAt.In(loc), revenue)
-		if order.IsOffline && !order.IsNurseOrder {
-			createdCount++
-		} else {
-			confirmedCount++
-		}
 
 		// Classify into a single category.
 		cat := "regular"
@@ -532,6 +526,18 @@ func GetWorkerAnalytics(c *gin.Context) {
 			cat = "vip"
 		} else if strings.TrimSpace(order.ReferredBy) != "" {
 			cat = "doctor"
+		}
+
+		// Marketolog (debt) sales never mix into the main revenue/points/totals.
+		if cat != "marketolog" {
+			totalRevenue += revenue
+			mainOrders++
+			addRevenueToPoint(points, period, startTime, order.CreatedAt.In(loc), revenue)
+			if order.IsOffline && !order.IsNurseOrder {
+				createdCount++
+			} else {
+				confirmedCount++
+			}
 		}
 		c := cats[cat]
 		c.Orders++
@@ -586,7 +592,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"points":          points,
 		"total_revenue":   totalRevenue,
-		"total_orders":    len(orders),
+		"total_orders":    mainOrders,
 		"created_count":   createdCount,
 		"confirmed_count": confirmedCount,
 		"breakdown":       cats,
