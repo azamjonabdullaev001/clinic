@@ -135,6 +135,8 @@ type Order struct {
 	CancelledByRole    string   `json:"cancelled_by_role"`
 	IsReturned         bool     `gorm:"default:false" json:"is_returned"` // delivered order edited as a return
 	ReturnReason       string   `json:"return_reason"`
+	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
+	ArchiveReason      string   `json:"archive_reason"`
 	CreatedAt       time.Time   `json:"created_at"`
 }
 

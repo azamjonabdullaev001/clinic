@@ -139,7 +139,7 @@ func CreateOrder(c *gin.Context) {
 func GetUserOrders(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	var orders []models.Order
-	database.DB.Where("user_id = ?", userID).
+	database.DB.Where("user_id = ? AND archived = ?", userID, false).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)
@@ -155,7 +155,8 @@ func GetUserOrders(c *gin.Context) {
 
 func GetOrders(c *gin.Context) {
 	var orders []models.Order
-	database.DB.Preload("Items.Product").Preload("User").
+	database.DB.Where("archived = ?", false).
+		Preload("Items.Product").Preload("User").
 		Order("created_at desc").
 		Find(&orders)
 
@@ -232,20 +233,24 @@ func DeleteOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ удалён"})
 }
 
-// DeleteAllOrders removes every order and its items (admin only).
+// DeleteAllOrders hides every order from the order lists (admin only). The rows
+// stay in the database so analytics still reflects past sales — we only mark them
+// archived, optionally recording why.
 func DeleteAllOrders(c *gin.Context) {
-	tx := database.DB.Begin()
-	if err := tx.Where("id > 0").Delete(&models.OrderItem{}).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении позиций"})
-		return
+	var input struct {
+		Reason string `json:"reason"`
 	}
-	if err := tx.Where("id > 0").Delete(&models.Order{}).Error; err != nil {
-		tx.Rollback()
+	c.ShouldBindJSON(&input)
+
+	if err := database.DB.Model(&models.Order{}).
+		Where("archived = ?", false).
+		Updates(map[string]interface{}{
+			"archived":       true,
+			"archive_reason": input.Reason,
+		}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении заказов"})
 		return
 	}
-	tx.Commit()
 	c.JSON(http.StatusOK, gin.H{"message": "Все заказы удалены"})
 }
 

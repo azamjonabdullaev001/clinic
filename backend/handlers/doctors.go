@@ -281,7 +281,7 @@ func CreateDoctorOrder(c *gin.Context) {
 func GetDoctorOrders(c *gin.Context) {
 	doctorID, _ := c.Get("doctorID")
 	var orders []models.Order
-	database.DB.Where("doctor_id = ? AND is_nurse_order = true", doctorID).
+	database.DB.Where("doctor_id = ? AND is_nurse_order = true AND archived = ?", doctorID, false).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)

@@ -1898,9 +1898,19 @@ async function deleteOrder(id) {
 }
 
 async function deleteAllOrders() {
-  if (!confirm('Удалить ВСЕ заказы? Это действие нельзя отменить.')) return
+  // Step 1: initial warning.
+  if (!confirm('Удалить ВСЕ заказы? Они исчезнут из списков, но аналитика сохранится. Это действие нельзя отменить.')) return
+  // Step 2: require the user to type the confirmation phrase or a reason.
+  const input = prompt('Для подтверждения введите «удалить все» или укажите причину удаления:')
+  if (input === null) return
+  const text = input.trim()
+  if (text === '') {
+    alert('Подтверждение не получено. Удаление отменено.')
+    return
+  }
+  const reason = text.toLowerCase() === 'удалить все' ? '' : text
   try {
-    await api.delete('/admin/orders')
+    await api.delete('/admin/orders', { data: { reason } })
     await loadOrders()
   } catch (e) {
     alert('Ошибка при удалении заказов')

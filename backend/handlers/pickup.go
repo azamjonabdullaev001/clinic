@@ -221,9 +221,10 @@ func GetPickupOrders(c *gin.Context) {
 	// shared with every pickup worker, so anyone can serve a walk-in. Everything that is
 	// already finalized or is a direct offline sale stays private to its own worker.
 	database.DB.Where(
-		"(is_offline = false AND is_nurse_order = false AND status NOT IN ('delivered','cancelled')) "+
+		"archived = false AND ("+
+			"(is_offline = false AND is_nurse_order = false AND status NOT IN ('delivered','cancelled')) "+
 			"OR (is_nurse_order = true AND status NOT IN ('delivered','cancelled')) "+
-			"OR worker_id = ?",
+			"OR worker_id = ?)",
 		workerID,
 	).Preload("Items.Product").Preload("User").
 		Order("created_at desc").
