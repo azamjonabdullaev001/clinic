@@ -51,6 +51,7 @@ func ReturnOrderFull(c *gin.Context) {
 		order.WorkerID = &w
 	}
 	database.DB.Save(&order)
+	BroadcastOrders()
 
 	database.DB.Preload("Items.Product").First(&order, order.ID)
 	for i := range order.Items {
@@ -206,6 +207,8 @@ func UpdateOrderItems(c *gin.Context) {
 		}
 	}
 
+	BroadcastOrders()
+
 	database.DB.Preload("Items.Product").First(&order, order.ID)
 	for i := range order.Items {
 		order.Items[i].Product.ComputePackPrice()
@@ -338,6 +341,7 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 		// (Direct offline sales already decremented it at creation.)
 		decrementStockForOrder(order)
 	}
+	BroadcastOrders()
 
 	c.JSON(http.StatusOK, order)
 }

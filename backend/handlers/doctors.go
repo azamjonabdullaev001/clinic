@@ -269,6 +269,7 @@ func CreateDoctorOrder(c *gin.Context) {
 	}
 
 	tx.Commit()
+	BroadcastOrders()
 
 	database.DB.Preload("Items.Product").First(&order, order.ID)
 	for i := range order.Items {

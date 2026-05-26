@@ -127,6 +127,7 @@ func CreateOrder(c *gin.Context) {
 	}
 
 	tx.Commit()
+	BroadcastOrders()
 
 	database.DB.Preload("Items.Product").Preload("User").First(&order, order.ID)
 	for i := range order.Items {
@@ -200,6 +201,7 @@ func UpdateOrderStatus(c *gin.Context) {
 
 	order.Status = input.Status
 	database.DB.Save(&order)
+	BroadcastOrders()
 
 	database.DB.Preload("Items.Product").Preload("User").First(&order, order.ID)
 	for i := range order.Items {
@@ -229,6 +231,7 @@ func DeleteOrder(c *gin.Context) {
 		return
 	}
 	tx.Commit()
+	BroadcastOrders()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ удалён"})
 }
@@ -251,6 +254,7 @@ func DeleteAllOrders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении заказов"})
 		return
 	}
+	BroadcastOrders()
 	c.JSON(http.StatusOK, gin.H{"message": "Все заказы удалены"})
 }
 

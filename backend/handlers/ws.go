@@ -72,3 +72,9 @@ func broadcastProductStock(productID uint) {
 		BroadcastStock(p.ID, p.StockQuantity)
 	}
 }
+
+// BroadcastOrders signals every client that orders changed, so panels can refresh
+// their order lists and analytics in real time.
+func BroadcastOrders() {
+	stockHub.broadcast(gin.H{"type": "orders"})
+}

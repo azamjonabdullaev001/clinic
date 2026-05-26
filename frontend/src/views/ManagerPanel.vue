@@ -212,11 +212,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
-import { useStockSocket, displayStock } from '../stores/stock'
+import { useStockSocket, displayStock, realtime } from '../stores/stock'
 import LineChart from '../components/LineChart.vue'
 
 const authStore = useAuthStore()
@@ -363,4 +363,7 @@ onMounted(() => {
   }, 7000)
 })
 onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
+
+// Real-time: a marketolog's debt orders/analytics update without a reload.
+watch(() => realtime.ordersVersion, () => { loadOrders(); loadAnalytics() })
 </script>

@@ -168,6 +168,7 @@ func CreateOfflineSale(c *gin.Context) {
 	for _, item := range input.Items {
 		broadcastProductStock(item.ProductID)
 	}
+	BroadcastOrders()
 
 	database.DB.Preload("Items.Product").First(&order, order.ID)
 	for i := range order.Items {

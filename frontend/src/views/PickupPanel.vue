@@ -850,7 +850,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
-import { useStockSocket, displayStock } from '../stores/stock'
+import { useStockSocket, displayStock, realtime } from '../stores/stock'
 import LineChart from '../components/LineChart.vue'
 
 const authStore = useAuthStore()
@@ -1744,6 +1744,13 @@ watch(tab, (t) => {
   if (t === 'analytics' && !analyticsData.value) loadAnalytics()
   if (t === 'stock') loadStock()
   if (t === 'offline') loadStock()
+})
+
+// Real-time: refresh the visible data the moment any order changes anywhere.
+watch(() => realtime.ordersVersion, () => {
+  loadOrders()
+  if (tab.value === 'analytics') loadAnalytics()
+  if (tab.value === 'stock' || tab.value === 'offline') loadStock()
 })
 
 let stockPoll = null

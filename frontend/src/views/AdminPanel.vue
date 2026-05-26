@@ -1354,7 +1354,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useStockSocket, displayStock } from '../stores/stock'
+import { useStockSocket, displayStock, realtime } from '../stores/stock'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { Chart, registerables } from 'chart.js'
@@ -2403,6 +2403,12 @@ watch(activeTab, async (tab) => {
   if (tab === 'doctors') {
     loadDoctors()
   }
+})
+
+// Real-time: refresh orders and analytics as soon as any order changes.
+watch(() => realtime.ordersVersion, async () => {
+  if (activeTab.value === 'orders') loadOrders()
+  if (activeTab.value === 'analytics') loadAnalytics()
 })
 
 onMounted(() => {
