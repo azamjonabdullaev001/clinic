@@ -246,21 +246,12 @@
 
       <!-- ===== Workers Tab ===== -->
       <div v-if="activeTab === 'workers'">
-        <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
+        <div class="flex justify-between items-center mb-6">
           <h2 class="text-2xl font-bold text-gray-800">Работники</h2>
-          <div class="flex items-center gap-3">
-            <router-link to="/admin/workers"
-              class="flex items-center gap-2 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg hover:bg-gray-50 transition font-medium text-sm">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-              </svg>
-              Открыть панель работников
-            </router-link>
-            <button @click="openWorkerModal()" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-              Добавить работника
-            </button>
-          </div>
+          <button @click="openWorkerModal()" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Добавить работника
+          </button>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">

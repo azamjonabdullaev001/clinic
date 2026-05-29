@@ -1,41 +1,81 @@
 <template>
-  <div class="min-h-screen bg-gray-100" :class="{ 'night-mode': night }">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-base font-bold text-gray-800">Панель маркетолога</h1>
-            <p v-if="authStore.worker" class="text-xs text-gray-400">{{ authStore.worker.name }}</p>
-          </div>
+  <div class="min-h-screen flex" :class="{ 'night-mode': night }">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="worker-sidebar flex-shrink-0 flex flex-col"
+      style="width:200px;min-height:100vh;position:sticky;top:0;height:100vh;overflow-y:auto;background:#111827;border-right:1px solid rgba(255,255,255,0.06);">
+
+      <!-- Brand -->
+      <div class="px-4 py-5 flex items-center gap-3"
+        style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div class="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
         </div>
-        <div class="flex items-center gap-3">
-          <button @click="toggleNight" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition" :title="night ? 'Дневной режим' : 'Ночной режим'">
-            <svg v-if="!night" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-            <svg v-else class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          </button>
-          <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">Выйти</button>
+        <div class="min-w-0">
+          <p class="text-white text-sm font-bold leading-tight">{{ txt.title }}</p>
+          <p class="text-gray-400 text-xs leading-tight truncate">{{ authStore.worker?.name }}</p>
         </div>
       </div>
-    </header>
 
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 mt-6 pb-12 flex flex-col md:flex-row gap-6">
-      <!-- Sidebar -->
-      <nav class="md:w-52 flex md:flex-col gap-1 overflow-x-auto flex-shrink-0">
-        <button v-for="s in [{k:'sale',l:'Продажа'},{k:'stock',l:'Склад и заказы'},{k:'analytics',l:'Аналитика'}]" :key="s.k"
+      <!-- Nav items -->
+      <nav class="flex-1 px-3 py-3 space-y-0.5">
+        <button
+          v-for="s in [
+            {k:'sale',      l:txt.nav_sale,      d:'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'},
+            {k:'stock',     l:txt.nav_stock,     d:'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'},
+            {k:'analytics', l:txt.nav_analytics, d:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'}
+          ]"
+          :key="s.k"
           @click="tab = s.k"
-          :class="tab === s.k ? 'bg-purple-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50'"
-          class="px-4 py-2.5 rounded-xl text-sm font-medium transition text-left whitespace-nowrap flex-shrink-0">
+          :class="tab === s.k
+            ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/30'
+            : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'"
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" :d="s.d"/>
+          </svg>
           {{ s.l }}
         </button>
       </nav>
 
-      <div class="flex-1 min-w-0 space-y-6">
+      <!-- Bottom: lang + night + logout -->
+      <div class="px-4 pb-5 pt-3 space-y-3"
+        style="border-top:1px solid rgba(255,255,255,0.06);">
+        <div class="flex items-center gap-1.5">
+          <button @click="lang='ru'"
+            :class="lang==='ru' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'"
+            class="text-sm transition">RU</button>
+          <span class="text-gray-700 text-sm">|</span>
+          <button @click="lang='uz'"
+            :class="lang==='uz' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'"
+            class="text-sm transition">UZ</button>
+        </div>
+        <button @click="toggleNight"
+          class="flex items-center gap-2 text-sm transition w-full"
+          :class="night ? 'text-amber-400' : 'text-gray-500 hover:text-gray-300'">
+          <svg v-if="!night" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          {{ night ? txt.day_mode : txt.night_mode }}
+        </button>
+        <button @click="logout"
+          class="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition w-full">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          {{ txt.logout }}
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="flex-1 overflow-auto bg-gray-100">
+      <div class="p-6 space-y-6 max-w-5xl mx-auto">
 
         <!-- ===== SALE ===== -->
         <div v-show="tab === 'sale'" class="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -207,6 +247,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -223,6 +264,31 @@ const authStore = useAuthStore()
 const router = useRouter()
 const { night, toggle: toggleNight } = useNight()
 useStockSocket()
+
+const lang = ref(localStorage.getItem('managerLang') || 'ru')
+watch(lang, v => localStorage.setItem('managerLang', v))
+
+const mgTexts = {
+  ru: {
+    title: 'Панель маркетолога',
+    nav_sale: 'Продажа',
+    nav_stock: 'Склад и заказы',
+    nav_analytics: 'Аналитика',
+    logout: 'Выйти',
+    night_mode: 'Ночной',
+    day_mode: 'Дневной',
+  },
+  uz: {
+    title: 'Marketolog paneli',
+    nav_sale: 'Sotuv',
+    nav_stock: 'Ombor va buyurtmalar',
+    nav_analytics: 'Tahlil',
+    logout: 'Chiqish',
+    night_mode: 'Tungi',
+    day_mode: 'Kunduzgi',
+  }
+}
+const txt = computed(() => mgTexts[lang.value] || mgTexts.ru)
 
 const tab = ref('sale')
 

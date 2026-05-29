@@ -8,7 +8,6 @@ import PickupPanel from '../views/PickupPanel.vue'
 import NursePanel from '../views/NursePanel.vue'
 import ManagerPanel from '../views/ManagerPanel.vue'
 import DoctorPanel from '../views/DoctorPanel.vue'
-import WorkersPanel from '../views/WorkersPanel.vue'
 import Support from '../views/Support.vue'
 import News from '../views/News.vue'
 
@@ -19,7 +18,6 @@ const routes = [
   { path: '/news', name: 'News', component: News },
   { path: '/admin/login', name: 'AdminLogin', component: AdminLogin },
   { path: '/admin', name: 'AdminPanel', component: AdminPanel, meta: { requiresAdmin: true } },
-  { path: '/admin/workers', name: 'WorkersPanel', component: WorkersPanel, meta: { requiresAdmin: true } },
   { path: '/pickup', name: 'PickupPanel', component: PickupPanel, meta: { requiresWorker: true } },
   { path: '/nurse', name: 'NursePanel', component: NursePanel, meta: { requiresWorker: true } },
   { path: '/manager', name: 'ManagerPanel', component: ManagerPanel, meta: { requiresWorker: true } },

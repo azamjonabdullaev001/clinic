@@ -1,50 +1,83 @@
 <template>
-  <div class="min-h-screen bg-gray-100" :class="{ 'night-mode': night }">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-lg font-bold text-gray-800">{{ txt.title }}</h1>
-            <p v-if="authStore.worker" class="text-xs text-gray-400">{{ authStore.worker.name }}</p>
-          </div>
+  <div class="min-h-screen flex" :class="{ 'night-mode': night }">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="worker-sidebar flex-shrink-0 flex flex-col"
+      style="width:200px;min-height:100vh;position:sticky;top:0;height:100vh;overflow-y:auto;background:#111827;border-right:1px solid rgba(255,255,255,0.06);">
+
+      <!-- Brand -->
+      <div class="px-4 py-5 flex items-center gap-3"
+        style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
         </div>
-        <div class="flex items-center gap-3">
-          <!-- Language switcher -->
-          <div class="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
-            <button @click="lang = 'ru'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
-              :class="lang === 'ru' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">RU</button>
-            <button @click="lang = 'uz'" class="text-xs font-semibold px-2.5 py-1 rounded-md transition-all"
-              :class="lang === 'uz' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'">UZ</button>
-          </div>
-          <button @click="toggleNight" class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition" :title="night ? 'Дневной режим' : 'Ночной режим'">
-            <svg v-if="!night" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-            <svg v-else class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          </button>
-          <button @click="logout" class="text-sm text-red-500 hover:text-red-700 font-medium transition">{{ txt.logout }}</button>
+        <div class="min-w-0">
+          <p class="text-white text-sm font-bold leading-tight">{{ txt.title }}</p>
+          <p class="text-gray-400 text-xs leading-tight truncate">{{ authStore.worker?.name }}</p>
         </div>
       </div>
-    </header>
 
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 pb-12 flex flex-col md:flex-row gap-6">
-
-      <!-- ===== Left sidebar / sections ===== -->
-      <nav class="md:w-52 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible flex-shrink-0">
-        <button v-for="s in [{k:'online',l:txt.nav_online},{k:'offline',l:txt.nav_offline},{k:'stock',l:txt.nav_stock},{k:'analytics',l:txt.nav_analytics},{k:'history',l:txt.nav_history}]" :key="s.k"
+      <!-- Nav items -->
+      <nav class="flex-1 px-3 py-3 space-y-0.5">
+        <button
+          v-for="s in [
+            {k:'online',    l:txt.nav_online,    d:'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064'},
+            {k:'offline',   l:txt.nav_offline,   d:'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'},
+            {k:'stock',     l:txt.nav_stock,     d:'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'},
+            {k:'analytics', l:txt.nav_analytics, d:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
+            {k:'history',   l:txt.nav_history,   d:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}
+          ]"
+          :key="s.k"
           @click="tab = s.k"
-          :class="tab === s.k ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50'"
-          class="px-4 py-2.5 rounded-xl text-sm font-medium transition text-left whitespace-nowrap flex-shrink-0">
+          :class="tab === s.k
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
+            : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'"
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" :d="s.d"/>
+          </svg>
           {{ s.l }}
         </button>
       </nav>
 
-      <!-- ===== Section content ===== -->
-      <div class="flex-1 min-w-0 space-y-6">
+      <!-- Bottom: lang + night + logout -->
+      <div class="px-4 pb-5 pt-3 space-y-3"
+        style="border-top:1px solid rgba(255,255,255,0.06);">
+        <div class="flex items-center gap-1.5">
+          <button @click="lang='ru'"
+            :class="lang==='ru' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'"
+            class="text-sm transition">RU</button>
+          <span class="text-gray-700 text-sm">|</span>
+          <button @click="lang='uz'"
+            :class="lang==='uz' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'"
+            class="text-sm transition">UZ</button>
+        </div>
+        <button @click="toggleNight"
+          class="flex items-center gap-2 text-sm transition w-full"
+          :class="night ? 'text-amber-400' : 'text-gray-500 hover:text-gray-300'">
+          <svg v-if="!night" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          {{ night ? txt.day_mode : txt.night_mode }}
+        </button>
+        <button @click="logout"
+          class="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition w-full">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          {{ txt.logout }}
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="flex-1 overflow-auto bg-gray-100">
+      <div class="p-6 space-y-6 max-w-5xl mx-auto">
 
       <!-- ===== OFFLINE (Nurse) Order Section ===== -->
       <div v-show="tab === 'offline'" class="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -772,7 +805,6 @@
           </div>
         </div>
       </div>
-      <!-- /Section content -->
       </div>
     </div>
   </div>
@@ -975,6 +1007,8 @@ const texts = {
     type_offline: 'Офлайн',
     own_patient: 'Свой пациент',
     period_all: 'Всё время',
+    night_mode: 'Ночной',
+    day_mode: 'Дневной',
   },
   uz: {
     title: 'Berish punkti',
@@ -1089,6 +1123,8 @@ const texts = {
     type_offline: 'Oflayn',
     own_patient: "O'z bemori",
     period_all: 'Butun davr',
+    night_mode: 'Tungi',
+    day_mode: 'Kunduzgi',
   }
 }
 
