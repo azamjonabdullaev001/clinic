@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex" style="background:#0f172a;" :class="{ 'night-mode': night }">
+  <div class="min-h-screen flex pp-root" :class="{ 'night-mode': night }">
 
     <!-- ===== SIDEBAR ===== -->
     <aside class="worker-sidebar flex-shrink-0 flex flex-col"
@@ -42,6 +42,15 @@
           <span class="text-gray-700 text-sm">|</span>
           <button @click="lang='uz'" :class="lang==='uz' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'" class="text-sm transition">UZ</button>
         </div>
+        <button @click="toggleNight" class="flex items-center gap-2 text-sm transition w-full" :class="night ? 'text-amber-400 hover:text-amber-300' : 'text-gray-400 hover:text-gray-200'">
+          <svg v-if="night" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+          {{ night ? txt.day_mode : txt.night_mode }}
+        </button>
         <button @click="logout" class="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition w-full">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -52,13 +61,13 @@
     </aside>
 
     <!-- ===== MAIN ===== -->
-    <div class="flex-1 flex flex-col min-h-screen" style="background:#f1f5f9;">
+    <div class="flex-1 flex flex-col min-h-screen pp-main">
 
       <!-- Top header -->
-      <header class="flex-shrink-0 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
-        <h1 class="text-base font-semibold text-gray-700">{{ tabTitle }}</h1>
+      <header class="flex-shrink-0 flex items-center justify-between px-6 py-3 pp-header">
+        <h1 class="text-base font-semibold pp-text">{{ tabTitle }}</h1>
         <div class="flex items-center gap-4">
-          <button class="relative text-gray-400 hover:text-gray-600">
+          <button class="relative pp-text-3 hover:pp-text-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
             </svg>
@@ -68,10 +77,10 @@
               {{ (authStore.worker?.name || 'A').charAt(0).toUpperCase() }}
             </div>
             <div class="text-sm">
-              <p class="font-medium text-gray-700 leading-tight">{{ txt.title }}</p>
-              <p class="text-gray-400 text-xs leading-tight">{{ authStore.worker?.name }}</p>
+              <p class="font-medium pp-text leading-tight">{{ txt.title }}</p>
+              <p class="pp-text-3 text-xs leading-tight">{{ authStore.worker?.name }}</p>
             </div>
-            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <svg class="w-4 h-4 pp-text-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
             </svg>
           </div>
@@ -81,8 +90,8 @@
       <!-- ===== ONLINE TAB ===== -->
       <div v-show="tab === 'online'" class="flex-1 p-6 space-y-5">
         <!-- Search card -->
-        <div class="bg-white rounded-xl shadow-sm p-6">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">{{ txt.search_online }}</h2>
+        <div class="pp-card rounded-xl shadow-sm p-6">
+          <h2 class="text-base font-semibold pp-text mb-4">{{ txt.search_online }}</h2>
           <div class="flex gap-3">
             <input
               v-model="searchCode"
@@ -109,7 +118,7 @@
                   <span class="text-xl font-bold text-blue-700 tracking-widest">{{ foundOrder.order_code }}</span>
                   <span :class="statusClass(foundOrder.status)" class="text-xs font-medium px-2 py-0.5 rounded">{{ statusLabel(foundOrder.status) }}</span>
                 </div>
-                <p class="font-semibold text-gray-800">{{ foundOrder.user?.first_name }} {{ foundOrder.user?.last_name }}</p>
+                <p class="font-semibold pp-text">{{ foundOrder.user?.first_name }} {{ foundOrder.user?.last_name }}</p>
                 <p class="text-sm text-gray-500">+{{ foundOrder.phone }}</p>
                 <p class="text-xs text-gray-400 mt-0.5">{{ new Date(foundOrder.created_at).toLocaleString('ru-RU') }}</p>
               </div>
@@ -134,9 +143,9 @@
         </div>
 
         <!-- Pending orders -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="pp-card rounded-xl shadow-sm overflow-hidden">
           <div class="flex items-center justify-between px-6 py-4 border-b">
-            <h2 class="font-semibold text-gray-800">{{ txt.pending_online }}</h2>
+            <h2 class="font-semibold pp-text">{{ txt.pending_online }}</h2>
             <button @click="loadOrders" class="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               {{ txt.refresh }}
@@ -149,8 +158,8 @@
             <p class="font-medium text-gray-500">{{ txt.no_orders }}</p>
             <p class="text-sm text-gray-400 mt-1">{{ txt.online_orders_hint }}</p>
           </div>
-          <div v-else class="divide-y divide-gray-100">
-            <div v-for="order in onlineOrders" :key="order.id" class="p-5 hover:bg-gray-50 transition">
+          <div v-else class="pp-divide">
+            <div v-for="order in onlineOrders" :key="order.id" class="p-5 pp-row-hover transition">
               <div class="flex justify-between items-start gap-3">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -158,17 +167,17 @@
                     <span :class="statusClass(order.status)" class="text-xs font-medium px-2 py-0.5 rounded">{{ statusLabel(order.status) }}</span>
                     <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-medium px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
                   </div>
-                  <p class="font-semibold text-gray-800">{{ order.user?.first_name }} {{ order.user?.last_name }}</p>
+                  <p class="font-semibold pp-text">{{ order.user?.first_name }} {{ order.user?.last_name }}</p>
                   <p class="text-sm text-gray-500">+{{ order.phone }}</p>
                   <p class="text-xs text-gray-400">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
                   <p v-if="order.delivery_address" class="text-xs text-orange-700 mt-0.5">📍 {{ order.delivery_address }}</p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                  <p class="font-bold text-gray-800">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
+                  <p class="font-bold pp-text">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
                 </div>
               </div>
-              <div class="mt-2 pt-2 border-t border-gray-100 space-y-1">
+              <div class="mt-2 pt-2 pp-border-t space-y-1">
                 <div v-for="item in boughtItems(order)" :key="item.id" class="flex justify-between text-sm text-gray-600">
                   <span>{{ item.product?.name }} × {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span>
                   <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
@@ -192,8 +201,8 @@
       <!-- ===== OFFLINE TAB ===== -->
       <div v-show="tab === 'offline'" class="flex-1 p-6 space-y-5">
         <!-- Nurse order lookup -->
-        <div class="bg-white rounded-xl shadow-sm p-6">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">{{ txt.nurse_section }}</h2>
+        <div class="pp-card rounded-xl shadow-sm p-6">
+          <h2 class="text-base font-semibold pp-text mb-4">{{ txt.nurse_section }}</h2>
           <p class="text-sm text-gray-500 mb-4">{{ txt.nurse_desc }}</p>
           <div class="flex gap-3">
             <input
@@ -221,7 +230,7 @@
               <div class="flex items-start justify-between mb-4">
                 <div>
                   <p class="text-2xl font-bold tracking-widest text-teal-700 mb-1">{{ nurseOrder.order_code }}</p>
-                  <p class="font-semibold text-gray-800">{{ nurseOrder.patient_first_name }} {{ nurseOrder.patient_last_name }}</p>
+                  <p class="font-semibold pp-text">{{ nurseOrder.patient_first_name }} {{ nurseOrder.patient_last_name }}</p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ new Date(nurseOrder.created_at).toLocaleString('ru-RU') }}</p>
                 </div>
                 <p class="text-xl font-bold text-teal-700">{{ formatPrice(orderTotal(nurseOrder)) }} {{ txt.sum }}</p>
@@ -245,8 +254,8 @@
         </div>
 
         <!-- Direct offline sale: 3-step wizard -->
-        <div class="bg-white rounded-xl shadow-sm p-6">
-          <h2 class="text-base font-semibold text-gray-800 mb-5">{{ txt.offline_sale }}</h2>
+        <div class="pp-card rounded-xl shadow-sm p-6">
+          <h2 class="text-base font-semibold pp-text mb-5">{{ txt.offline_sale }}</h2>
 
           <div class="grid grid-cols-3 gap-4 mb-5">
             <!-- Step 1: Product -->
@@ -256,14 +265,14 @@
                 <span class="text-sm font-semibold text-gray-700">{{ txt.select_product }}</span>
               </div>
               <div class="relative">
-                <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-8 bg-white">
+                <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-8">
                   <option value="">{{ txt.select_product }}</option>
                   <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
                 <svg class="w-4 h-4 text-gray-400 absolute right-2 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
               </div>
               <!-- Search hint below select -->
-              <div v-if="offlineProductId" class="mt-2 p-2 bg-gray-50 rounded-lg">
+              <div v-if="offlineProductId" class="mt-2 p-2 pp-inset rounded-lg">
                 <p class="text-xs text-gray-500">{{ txt.in_stock }}: <span class="font-semibold text-gray-700">{{ capsulesOf(offlineProductId) }} {{ txt.pack }} / {{ stockOf(offlineProductId) }} {{ txt.piece }}</span></p>
               </div>
             </div>
@@ -303,15 +312,15 @@
           </div>
 
           <!-- Price + total + add button -->
-          <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-4">
+          <div class="flex items-center gap-4 p-4 pp-inset rounded-xl mb-4">
             <div class="flex-1">
-              <label class="text-xs text-gray-500 mb-1 block">{{ txt.price_per_unit }}</label>
+              <label class="text-xs pp-text-3 mb-1 block">{{ txt.price_per_unit }}</label>
               <p class="text-lg font-bold text-gray-800">
                 {{ offlineProductId ? formatPrice(offlineUnit === 'piece' ? (allProducts.find(p=>p.id===offlineProductId)?.price_per_pill || 0) : (allProducts.find(p=>p.id===offlineProductId)?.price_per_pack || 0)) : '0' }} {{ txt.sum }}
               </p>
             </div>
             <div class="flex-1">
-              <label class="text-xs text-gray-500 mb-1 block">{{ txt.total_sum }}:</label>
+              <label class="text-xs pp-text-3 mb-1 block">{{ txt.total_sum }}:</label>
               <p class="text-lg font-bold text-emerald-600">
                 {{ offlineProductId ? formatPrice((offlineUnit === 'piece' ? (allProducts.find(p=>p.id===offlineProductId)?.price_per_pill || 0) : (allProducts.find(p=>p.id===offlineProductId)?.price_per_pack || 0)) * offlineQty) : '0' }} {{ txt.sum }}
               </p>
@@ -325,10 +334,10 @@
           </div>
 
           <!-- Cart items -->
-          <div v-if="offlineItems.length" class="border rounded-xl overflow-hidden mb-4">
-            <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-3 border-b last:border-0 bg-gray-50">
+          <div v-if="offlineItems.length" class="pp-border-box rounded-xl overflow-hidden mb-4">
+            <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-3 pp-cart-row border-b last:border-0">
               <div>
-                <span class="font-medium text-gray-800 text-sm">{{ item.name }}</span>
+                <span class="font-medium pp-text text-sm">{{ item.name }}</span>
                 <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span>
               </div>
               <div class="flex items-center gap-3">
@@ -346,7 +355,7 @@
 
           <!-- Sale type + payment + referral + submit -->
           <div v-if="offlineItems.length" class="space-y-4">
-            <div class="border rounded-xl px-4 py-4 space-y-4 bg-white">
+            <div class="pp-border-box rounded-xl px-4 py-4 space-y-4">
               <div>
                 <label class="text-xs font-medium text-gray-500 mb-2 block">{{ txt.sale_type }}</label>
                 <div class="flex gap-2 flex-wrap">
@@ -357,7 +366,7 @@
               </div>
               <div v-if="saleType==='marketolog'">
                 <label class="text-xs font-medium text-gray-500 mb-1.5 block">{{ txt.choose_marketolog }}</label>
-                <select v-model="offlineMarketolog" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                <select v-model="offlineMarketolog" class="w-full pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
                   <option :value="null">{{ txt.choose_marketolog }}</option>
                   <option v-for="m in marketologs" :key="m.id" :value="m.id">{{ m.name }}</option>
                 </select>
@@ -372,8 +381,8 @@
               </div>
             </div>
             <div v-if="saleType !== 'marketolog'" class="flex gap-3">
-              <input v-model="offlineNote" :placeholder="txt.buyer_name" class="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
-              <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+              <input v-model="offlineNote" :placeholder="txt.buyer_name" class="flex-1 pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+              <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               <datalist id="offline-doctors">
                 <option value="Самостоятельно"></option>
                 <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')"></option>
@@ -390,29 +399,29 @@
         </div>
 
         <!-- My Stock -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b">
-            <h2 class="font-semibold text-gray-800">{{ txt.my_stock }}</h2>
+        <div class="pp-card rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 pp-border-b">
+            <h2 class="font-semibold pp-text">{{ txt.my_stock }}</h2>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full">
-              <thead class="bg-gray-50 border-b">
+              <thead class="pp-table-head border-b">
                 <tr>
-                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{{ txt.product }}</th>
-                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{{ txt.unit }}</th>
-                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{{ txt.total }}</th>
-                  <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">{{ txt.remainder }}</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold pp-text-3 uppercase">{{ txt.product }}</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold pp-text-3 uppercase">{{ txt.unit }}</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold pp-text-3 uppercase">{{ txt.total }}</th>
+                  <th class="text-right px-5 py-3 text-xs font-semibold pp-text-3 uppercase">{{ txt.remainder }}</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="s in stock" :key="s.id" class="hover:bg-gray-50 transition">
+              <tbody class="pp-divide">
+                <tr v-for="s in stock" :key="s.id" class="pp-row-hover transition">
                   <td class="px-5 py-3">
                     <div class="flex items-center gap-3">
                       <div class="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
                         <img v-if="s.product?.image_path" :src="s.product.image_path" class="w-full h-full object-cover"/>
                         <svg v-else class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                       </div>
-                      <span class="font-medium text-gray-800 text-sm">{{ s.product?.name }}</span>
+                      <span class="font-medium pp-text text-sm">{{ s.product?.name }}</span>
                     </div>
                   </td>
                   <td class="px-5 py-3 text-gray-500 text-sm">{{ txt.pack }}</td>
@@ -432,9 +441,9 @@
         </div>
 
         <!-- Pending offline orders -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="pp-card rounded-xl shadow-sm overflow-hidden">
           <div class="flex items-center justify-between px-6 py-4 border-b">
-            <h2 class="font-semibold text-gray-800">{{ txt.pending_offline }}</h2>
+            <h2 class="font-semibold pp-text">{{ txt.pending_offline }}</h2>
             <button @click="loadOrders" class="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 transition">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               {{ txt.refresh }}
@@ -446,8 +455,8 @@
             </svg>
             <p class="font-medium text-gray-500">{{ txt.no_orders }}</p>
           </div>
-          <div v-else class="divide-y divide-gray-100">
-            <div v-for="order in offlineOrders" :key="order.id" class="p-5 hover:bg-gray-50 transition">
+          <div v-else class="pp-divide">
+            <div v-for="order in offlineOrders" :key="order.id" class="p-5 pp-row-hover transition">
               <div class="flex justify-between items-start gap-3">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -455,12 +464,12 @@
                     <span :class="statusClass(order.status)" class="text-xs font-medium px-2 py-0.5 rounded">{{ statusLabel(order.status) }}</span>
                     <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-medium px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
                   </div>
-                  <p class="font-semibold text-gray-800">{{ order.offline_note || '—' }}</p>
+                  <p class="font-semibold pp-text">{{ order.offline_note || '—' }}</p>
                   <p class="text-xs text-gray-400">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
                 </div>
                 <p class="font-bold text-gray-800 text-sm">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
               </div>
-              <div class="mt-2 pt-2 border-t border-gray-100 space-y-1">
+              <div class="mt-2 pt-2 pp-border-t space-y-1">
                 <div v-for="item in boughtItems(order)" :key="item.id" class="flex justify-between text-sm text-gray-600">
                   <span>{{ item.product?.name }} × {{ item.quantity }} {{ txt.pack }}</span>
                   <span>{{ formatPrice(item.price) }} {{ txt.sum }}</span>
@@ -478,23 +487,23 @@
       <!-- ===== STOCK TAB ===== -->
       <div v-show="tab === 'stock'" class="flex-1 p-6 space-y-5">
         <!-- Add stock -->
-        <div class="bg-white rounded-xl shadow-sm p-6">
-          <h2 class="text-base font-semibold text-gray-800 mb-4">{{ txt.stock_in }}</h2>
+        <div class="pp-card rounded-xl shadow-sm p-6">
+          <h2 class="text-base font-semibold pp-text mb-4">{{ txt.stock_in }}</h2>
           <div class="flex gap-3 flex-wrap items-end">
             <div class="flex-1 min-w-[180px]">
               <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.product }}</label>
-              <select v-model="stockProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select v-model="stockProductId" class="w-full pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">{{ txt.select_product }}</option>
                 <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
               </select>
             </div>
             <div class="w-28">
               <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.stock_qty }}</label>
-              <input v-model.number="stockQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+              <input v-model.number="stockQty" type="number" min="1" class="w-full pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
             </div>
             <div class="w-28">
               <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.unit }}</label>
-              <select v-model="stockUnit" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select v-model="stockUnit" class="w-full pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="pack">{{ txt.pack }}</option>
                 <option value="piece">{{ txt.piece }}</option>
               </select>
@@ -504,7 +513,7 @@
         </div>
 
         <!-- Search + filter -->
-        <div class="bg-white rounded-xl shadow-sm p-4">
+        <div class="pp-card rounded-xl shadow-sm p-4">
           <div class="flex gap-3 items-center flex-wrap">
             <div class="flex-1 relative min-w-[200px]">
               <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -514,19 +523,19 @@
         </div>
 
         <!-- Product list -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b">
-            <h2 class="font-semibold text-gray-800">{{ txt.product_list }}</h2>
+        <div class="pp-card rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 pp-border-b">
+            <h2 class="font-semibold pp-text">{{ txt.product_list }}</h2>
           </div>
-          <div class="divide-y divide-gray-100">
-            <div v-for="s in filteredStock" :key="s.id" class="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition">
+          <div class="pp-divide">
+            <div v-for="s in filteredStock" :key="s.id" class="flex items-center justify-between px-6 py-4 pp-row-hover transition">
               <div class="flex items-center gap-4">
                 <div class="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0">
                   <img v-if="s.product?.image_path" :src="s.product.image_path" class="w-full h-full object-cover"/>
                   <svg v-else class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                 </div>
                 <div>
-                  <p class="font-semibold text-gray-800">{{ s.product?.name }}</p>
+                  <p class="font-semibold pp-text">{{ s.product?.name }}</p>
                   <p class="text-xs text-gray-500">{{ txt.pack }} · {{ txt.price }}: {{ formatPrice(s.product?.price_per_pack) }} {{ txt.sum }}</p>
                 </div>
               </div>
@@ -545,7 +554,7 @@
       <!-- ===== ANALYTICS TAB ===== -->
       <div v-show="tab === 'analytics'" class="flex-1 p-6 space-y-5">
         <!-- Date filter bar -->
-        <div class="bg-white rounded-xl shadow-sm px-6 py-4 flex items-center gap-3 flex-wrap">
+        <div class="pp-card rounded-xl shadow-sm px-6 py-4 flex items-center gap-3 flex-wrap">
           <div class="flex gap-1">
             <button v-for="p in [{v:'daily',l:txt.a_today},{v:'weekly',l:txt.a_week},{v:'monthly',l:txt.a_month},{v:'yearly',l:txt.a_year}]" :key="p.v"
               @click="selectAnalyticsPeriod(p.v)"
@@ -568,32 +577,32 @@
         <template v-else-if="analyticsData">
           <!-- Stat cards -->
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="pp-card rounded-xl shadow-sm p-5">
               <p class="text-xs text-gray-500 mb-2">{{ txt.a_orders }}</p>
               <p class="text-3xl font-bold text-gray-800">{{ analyticsData.total_orders }}</p>
             </div>
-            <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="pp-card rounded-xl shadow-sm p-5">
               <p class="text-xs text-gray-500 mb-2">{{ txt.a_revenue }}</p>
               <p class="text-2xl font-bold text-emerald-600">{{ formatPrice(analyticsData.total_revenue) }} {{ txt.sum }}</p>
             </div>
-            <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="pp-card rounded-xl shadow-sm p-5">
               <p class="text-xs text-gray-500 mb-2">{{ txt.a_created }}</p>
               <p class="text-3xl font-bold text-blue-600">{{ analyticsData.created_count }}</p>
             </div>
-            <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="pp-card rounded-xl shadow-sm p-5">
               <p class="text-xs text-gray-500 mb-2">{{ txt.a_confirmed }}</p>
               <p class="text-3xl font-bold text-teal-600">{{ analyticsData.confirmed_count }}</p>
             </div>
           </div>
 
           <!-- Chart -->
-          <div class="bg-white rounded-xl shadow-sm p-6">
+          <div class="pp-card rounded-xl shadow-sm p-6">
             <h3 class="font-semibold text-gray-800 mb-4">{{ txt.dynamics }}</h3>
             <LineChart :points="analyticsData.points || []" color="#3b82f6"/>
           </div>
 
           <!-- Category breakdown -->
-          <div class="bg-white rounded-xl shadow-sm p-6">
+          <div class="pp-card rounded-xl shadow-sm p-6">
             <h3 class="font-semibold text-gray-800 mb-4">{{ txt.by_category }}</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
@@ -624,18 +633,18 @@
       <!-- ===== HISTORY TAB ===== -->
       <div v-show="tab === 'history'" class="flex-1 p-6 space-y-5">
         <!-- Filters + export -->
-        <div class="bg-white rounded-xl shadow-sm px-6 py-4">
+        <div class="pp-card rounded-xl shadow-sm px-6 py-4">
           <div class="flex items-center gap-3 flex-wrap">
             <h2 class="font-semibold text-gray-800 mr-2">{{ txt.history_title }}</h2>
             <div class="flex items-center gap-2">
               <label class="text-xs text-gray-500">{{ txt.status_label }}:</label>
-              <select v-model="historyStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select v-model="historyStatus" class="pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option v-for="f in statusFilters" :key="f.value" :value="f.value">{{ f.label }}</option>
               </select>
             </div>
             <div class="flex items-center gap-2">
               <label class="text-xs text-gray-500">{{ txt.order_type }}:</label>
-              <select v-model="historyType" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select v-model="historyType" class="pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="all">{{ txt.type_all }}</option>
                 <option value="online">{{ txt.type_online }}</option>
                 <option value="offline">{{ txt.type_offline }}</option>
@@ -644,7 +653,7 @@
             </div>
             <div class="flex items-center gap-2">
               <label class="text-xs text-gray-500">{{ txt.period_label }}:</label>
-              <select v-model="historyPeriod" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select v-model="historyPeriod" class="pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="all">{{ txt.period_all }}</option>
                 <option value="daily">{{ txt.a_today }}</option>
                 <option value="weekly">{{ txt.a_week }}</option>
@@ -652,7 +661,7 @@
                 <option value="custom">{{ txt.a_date }}</option>
               </select>
             </div>
-            <input v-if="historyPeriod==='custom'" v-model="historyDate" type="date" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            <input v-if="historyPeriod==='custom'" v-model="historyDate" type="date" class="pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
             <button @click="loadOrders" class="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               {{ txt.refresh }}
@@ -665,7 +674,7 @@
         </div>
 
         <!-- Orders list -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="pp-card rounded-xl shadow-sm overflow-hidden">
           <div v-if="historyOrders.length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400">
             <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1">
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
@@ -673,8 +682,8 @@
             <p class="font-semibold text-gray-500">{{ txt.no_orders }}</p>
             <p class="text-sm text-gray-400 mt-1">{{ txt.no_orders_filter }}</p>
           </div>
-          <div v-else class="divide-y divide-gray-100">
-            <div v-for="order in historyOrders" :key="order.id" class="p-5 hover:bg-gray-50 transition">
+          <div v-else class="pp-divide">
+            <div v-for="order in historyOrders" :key="order.id" class="p-5 pp-row-hover transition">
               <div class="flex justify-between items-start gap-3">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -683,17 +692,17 @@
                     <span v-if="order.is_offline" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ txt.offline_badge }}</span>
                     <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-medium px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
                   </div>
-                  <p class="font-semibold text-gray-800">{{ order.is_offline ? (order.offline_note || '—') : (order.user?.first_name + ' ' + order.user?.last_name) }}</p>
+                  <p class="font-semibold pp-text">{{ order.is_offline ? (order.offline_note || '—') : (order.user?.first_name + ' ' + order.user?.last_name) }}</p>
                   <p v-if="!order.is_offline" class="text-sm text-gray-500">+{{ order.phone }}</p>
                   <p class="text-xs text-gray-400">{{ new Date(order.created_at).toLocaleString('ru-RU') }}</p>
                   <p v-if="order.referred_by" class="text-xs text-purple-700 mt-0.5">{{ txt.referred_by }}: {{ order.referred_by }}</p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                  <p class="font-bold text-gray-800">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
+                  <p class="font-bold pp-text">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
                 </div>
               </div>
-              <div class="mt-3 pt-3 border-t border-gray-100 space-y-1">
+              <div class="mt-3 pt-3 pp-border-t space-y-1">
                 <div v-for="item in boughtItems(order)" :key="item.id" class="flex justify-between text-sm text-gray-600">
                   <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ txt.pack }}</span></span>
                   <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
@@ -753,7 +762,7 @@
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
-      <div ref="chatMessagesEl" class="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+      <div ref="chatMessagesEl" class="flex-1 overflow-y-auto p-4 space-y-2 pp-chat-bg">
         <div v-if="chatLoading" class="text-center pt-8 text-gray-400 text-sm">{{ txt.loading }}</div>
         <template v-else>
           <div v-if="chatMessages.length === 0" class="text-center text-gray-400 text-sm pt-8">{{ txt.no_messages }}</div>
@@ -766,7 +775,7 @@
         </template>
       </div>
       <div class="px-3 py-3 border-t flex gap-2">
-        <input v-model="chatMsg" @keyup.enter="sendWorkerMessage" :placeholder="txt.type_message" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+        <input v-model="chatMsg" @keyup.enter="sendWorkerMessage" :placeholder="txt.type_message" class="flex-1 pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
         <button @click="sendWorkerMessage" :disabled="!chatMsg.trim() || chatSending" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition disabled:opacity-40">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
         </button>
@@ -1688,3 +1697,73 @@ onMounted(() => {
 })
 onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
 </script>
+
+<style scoped>
+/* ── Light mode (default) ── */
+.pp-root      { background: #f8fafc; }
+.pp-main      { background: #f1f5f9; }
+.pp-header    { background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+.pp-card      { background: #ffffff; }
+.pp-inset     { background: #f8fafc; }
+.pp-border-b  { border-bottom: 1px solid #e2e8f0; }
+.pp-border-t  { border-top: 1px solid #e2e8f0; }
+.pp-border-box{ border: 1px solid #e2e8f0; }
+.pp-table-head{ background: #f8fafc; }
+.pp-divide    { divide-color: #f1f5f9; }
+.pp-cart-row  { background: #f8fafc; border-color: #e2e8f0; }
+.pp-chat-bg   { background: #f8fafc; }
+.pp-text      { color: #1e293b; }
+.pp-text-2    { color: #64748b; }
+.pp-text-3    { color: #94a3b8; }
+
+.pp-input {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+}
+.pp-input::placeholder { color: #94a3b8; }
+
+.pp-row-hover:hover { background: #f1f5f9; }
+
+/* ── Dark mode ── */
+.night-mode .pp-root   { background: #0f172a; }
+.night-mode .pp-main   { background: #0f172a; }
+.night-mode .pp-header { background: #1e293b; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.night-mode .pp-card   { background: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+.night-mode .pp-inset  { background: #0f172a; }
+.night-mode .pp-border-b   { border-bottom: 1px solid rgba(255,255,255,0.07); }
+.night-mode .pp-border-t   { border-top: 1px solid rgba(255,255,255,0.07); }
+.night-mode .pp-border-box { border: 1px solid rgba(255,255,255,0.07); }
+.night-mode .pp-table-head { background: #0f172a; }
+.night-mode .pp-cart-row   { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07); }
+.night-mode .pp-chat-bg    { background: #0f172a; }
+.night-mode .pp-text       { color: #f1f5f9; }
+.night-mode .pp-text-2     { color: #94a3b8; }
+.night-mode .pp-text-3     { color: #64748b; }
+.night-mode .pp-row-hover:hover { background: rgba(255,255,255,0.04); }
+
+.night-mode .pp-input {
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f1f5f9;
+}
+.night-mode .pp-input::placeholder { color: #4b5563; }
+
+/* Dark mode: override hardcoded Tailwind grays inside cards */
+.night-mode .text-gray-800 { color: #f1f5f9 !important; }
+.night-mode .text-gray-700 { color: #e2e8f0 !important; }
+.night-mode .text-gray-600 { color: #cbd5e1 !important; }
+.night-mode .text-gray-500 { color: #94a3b8 !important; }
+.night-mode .text-gray-400 { color: #64748b !important; }
+.night-mode .bg-gray-100   { background: #1e293b !important; }
+.night-mode .bg-gray-50    { background: #0f172a !important; }
+.night-mode .border-gray-100 { border-color: rgba(255,255,255,0.06) !important; }
+.night-mode .border-gray-200 { border-color: rgba(255,255,255,0.08) !important; }
+.night-mode .border-t { border-color: rgba(255,255,255,0.07) !important; }
+.night-mode .border-b { border-color: rgba(255,255,255,0.07) !important; }
+.night-mode .divide-y > * + * { border-color: rgba(255,255,255,0.07) !important; }
+
+/* Modal dark */
+.night-mode .relative.bg-white { background: #1e293b !important; }
+.night-mode input[type="date"] { color-scheme: dark; }
+</style>
