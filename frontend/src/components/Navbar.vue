@@ -22,9 +22,9 @@
             {{ t.nav_products_link }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <a href="/#contacts-quick"
+          <a href="/#news"
              class="relative text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-2 rounded-lg hover:bg-brand-50 transition-all duration-200 group">
-            {{ t.nav_quick_order_link }}
+            {{ t.nav_news }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
           <a href="/#about"
@@ -166,9 +166,9 @@
          class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
         {{ t.nav_products_link }}
       </a>
-      <a href="/#contacts-quick" @click="mobileMenuOpen = false"
+      <a href="/#news" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
-        {{ t.nav_quick_order_link }}
+        {{ t.nav_news }}
       </a>
       <a href="/#about" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">

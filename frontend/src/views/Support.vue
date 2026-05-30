@@ -72,7 +72,7 @@
               </button>
             </div>
           </form>
-          <router-link v-else to="/login"
+          <router-link v-else to="/register"
             class="block m-4 sm:m-5 text-center bg-stone-50 border border-stone-200 rounded-2xl px-4 py-4 text-sm font-medium text-stone-500 hover:text-brand-700 hover:border-brand-300 transition">
             {{ t.comments_login }}
           </router-link>

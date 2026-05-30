@@ -202,8 +202,8 @@
       </div>
     </section>
 
-    <!-- ======= BOTTOM CTA ======= -->
-    <section class="py-16 sm:py-20 border-t border-slate-100" id="contacts-quick"
+    <!-- ======= NEWS SECTION ======= -->
+    <section class="py-16 sm:py-20 border-t border-slate-100" id="news"
              style="background: linear-gradient(135deg, #f8faff 0%, #eef2ff 50%, #f0f9ff 100%)">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -211,123 +211,70 @@
         <div class="text-center mb-12 reveal-up">
           <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-bold tracking-widest uppercase mb-3">
             <span class="w-8 h-px bg-brand-300"></span>
-            {{ t.cta_special_label }}
+            {{ t.nav_news }}
             <span class="w-8 h-px bg-brand-300"></span>
           </div>
-          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900">{{ t.cta_quick_title }}</h2>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900">{{ t.news_title }}</h2>
+          <p class="text-slate-500 text-sm sm:text-base mt-3 max-w-xl mx-auto">{{ t.news_subtitle }}</p>
         </div>
 
-        <div class="grid lg:grid-cols-2 gap-8 items-stretch">
-
-          <!-- Left: Featured product card -->
-          <div v-if="featuredProduct" class="reveal-up" style="animation-delay:.05s">
-            <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden h-full flex flex-col sm:flex-row">
-              <!-- Product image panel -->
-              <div class="sm:w-[45%] flex-shrink-0 relative overflow-hidden cursor-pointer"
-                   style="background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%)"
-                   @click="openInfoModal(featuredProduct)">
-                <div class="absolute inset-0 opacity-20"
-                     style="background: radial-gradient(circle at 70% 50%, #3b82f6 0%, transparent 60%)"></div>
-                <img :src="featuredProduct.image_path" :alt="featuredProduct.name"
-                     class="relative z-10 w-full h-full object-contain p-6 sm:p-8 drop-shadow-2xl hover:scale-105 transition-transform duration-500"
-                     style="min-height: 220px" />
-                <!-- Badge -->
-                <div class="absolute top-4 left-4 z-20 bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg">
-                  {{ t.cta_special_label }}
-                </div>
-              </div>
-              <!-- Product info -->
-              <div class="flex-1 p-6 sm:p-7 flex flex-col justify-between">
-                <div>
-                  <h3 class="text-xl font-bold text-slate-900 mb-2">{{ featuredProduct.name }}</h3>
-                  <p class="text-slate-500 text-sm leading-relaxed mb-5 line-clamp-3">{{ featuredProduct.description }}</p>
-                </div>
-                <div>
-                  <div class="flex items-end gap-1 mb-5">
-                    <span class="text-2xl font-bold text-brand-700">{{ formatPrice(featuredProduct.price_per_pack) }}</span>
-                    <span class="text-slate-400 font-medium mb-0.5">{{ t.currency }}</span>
-                  </div>
-                  <div class="flex gap-3">
-                    <button @click="openInfoModal(featuredProduct)"
-                            class="flex-1 flex items-center justify-center gap-2 bg-brand-700 text-white px-5 py-3 rounded-xl font-semibold text-sm hover:bg-brand-800 hover:shadow-lg hover:shadow-brand-700/30 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200">
-                      {{ t.cta_view }}
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                      </svg>
-                    </button>
-                    <button @click="handleAddToCart(featuredProduct)"
-                            class="w-12 h-12 rounded-xl border-2 border-brand-200 text-brand-600 flex items-center justify-center shrink-0 hover:bg-brand-700 hover:border-brand-700 hover:text-white transition-all duration-200">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: Contact + Order block -->
-          <div class="grid sm:grid-cols-2 lg:grid-cols-1 gap-5 reveal-up" style="animation-delay:.1s">
-
-            <!-- Quick order block -->
-            <div class="bg-brand-950 rounded-3xl p-6 sm:p-7 text-white flex flex-col justify-between" style="min-height:160px">
-              <div>
-                <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-2">{{ t.cta_quick_title }}</p>
-                <p class="text-white/80 text-sm leading-relaxed mb-5">{{ t.cta_quick_desc }}</p>
-              </div>
-              <a href="#products"
-                 class="self-start inline-flex items-center gap-2 bg-white text-brand-900 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-50 hover:-translate-y-0.5 transition-all duration-200 shadow-lg shadow-brand-950/40">
-                {{ t.cta_order_btn }}
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                </svg>
-              </a>
-            </div>
-
-            <!-- Contacts block -->
-            <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 sm:p-7">
-              <h3 class="font-bold text-slate-900 text-base mb-4">{{ t.cta_contact_title }}</h3>
-              <div class="space-y-3">
-                <a :href="`tel:${t.contacts_phone.replace(/\s/g,'')}`"
-                   class="flex items-center gap-3 text-sm text-slate-600 hover:text-brand-700 transition-colors group">
-                  <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
-                    <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
-                    </svg>
-                  </div>
-                  {{ t.contacts_phone }}
-                </a>
-                <a :href="`tel:${t.contacts_phone2.replace(/\s/g,'')}`"
-                   class="flex items-center gap-3 text-sm text-slate-600 hover:text-brand-700 transition-colors group">
-                  <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
-                    <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
-                    </svg>
-                  </div>
-                  {{ t.contacts_phone2 }}
-                </a>
-                <div class="flex items-center gap-3 text-sm text-slate-500">
-                  <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                  </div>
-                  {{ t.cta_workdays_text }}
-                </div>
-                <div class="flex items-center gap-3 text-sm text-slate-400">
-                  <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                    <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
-                    </svg>
-                  </div>
-                  {{ t.cta_weekend_text }}
-                </div>
-              </div>
-            </div>
-
-          </div>
+        <!-- Loading -->
+        <div v-if="newsLoading" class="flex justify-center py-16">
+          <div class="w-10 h-10 border-[3px] border-brand-100 border-t-brand-600 rounded-full animate-spin"></div>
         </div>
+
+        <!-- Empty -->
+        <div v-else-if="newsPosts.length === 0" class="text-center py-16 text-slate-400">
+          <div class="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
+            </svg>
+          </div>
+          <p class="font-medium">{{ t.news_empty }}</p>
+        </div>
+
+        <!-- News grid -->
+        <template v-else>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            <article v-for="post in newsPosts" :key="post.id"
+                     class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
+              <!-- Multiple images -->
+              <div v-if="post.images && post.images.length > 0" class="h-48 overflow-hidden relative">
+                <img :src="post.images[0].image_path" :alt="post.title" class="w-full h-full object-cover" />
+                <span v-if="post.images.length > 1" class="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  +{{ post.images.length - 1 }}
+                </span>
+              </div>
+              <!-- Single image (legacy) -->
+              <div v-else-if="post.image_path" class="h-48 overflow-hidden">
+                <img :src="post.image_path" :alt="post.title" class="w-full h-full object-cover" />
+              </div>
+              <!-- Video -->
+              <div v-else-if="post.video_url" class="aspect-video">
+                <iframe :src="toEmbedUrl(post.video_url)" class="w-full h-full" frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen></iframe>
+              </div>
+
+              <div class="p-5 sm:p-6 flex flex-col flex-1">
+                <p class="text-xs text-slate-400 mb-2">{{ formatNewsDate(post.created_at) }}</p>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 mb-2 leading-snug">{{ post.title }}</h3>
+                <p v-if="post.description" class="text-slate-500 text-sm leading-relaxed line-clamp-4">{{ post.description }}</p>
+              </div>
+            </article>
+          </div>
+
+          <!-- View all -->
+          <div class="text-center mt-10">
+            <router-link to="/news"
+               class="inline-flex items-center gap-2.5 bg-brand-700 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-brand-800 hover:shadow-lg hover:shadow-brand-700/30 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-300 text-sm">
+              {{ t.news_view_all }}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </router-link>
+          </div>
+        </template>
       </div>
     </section>
 
@@ -415,7 +362,7 @@
                     {{ postingComment ? '…' : t.comments_send }}
                   </button>
                 </div>
-                <router-link v-else to="/login" @click="infoProduct = null"
+                <router-link v-else to="/register" @click="infoProduct = null"
                   class="block bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-500 hover:text-brand-700 hover:border-brand-300 transition">
                   {{ t.comments_login }}
                 </router-link>
@@ -534,10 +481,34 @@ const filteredProducts = computed(() => products.value)
 
 const heroImageSrc = computed(() => '/images/tabletka.png')
 
-const featuredProduct = computed(() => products.value.find(p => p.image_path) || null)
-
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price || 0))
+}
+
+// ── News ─────────────────────────────────────────────────────────────────────
+const newsPosts = ref([])
+const newsLoading = ref(true)
+
+function formatNewsDate(val) {
+  return new Date(val).toLocaleDateString(langStore.current === 'uz' ? 'uz-UZ' : 'ru-RU', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  })
+}
+
+function toEmbedUrl(url) {
+  if (!url) return ''
+  const match = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+  if (match) return `https://www.youtube.com/embed/${match[1]}`
+  return url
+}
+
+async function loadNews() {
+  newsLoading.value = true
+  try {
+    const res = await axios.get('/api/news')
+    newsPosts.value = (res.data || []).slice(0, 6)
+  } catch (e) { newsPosts.value = [] }
+  finally { newsLoading.value = false }
 }
 
 // ── Scroll reveal ────────────────────────────────────────────────────────────
@@ -581,6 +552,7 @@ onMounted(async () => {
     products.value = res.data || []
   } catch (e) { console.error(e) }
   finally { loading.value = false }
+  loadNews()
   setTimeout(() => { setupScrollReveal(); setupStats() }, 120)
 })
 

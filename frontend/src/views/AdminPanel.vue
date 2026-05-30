@@ -95,6 +95,9 @@
                       <button @click="openProductAnalytics(product)" class="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition" title="Аналитика препарата">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                       </button>
+                      <button @click="openProductReviews(product)" class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition" title="Отзывы">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h6m-6 8l-4-4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12l4-4z"/></svg>
+                      </button>
                       <button @click="deleteProduct(product.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
@@ -1333,6 +1336,46 @@
       </div>
     </div>
 
+    <!-- Product Reviews Modal -->
+    <div v-if="showReviewsModal" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showReviewsModal = false"></div>
+      <div class="relative bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-gray-800">Отзывы о препарате</h3>
+            <p class="text-sm text-gray-500 mt-0.5">{{ reviewsProduct?.name }}</p>
+          </div>
+          <button @click="showReviewsModal = false" class="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto -mx-1 px-1 space-y-3">
+          <div v-if="reviewsLoading" class="text-center py-10 text-gray-400 text-sm">Загрузка...</div>
+          <template v-else>
+            <div v-for="review in productReviews" :key="review.id" class="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-sm font-semibold text-gray-800">{{ review.author_name }}</span>
+                    <span class="text-[11px] text-gray-400">{{ new Date(review.created_at).toLocaleDateString('ru-RU') }}</span>
+                  </div>
+                  <p class="text-sm text-gray-600 leading-snug whitespace-pre-line break-words">{{ review.text }}</p>
+                </div>
+                <button @click="deleteReview(review.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition flex-shrink-0" title="Удалить отзыв">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+            <div v-if="productReviews.length === 0" class="text-center py-10 text-gray-400">
+              <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h6m-6 8l-4-4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12l4-4z"/></svg>
+              Отзывов пока нет
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- Worker Modal (Add / Edit) -->
     <div v-if="showWorkerModal" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showWorkerModal = false"></div>
@@ -1546,6 +1589,7 @@ const tabs = [
   { id: 'doctors', label: 'Доктора' },
   { id: 'analytics', label: 'Аналитика' },
   { id: 'faq', label: 'FAQ' },
+  { id: 'news', label: 'Новости' },
   { id: 'support', label: 'Поддержка' },
   { id: 'settings', label: 'Настройки' },
 ]
@@ -2160,6 +2204,37 @@ async function deleteProduct(id) {
     await loadProducts()
   } catch (e) {
     alert('Ошибка при удалении')
+  }
+}
+
+// Product reviews (comments) management
+const showReviewsModal = ref(false)
+const reviewsProduct = ref(null)
+const productReviews = ref([])
+const reviewsLoading = ref(false)
+
+async function openProductReviews(product) {
+  reviewsProduct.value = product
+  productReviews.value = []
+  showReviewsModal.value = true
+  reviewsLoading.value = true
+  try {
+    const res = await api.get(`/products/${product.id}/comments`)
+    productReviews.value = res.data || []
+  } catch (e) {
+    productReviews.value = []
+  } finally {
+    reviewsLoading.value = false
+  }
+}
+
+async function deleteReview(commentId) {
+  if (!confirm('Удалить этот отзыв?')) return
+  try {
+    await api.delete(`/admin/product-comments/${commentId}`)
+    productReviews.value = productReviews.value.filter(r => r.id !== commentId)
+  } catch (e) {
+    alert('Ошибка при удалении отзыва')
   }
 }
 
