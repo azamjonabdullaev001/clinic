@@ -39,6 +39,7 @@ type Product struct {
 	ID              uint      `gorm:"primaryKey" json:"id"`
 	Name            string    `gorm:"not null" json:"name"`
 	Description     string    `json:"description"`
+	Category        string    `gorm:"default:''" json:"category"`
 	QuantityPerPack int       `gorm:"not null" json:"quantity_per_pack"`
 	PricePerPill    float64   `gorm:"not null" json:"price_per_pill"`
 	PricePerPack    float64   `gorm:"-" json:"price_per_pack"`
