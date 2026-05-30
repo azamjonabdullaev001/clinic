@@ -6,59 +6,41 @@
 
     <!-- ======= HERO SECTION ======= -->
     <section class="relative pt-[72px] overflow-hidden"
-             style="background: linear-gradient(115deg, #ffffff 0%, #ffffff 45%, #eef3ff 72%, #e4edff 100%)">
+             style="background: linear-gradient(118deg, #ffffff 0%, #ffffff 45%, #eef3ff 72%, #e0eaff 100%); min-height: 640px">
 
-      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24 sm:pb-32">
-        <div class="grid md:grid-cols-2 gap-8 lg:gap-10 items-center">
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid md:grid-cols-2 gap-6 lg:gap-12 items-center min-h-[560px] md:min-h-[640px]">
 
           <!-- LEFT: Text Content -->
-          <div class="order-2 md:order-1">
-            <h1 class="text-[36px] sm:text-[46px] md:text-[52px] font-bold text-slate-900 leading-tight mb-5">
+          <div class="order-2 md:order-1 py-10 md:py-0 reveal-up">
+            <h1 class="text-[36px] sm:text-[46px] md:text-[54px] font-bold text-slate-900 leading-tight mb-5">
               {{ t.hero_title_main }}
             </h1>
-            <p class="text-slate-500 text-base sm:text-lg mb-8 leading-relaxed">
+            <p class="text-slate-500 text-base sm:text-lg mb-8 leading-relaxed max-w-md">
               {{ t.hero_subtitle_main }}
             </p>
 
             <!-- Feature rows -->
             <div class="space-y-4 mb-10">
-              <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C12 2 5 8 5 13a7 7 0 0014 0c0-5-7-11-7-11z"/>
-                  </svg>
+              <div v-for="(feat, i) in heroFeatures" :key="i"
+                   class="flex items-center gap-4 reveal-up"
+                   :style="`animation-delay: ${0.15 + i * 0.1}s`">
+                <div class="w-11 h-11 rounded-xl bg-white/80 border border-blue-100 shadow-sm flex items-center justify-center shrink-0">
+                  <component :is="'svg'" v-html="feat.icon"
+                             class="w-5 h-5 text-brand-600"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  </component>
                 </div>
                 <div>
-                  <div class="font-semibold text-slate-900 text-sm">{{ t.hero_feat1_title }}</div>
-                  <div class="text-xs text-slate-400 mt-0.5">{{ t.hero_feat1_sub }}</div>
-                </div>
-              </div>
-              <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-slate-900 text-sm">{{ t.hero_feat2_title }}</div>
-                  <div class="text-xs text-slate-400 mt-0.5">{{ t.hero_feat2_sub }}</div>
-                </div>
-              </div>
-              <div class="flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-                  </svg>
-                </div>
-                <div>
-                  <div class="font-semibold text-slate-900 text-sm">{{ t.hero_feat3_title }}</div>
-                  <div class="text-xs text-slate-400 mt-0.5">{{ t.hero_feat3_sub }}</div>
+                  <div class="font-semibold text-slate-900 text-sm">{{ feat.title }}</div>
+                  <div class="text-xs text-slate-400 mt-0.5">{{ feat.sub }}</div>
                 </div>
               </div>
             </div>
 
             <a href="#products"
-               class="inline-flex items-center gap-2.5 bg-brand-700 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-brand-800 hover:shadow-lg hover:shadow-brand-700/25 hover:-translate-y-0.5 transition-all duration-300 text-sm">
+               class="inline-flex items-center gap-2.5 bg-brand-700 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-brand-800 hover:shadow-lg hover:shadow-brand-700/30 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-300 text-sm reveal-up"
+               style="animation-delay:0.45s">
               {{ t.hero_show_products }}
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
@@ -66,53 +48,57 @@
             </a>
           </div>
 
-          <!-- RIGHT: 3 product images — free floating, no container box -->
-          <div class="order-1 md:order-2 flex justify-center md:justify-end">
+          <!-- RIGHT: Products with mix-blend-mode (no card boxes) -->
+          <div class="order-1 md:order-2 flex justify-center md:justify-end items-end reveal-right">
 
-            <!-- Products floating freely (no rounded box, no overflow-hidden) -->
-            <div v-if="heroProducts.length > 0" class="relative w-full max-w-[520px]">
-              <!-- Products row -->
-              <div class="relative flex items-end justify-center gap-1 sm:gap-3 h-[290px] sm:h-[400px] md:h-[470px]">
-                <!-- Left product (lower) -->
-                <div v-if="heroProducts.length >= 2"
-                     class="self-end mb-5 sm:mb-10 flex-shrink-0 transition-transform duration-700 hover:-translate-y-1">
-                  <img :src="heroProducts[0].image_path" :alt="heroProducts[0].name"
-                       class="h-[148px] sm:h-[195px] md:h-[228px] w-auto object-contain drop-shadow-2xl" />
-                </div>
+            <!-- Isolation container needed for mix-blend-mode -->
+            <div class="relative flex items-end justify-center gap-1 sm:gap-3"
+                 style="isolation: isolate; height: 360px; width: 100%; max-width: 520px">
+
+              <!-- Decorative stone platforms -->
+              <div class="absolute bottom-[30px] left-1/2 -translate-x-1/2 pointer-events-none"
+                   style="width: 82%; height: 44px; border-radius: 50%; background: radial-gradient(ellipse at 50% 60%, rgba(180,170,155,0.55) 0%, rgba(160,150,135,0.25) 55%, transparent 78%); filter: blur(3px); z-index: 0"></div>
+              <div class="absolute bottom-[20px] left-[15%] pointer-events-none"
+                   style="width: 28%; height: 24px; border-radius: 50%; background: radial-gradient(ellipse, rgba(190,180,165,0.5) 0%, transparent 70%); filter: blur(2px); z-index: 0"></div>
+              <div class="absolute bottom-[22px] right-[12%] pointer-events-none"
+                   style="width: 24%; height: 20px; border-radius: 50%; background: radial-gradient(ellipse, rgba(190,180,165,0.45) 0%, transparent 70%); filter: blur(2px); z-index: 0"></div>
+
+              <template v-if="heroProducts.length > 0">
+                <!-- Left product (shorter, offset) -->
+                <img v-if="heroProducts.length >= 2"
+                     :src="heroProducts[0].image_path"
+                     :alt="heroProducts[0].name"
+                     class="hero-product flex-shrink-0 self-end"
+                     style="height: 200px; width: auto; object-fit: contain; margin-bottom: 28px; mix-blend-mode: multiply; filter: drop-shadow(0 18px 28px rgba(0,0,0,0.18)); z-index: 1; position: relative" />
+
                 <!-- Center product (tallest, most prominent) -->
-                <div class="self-end flex-shrink-0 transition-transform duration-700 hover:-translate-y-2">
-                  <img :src="heroProducts.length >= 2 ? heroProducts[1].image_path : heroProducts[0].image_path"
-                       :alt="heroProducts.length >= 2 ? heroProducts[1].name : heroProducts[0].name"
-                       class="h-[196px] sm:h-[260px] md:h-[308px] w-auto object-contain drop-shadow-2xl" />
-                </div>
-                <!-- Right product (lower) -->
-                <div v-if="heroProducts.length >= 3"
-                     class="self-end mb-9 sm:mb-14 flex-shrink-0 transition-transform duration-700 hover:-translate-y-1">
-                  <img :src="heroProducts[2].image_path" :alt="heroProducts[2].name"
-                       class="h-[126px] sm:h-[168px] md:h-[198px] w-auto object-contain drop-shadow-xl" />
-                </div>
-              </div>
-              <!-- Floating badge top-left -->
-              <div class="absolute top-0 left-0 sm:-top-2 sm:-left-2 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-300/40">
-                <div class="text-xl sm:text-2xl font-bold text-brand-700">40+</div>
-                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
-              </div>
-              <!-- Floating badge bottom-right -->
-              <div class="absolute bottom-0 right-0 sm:-bottom-2 sm:-right-2 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-300/40">
-                <div class="text-xl sm:text-2xl font-bold text-brand-700">500K+</div>
-                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.stats_clients_label }}</div>
-              </div>
-            </div>
+                <img :src="heroProducts.length >= 2 ? heroProducts[1].image_path : heroProducts[0].image_path"
+                     :alt="heroProducts.length >= 2 ? heroProducts[1].name : heroProducts[0].name"
+                     class="hero-product flex-shrink-0 self-end"
+                     style="height: 270px; width: auto; object-fit: contain; mix-blend-mode: multiply; filter: drop-shadow(0 22px 36px rgba(0,0,0,0.22)); z-index: 2; position: relative" />
 
-            <!-- Fallback: doctor photo (when no products have images) -->
-            <div v-else class="relative w-full max-w-[480px]">
-              <img src="/images/patients/3%20landing.jpg" alt="Doctor Jalilov"
-                   class="w-full h-[290px] sm:h-[400px] md:h-[470px] object-cover object-top rounded-3xl shadow-2xl shadow-slate-200" />
-              <div class="absolute top-4 sm:top-6 left-4 sm:left-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl">
+                <!-- Right product (shorter, more offset) -->
+                <img v-if="heroProducts.length >= 3"
+                     :src="heroProducts[2].image_path"
+                     :alt="heroProducts[2].name"
+                     class="hero-product flex-shrink-0 self-end"
+                     style="height: 178px; width: auto; object-fit: contain; margin-bottom: 40px; mix-blend-mode: multiply; filter: drop-shadow(0 16px 24px rgba(0,0,0,0.15)); z-index: 1; position: relative" />
+              </template>
+
+              <!-- Fallback: doctor photo -->
+              <img v-else
+                   src="/images/patients/3%20landing.jpg"
+                   alt="Doctor Jalilov"
+                   style="height: 340px; width: auto; object-fit: cover; object-position: top; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.12); position: relative; z-index: 1" />
+
+              <!-- Floating badge top-left -->
+              <div class="absolute top-2 left-0 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-300/30 z-10 float-badge">
                 <div class="text-xl sm:text-2xl font-bold text-brand-700">40+</div>
                 <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
               </div>
-              <div class="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl">
+
+              <!-- Floating badge bottom-right -->
+              <div class="absolute bottom-2 right-0 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-300/30 z-10 float-badge" style="animation-delay: 0.4s">
                 <div class="text-xl sm:text-2xl font-bold text-brand-700">500K+</div>
                 <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.stats_clients_label }}</div>
               </div>
@@ -123,20 +109,23 @@
       </div>
     </section>
 
-    <!-- ======= STATS BAR (outside hero, overlapping with -mt) ======= -->
+    <!-- ======= STATS BAR ======= -->
     <div class="relative z-10 -mt-10 sm:-mt-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-5xl mx-auto">
+      <div class="max-w-5xl mx-auto" ref="statsBarRef">
         <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 px-5 sm:px-8 py-5 sm:py-6 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <div class="flex flex-col items-start border-r border-slate-100 pr-4 sm:pr-6 last:border-r-0">
-            <span class="text-2xl sm:text-3xl font-bold text-brand-700">40<span class="text-brand-400">+</span></span>
+          <div class="flex flex-col items-start md:border-r md:border-slate-100 md:pr-6">
+            <span class="stat-num text-2xl sm:text-3xl font-bold text-brand-700"
+                  :data-target="40" :data-suffix="'+'">40+</span>
             <span class="text-xs sm:text-sm text-slate-400 mt-1">{{ t.hero_years }}</span>
           </div>
           <div class="flex flex-col items-start md:border-r md:border-slate-100 md:pr-6">
-            <span class="text-2xl sm:text-3xl font-bold text-brand-700">500 000<span class="text-brand-400">+</span></span>
+            <span class="stat-num text-2xl sm:text-3xl font-bold text-brand-700"
+                  :data-target="500000" :data-suffix="'+'">500 000+</span>
             <span class="text-xs sm:text-sm text-slate-400 mt-1">{{ t.stats_clients_label }}</span>
           </div>
-          <div class="flex flex-col items-start border-r border-slate-100 pr-4 sm:pr-6 last:border-r-0">
-            <span class="text-2xl sm:text-3xl font-bold text-brand-700">20<span class="text-brand-400">+</span></span>
+          <div class="flex flex-col items-start md:border-r md:border-slate-100 md:pr-6">
+            <span class="stat-num text-2xl sm:text-3xl font-bold text-brand-700"
+                  :data-target="20" :data-suffix="'+'">20+</span>
             <span class="text-xs sm:text-sm text-slate-400 mt-1">{{ t.stats_products_types }}</span>
           </div>
           <div class="flex flex-col items-start">
@@ -147,14 +136,14 @@
       </div>
     </div>
 
-    <!-- Spacer between stats and products -->
     <div class="h-12 sm:h-16 bg-white"></div>
 
     <!-- ======= PRODUCTS SECTION ======= -->
     <section id="products" class="pb-16 sm:pb-20 bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         <!-- Section header -->
-        <div class="text-center mb-10">
+        <div class="text-center mb-10 reveal-up">
           <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-bold tracking-widest uppercase mb-3">
             <span class="w-8 h-px bg-brand-300"></span>
             MAHSULOTLAR
@@ -164,7 +153,7 @@
         </div>
 
         <!-- Category filter -->
-        <div class="flex flex-wrap gap-2 mb-8 sm:mb-10">
+        <div class="flex flex-wrap gap-2 mb-8 sm:mb-10 reveal-up" style="animation-delay:0.1s">
           <button
             v-for="cat in categories"
             :key="cat.key"
@@ -172,7 +161,7 @@
             class="px-4 sm:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap"
             :class="selectedCategory === cat.key
               ? 'bg-brand-700 text-white shadow-sm shadow-brand-700/20'
-              : 'border border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'"
+              : 'border border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50'"
           >{{ cat.label }}</button>
         </div>
 
@@ -189,18 +178,19 @@
           <p class="font-medium">{{ t.products_empty }}</p>
         </div>
 
-        <!-- Products grid -->
-        <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+        <!-- Products grid — staggered entrance -->
+        <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 products-grid" ref="productsGridRef">
           <div
-            v-for="product in filteredProducts"
+            v-for="(product, index) in filteredProducts"
             :key="product.id"
-            class="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg hover:shadow-slate-200/60 hover:border-slate-200 transition-all duration-300 group flex flex-col cursor-pointer"
+            class="product-card bg-white rounded-2xl border border-slate-100 overflow-hidden flex flex-col cursor-pointer group"
+            :style="`--stagger: ${index}`"
             @click="openProductModal(product)"
           >
             <!-- Image -->
             <div class="aspect-square bg-slate-50 overflow-hidden relative">
               <img v-if="product.image_path" :src="product.image_path" :alt="product.name"
-                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                   class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div v-else class="w-full h-full flex flex-col items-center justify-center">
                 <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -209,18 +199,29 @@
             </div>
             <!-- Content -->
             <div class="p-3 sm:p-4 flex flex-col flex-1">
-              <h3 class="font-semibold text-slate-900 text-sm sm:text-base mb-1 group-hover:text-brand-700 transition-colors line-clamp-1">{{ product.name }}</h3>
-              <p v-if="product.description" class="text-slate-400 text-xs mb-3 line-clamp-2 leading-relaxed flex-1">{{ product.description }}</p>
+              <h3 class="font-semibold text-slate-900 text-sm sm:text-base mb-1 group-hover:text-brand-700 transition-colors duration-200 line-clamp-1">
+                {{ product.name }}
+              </h3>
+              <p v-if="product.description" class="text-slate-400 text-xs mb-3 line-clamp-2 leading-relaxed flex-1">
+                {{ product.description }}
+              </p>
               <div v-else class="flex-1"></div>
               <div class="flex items-center justify-between mt-2">
                 <span class="text-brand-700 font-bold text-sm sm:text-base">
                   {{ formatPrice(product.price_per_pack) }} {{ t.currency }}
                 </span>
+                <!-- Add to cart button with animation -->
                 <button
-                  @click.stop="cartStore.addItem(product)"
-                  class="w-9 h-9 rounded-full border-2 border-brand-200 text-brand-600 hover:bg-brand-700 hover:border-brand-700 hover:text-white transition-all duration-200 flex items-center justify-center shrink-0"
+                  @click.stop="handleAddToCart(product)"
+                  class="cart-btn relative w-9 h-9 rounded-full border-2 border-brand-200 text-brand-600 flex items-center justify-center shrink-0 transition-all duration-200 hover:bg-brand-700 hover:border-brand-700 hover:text-white active:scale-90"
+                  :class="{ 'cart-bounce': addingMap[product.id] }"
                   :title="t.add_to_cart"
                 >
+                  <!-- +1 popup -->
+                  <span v-if="addingMap[product.id]"
+                        class="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-bold text-emerald-600 pop-up pointer-events-none">
+                    +1
+                  </span>
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
                   </svg>
@@ -230,8 +231,8 @@
           </div>
         </div>
 
-        <!-- Show all link -->
-        <div v-if="!loading && products.length > 8" class="text-center mt-10">
+        <!-- Show all -->
+        <div v-if="!loading && products.length > 8" class="text-center mt-10 reveal-up">
           <button @click="selectedCategory = ''"
              class="inline-flex items-center gap-2 text-brand-700 font-semibold text-sm hover:text-brand-800 transition-colors group">
             {{ t.products_show_all }}
@@ -246,49 +247,19 @@
     <!-- ======= FEATURES BAR ======= -->
     <section id="about" class="bg-brand-950 py-12 sm:py-14">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 reveal-section" ref="featureBarRef">
+          <div v-for="(feat, i) in featureBarItems" :key="i"
+               class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4 feature-item"
+               :style="`--stagger: ${i}`">
             <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C12 2 5 8 5 13a7 7 0 0014 0c0-5-7-11-7-11z"/>
-              </svg>
+              <component :is="'svg'" v-html="feat.icon"
+                         class="w-5 h-5 text-white"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+              </component>
             </div>
             <div>
-              <div class="font-semibold text-white text-sm sm:text-base">{{ t.feat1_title }}</div>
-              <div class="text-white/50 text-xs mt-1 leading-relaxed">{{ t.feat1_desc }}</div>
-            </div>
-          </div>
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-              </svg>
-            </div>
-            <div>
-              <div class="font-semibold text-white text-sm sm:text-base">{{ t.feat2_title }}</div>
-              <div class="text-white/50 text-xs mt-1 leading-relaxed">{{ t.feat2_desc }}</div>
-            </div>
-          </div>
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-              </svg>
-            </div>
-            <div>
-              <div class="font-semibold text-white text-sm sm:text-base">{{ t.feat3_title }}</div>
-              <div class="text-white/50 text-xs mt-1 leading-relaxed">{{ t.feat3_desc }}</div>
-            </div>
-          </div>
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
-              </svg>
-            </div>
-            <div>
-              <div class="font-semibold text-white text-sm sm:text-base">{{ t.feat4_title }}</div>
-              <div class="text-white/50 text-xs mt-1 leading-relaxed">{{ t.feat4_desc }}</div>
+              <div class="font-semibold text-white text-sm sm:text-base">{{ feat.title }}</div>
+              <div class="text-white/50 text-xs mt-1 leading-relaxed">{{ feat.desc }}</div>
             </div>
           </div>
         </div>
@@ -301,22 +272,22 @@
         <div class="grid md:grid-cols-3 gap-8 sm:gap-10 items-start">
 
           <!-- Col 1: Quick order -->
-          <div>
+          <div class="reveal-up">
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">{{ t.cta_quick_title }}</h3>
             <p class="text-slate-400 text-sm leading-relaxed mb-6">{{ t.cta_quick_desc }}</p>
             <a href="#products"
-               class="inline-flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold text-sm hover:bg-slate-800 transition-colors duration-200">
+               class="inline-flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold text-sm hover:bg-slate-800 hover:-translate-y-0.5 transition-all duration-200">
               {{ t.cta_order_btn }}
             </a>
           </div>
 
           <!-- Col 2: Featured product -->
-          <div class="border border-slate-100 rounded-2xl p-5 sm:p-6 bg-slate-50/50 hover:shadow-md transition-shadow duration-300 text-center">
+          <div class="border border-slate-100 rounded-2xl p-5 sm:p-6 bg-slate-50/50 hover:shadow-lg transition-shadow duration-300 text-center reveal-up" style="animation-delay:0.1s">
             <div class="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">{{ t.cta_special_label }}</div>
             <div class="w-28 h-28 sm:w-36 sm:h-36 mx-auto mb-4">
               <img v-if="featuredProduct && featuredProduct.image_path"
                    :src="featuredProduct.image_path" :alt="featuredProduct.name"
-                   class="w-full h-full object-contain drop-shadow-lg" />
+                   class="w-full h-full object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300" />
               <div v-else class="w-full h-full bg-white rounded-2xl flex items-center justify-center shadow-inner">
                 <svg class="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
@@ -343,8 +314,8 @@
             </div>
           </div>
 
-          <!-- Col 3: Contact info -->
-          <div id="contacts-quick">
+          <!-- Col 3: Contacts -->
+          <div class="reveal-up" style="animation-delay:0.2s" id="contacts-quick">
             <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-5">{{ t.cta_contact_title }}</h3>
             <div class="space-y-3">
               <a :href="`tel:${t.contacts_phone.replace(/\s/g,'')}`"
@@ -383,16 +354,15 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </section>
 
     <!-- ======= PRODUCT DETAIL MODAL ======= -->
     <Teleport to="body">
-      <div v-if="selectedProduct" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="selectedProduct = null">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="selectedProduct = null"></div>
-        <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div v-if="selectedProduct" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" @click="selectedProduct = null"></div>
+        <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-scale-in">
           <div class="aspect-[16/9] bg-slate-50 flex-shrink-0 relative">
             <img v-if="selectedProduct.image_path" :src="selectedProduct.image_path" :alt="selectedProduct.name" class="w-full h-full object-cover" />
             <div v-else class="w-full h-full flex items-center justify-center">
@@ -421,8 +391,8 @@
                 <div class="text-2xl font-bold text-brand-700">{{ formatPrice(selectedProduct.price_per_pack) }} {{ t.currency }}</div>
               </div>
               <button
-                @click="cartStore.addItem(selectedProduct); selectedProduct = null"
-                class="flex items-center gap-2 bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-800 transition-colors text-sm">
+                @click="handleAddToCart(selectedProduct); selectedProduct = null"
+                class="flex items-center gap-2 bg-brand-700 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-800 active:scale-95 transition-all text-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
                 </svg>
@@ -439,7 +409,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import axios from 'axios'
 import Navbar from '../components/Navbar.vue'
 import CartDrawer from '../components/CartDrawer.vue'
@@ -459,6 +429,52 @@ const loading = ref(true)
 const selectedCategory = ref('')
 const selectedProduct = ref(null)
 const cartDrawerRef = ref(null)
+const statsBarRef = ref(null)
+const productsGridRef = ref(null)
+const featureBarRef = ref(null)
+
+// Add to cart animation state
+const addingMap = reactive({})
+
+function handleAddToCart(product) {
+  cartStore.addItem(product)
+  addingMap[product.id] = true
+  setTimeout(() => { delete addingMap[product.id] }, 700)
+}
+
+const heroFeatures = computed(() => [
+  {
+    title: t.value.hero_feat1_title, sub: t.value.hero_feat1_sub,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2C12 2 5 8 5 13a7 7 0 0014 0c0-5-7-11-7-11z"/>'
+  },
+  {
+    title: t.value.hero_feat2_title, sub: t.value.hero_feat2_sub,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>'
+  },
+  {
+    title: t.value.hero_feat3_title, sub: t.value.hero_feat3_sub,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>'
+  }
+])
+
+const featureBarItems = computed(() => [
+  {
+    title: t.value.feat1_title, desc: t.value.feat1_desc,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 2C12 2 5 8 5 13a7 7 0 0014 0c0-5-7-11-7-11z"/>'
+  },
+  {
+    title: t.value.feat2_title, desc: t.value.feat2_desc,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>'
+  },
+  {
+    title: t.value.feat3_title, desc: t.value.feat3_desc,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>'
+  },
+  {
+    title: t.value.feat4_title, desc: t.value.feat4_desc,
+    icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>'
+  }
+])
 
 const categories = computed(() => [
   { key: '', label: t.value.cat_all },
@@ -475,14 +491,9 @@ const filteredProducts = computed(() => {
   return products.value.filter(p => p.category === selectedCategory.value)
 })
 
-const heroProducts = computed(() => {
-  return products.value.filter(p => p.image_path).slice(0, 3)
-})
+const heroProducts = computed(() => products.value.filter(p => p.image_path).slice(0, 3))
 
-const featuredProduct = computed(() => {
-  if (!products.value.length) return null
-  return products.value.find(p => p.image_path) || products.value[0]
-})
+const featuredProduct = computed(() => products.value.find(p => p.image_path) || products.value[0] || null)
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price || 0))
@@ -490,6 +501,60 @@ function formatPrice(price) {
 
 function openProductModal(product) {
   selectedProduct.value = product
+}
+
+// ── Scroll reveal ──────────────────────────────────────────────────────────────
+let observer = null
+function setupScrollReveal() {
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible')
+        observer.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' })
+
+  document.querySelectorAll('.reveal-up, .reveal-right, .reveal-section').forEach(el => observer.observe(el))
+
+  // Stagger product cards
+  if (productsGridRef.value) {
+    observer.observe(productsGridRef.value)
+  }
+  if (featureBarRef.value) {
+    observer.observe(featureBarRef.value)
+  }
+}
+
+// Count-up for stats
+function animateCountUp(el) {
+  const target = parseInt(el.dataset.target)
+  const suffix = el.dataset.suffix || ''
+  if (!target) return
+  let start = 0
+  const duration = 1800
+  const step = target / (duration / 16)
+  const timer = setInterval(() => {
+    start += step
+    if (start >= target) {
+      clearInterval(timer)
+      el.textContent = new Intl.NumberFormat('ru-RU').format(target) + suffix
+    } else {
+      el.textContent = new Intl.NumberFormat('ru-RU').format(Math.floor(start)) + suffix
+    }
+  }, 16)
+}
+
+function setupStats() {
+  const statsObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.stat-num').forEach(animateCountUp)
+        statsObs.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.4 })
+  if (statsBarRef.value) statsObs.observe(statsBarRef.value)
 }
 
 onMounted(async () => {
@@ -501,5 +566,130 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  // Small delay so Vue renders the grid first
+  setTimeout(() => {
+    setupScrollReveal()
+    setupStats()
+  }, 100)
+})
+
+onUnmounted(() => {
+  if (observer) observer.disconnect()
 })
 </script>
+
+<style scoped>
+/* ── Entrance animations ───────────────────────────────────────────────── */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s cubic-bezier(0.16,1,0.3,1), transform 0.65s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal-up.visible,
+.reveal-up { /* always visible if page loaded */ }
+.reveal-right {
+  opacity: 0;
+  transform: translateX(32px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* Trigger visibility once intersection fires */
+.reveal-up.visible, .reveal-right.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Default: show all on page load (above fold items) */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-up, .reveal-right { opacity: 0; }
+}
+
+/* Products grid stagger */
+.products-grid.visible .product-card {
+  animation: cardEnter 0.55s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: calc(var(--stagger, 0) * 0.07s);
+}
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Product card hover */
+.product-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(30, 64, 175, 0.10);
+  border-color: rgb(191, 219, 254);
+}
+
+/* Feature bar items stagger */
+.reveal-section.visible .feature-item {
+  animation: fadeSlide 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  animation-delay: calc(var(--stagger, 0) * 0.1s);
+}
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Hero product images float animation */
+.hero-product {
+  animation: heroFloat 5s ease-in-out infinite;
+}
+.hero-product:nth-child(1) { animation-delay: 0s; }
+.hero-product:nth-child(2) { animation-delay: 0.7s; }
+.hero-product:nth-child(3) { animation-delay: 1.4s; }
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+/* Floating badges */
+.float-badge {
+  animation: badgeFloat 4s ease-in-out infinite;
+}
+@keyframes badgeFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+
+/* ── Cart button animations ─────────────────────────────────────────────── */
+@keyframes cartBounce {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(0.75); }
+  60%  { transform: scale(1.3); }
+  80%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.cart-btn.cart-bounce {
+  animation: cartBounce 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* +1 popup */
+@keyframes popUp {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(0); }
+  30%  { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+}
+.pop-up {
+  animation: popUp 0.65s ease forwards;
+}
+
+/* ── Modal animations ───────────────────────────────────────────────────── */
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.25s ease forwards; }
+.animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+/* Stats count animation */
+.stat-num {
+  display: inline-block;
+  animation: fadeIn 0.4s ease;
+}
+</style>
