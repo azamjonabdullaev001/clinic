@@ -8,7 +8,7 @@
     <section class="relative pt-[72px] overflow-hidden" style="background:#fff; min-height:640px">
 
       <!-- Right side: full-bleed hero image with fade edges -->
-      <div class="absolute inset-y-0 right-0 hidden md:block" style="left:42%">
+      <div class="absolute inset-y-0 right-0 hidden md:block" style="left:55%">
         <!-- Image -->
         <img v-if="heroImageSrc"
              :src="heroImageSrc"
@@ -17,7 +17,7 @@
              style="filter: brightness(1.02)" />
         <!-- Fade: left edge -->
         <div class="absolute inset-y-0 left-0 pointer-events-none"
-             style="width:42%; background:linear-gradient(to right, #ffffff 0%, rgba(255,255,255,0.85) 35%, rgba(255,255,255,0.4) 65%, transparent 100%)"></div>
+             style="width:45%; background:linear-gradient(to right, #ffffff 0%, rgba(255,255,255,0.85) 35%, rgba(255,255,255,0.4) 65%, transparent 100%)"></div>
         <!-- Fade: top edge -->
         <div class="absolute inset-x-0 top-0 h-28 pointer-events-none"
              style="background:linear-gradient(to bottom, #ffffff 0%, transparent 100%)"></div>
@@ -25,7 +25,7 @@
         <div class="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
              style="background:linear-gradient(to top, #ffffff 0%, transparent 100%)"></div>
         <!-- Floating badge 1 -->
-        <div class="absolute top-8 left-8 bg-white rounded-2xl px-4 py-3 shadow-xl shadow-slate-200/60 float-badge z-10">
+        <div class="absolute left-8 bg-white rounded-2xl px-4 py-3 shadow-xl shadow-slate-200/60 float-badge z-10" style="top:80px">
           <div class="text-2xl font-bold text-brand-700">40+</div>
           <div class="text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
         </div>
@@ -90,7 +90,7 @@
     <!-- ======= STATS BAR ======= -->
     <div class="relative z-10 -mt-10 sm:-mt-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-5xl mx-auto" ref="statsBarRef">
-        <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 px-5 sm:px-8 py-5 sm:py-6 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        <div class="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-100 px-5 sm:px-8 py-5 sm:py-6 grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <div class="flex flex-col items-start md:border-r md:border-slate-100 md:pr-6">
             <span class="stat-num text-2xl sm:text-3xl font-bold text-brand-700" data-target="40" data-suffix="+">40+</span>
             <span class="text-xs sm:text-sm text-slate-400 mt-1">{{ t.hero_years }}</span>
@@ -98,10 +98,6 @@
           <div class="flex flex-col items-start md:border-r md:border-slate-100 md:pr-6">
             <span class="stat-num text-2xl sm:text-3xl font-bold text-brand-700" data-target="500000" data-suffix="+">500 000+</span>
             <span class="text-xs sm:text-sm text-slate-400 mt-1">{{ t.stats_clients_label }}</span>
-          </div>
-          <div class="flex flex-col items-start md:border-r md:border-slate-100 md:pr-6">
-            <span class="stat-num text-2xl sm:text-3xl font-bold text-brand-700" data-target="20" data-suffix="+">20+</span>
-            <span class="text-xs sm:text-sm text-slate-400 mt-1">{{ t.stats_products_types }}</span>
           </div>
           <div class="flex flex-col items-start">
             <span class="text-base sm:text-lg font-bold text-brand-700">{{ t.stats_quality_title }}</span>
@@ -227,75 +223,129 @@
     </section>
 
     <!-- ======= BOTTOM CTA ======= -->
-    <section class="bg-white py-12 sm:py-16 border-t border-slate-100" id="contacts-quick">
+    <section class="py-16 sm:py-20 border-t border-slate-100" id="contacts-quick"
+             style="background: linear-gradient(135deg, #f8faff 0%, #eef2ff 50%, #f0f9ff 100%)">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid md:grid-cols-3 gap-8 sm:gap-10 items-start">
 
-          <div class="reveal-up">
-            <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-3">{{ t.cta_quick_title }}</h3>
-            <p class="text-slate-400 text-sm leading-relaxed mb-6">{{ t.cta_quick_desc }}</p>
-            <a href="#products" class="inline-flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold text-sm hover:bg-slate-800 hover:-translate-y-0.5 transition-all duration-200">
-              {{ t.cta_order_btn }}
-            </a>
+        <!-- Section header -->
+        <div class="text-center mb-12 reveal-up">
+          <div class="flex items-center justify-center gap-3 text-brand-600 text-xs font-bold tracking-widest uppercase mb-3">
+            <span class="w-8 h-px bg-brand-300"></span>
+            {{ t.cta_special_label }}
+            <span class="w-8 h-px bg-brand-300"></span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-bold text-slate-900">{{ t.cta_quick_title }}</h2>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-8 items-stretch">
+
+          <!-- Left: Featured product card -->
+          <div v-if="featuredProduct" class="reveal-up" style="animation-delay:.05s">
+            <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden h-full flex flex-col sm:flex-row">
+              <!-- Product image panel -->
+              <div class="sm:w-[45%] flex-shrink-0 relative overflow-hidden cursor-pointer"
+                   style="background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 100%)"
+                   @click="openInfoModal(featuredProduct)">
+                <div class="absolute inset-0 opacity-20"
+                     style="background: radial-gradient(circle at 70% 50%, #3b82f6 0%, transparent 60%)"></div>
+                <img :src="featuredProduct.image_path" :alt="featuredProduct.name"
+                     class="relative z-10 w-full h-full object-contain p-6 sm:p-8 drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                     style="min-height: 220px" />
+                <!-- Badge -->
+                <div class="absolute top-4 left-4 z-20 bg-brand-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg">
+                  {{ t.cta_special_label }}
+                </div>
+              </div>
+              <!-- Product info -->
+              <div class="flex-1 p-6 sm:p-7 flex flex-col justify-between">
+                <div>
+                  <h3 class="text-xl font-bold text-slate-900 mb-2">{{ featuredProduct.name }}</h3>
+                  <p class="text-slate-500 text-sm leading-relaxed mb-5 line-clamp-3">{{ featuredProduct.description }}</p>
+                </div>
+                <div>
+                  <div class="flex items-end gap-1 mb-5">
+                    <span class="text-2xl font-bold text-brand-700">{{ formatPrice(featuredProduct.price_per_pack) }}</span>
+                    <span class="text-slate-400 font-medium mb-0.5">{{ t.currency }}</span>
+                  </div>
+                  <div class="flex gap-3">
+                    <button @click="openInfoModal(featuredProduct)"
+                            class="flex-1 flex items-center justify-center gap-2 bg-brand-700 text-white px-5 py-3 rounded-xl font-semibold text-sm hover:bg-brand-800 hover:shadow-lg hover:shadow-brand-700/30 hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-200">
+                      {{ t.cta_view }}
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                      </svg>
+                    </button>
+                    <button @click="handleAddToCart(featuredProduct)"
+                            class="w-12 h-12 rounded-xl border-2 border-brand-200 text-brand-600 flex items-center justify-center shrink-0 hover:bg-brand-700 hover:border-brand-700 hover:text-white transition-all duration-200">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="border border-slate-100 rounded-2xl p-5 sm:p-6 bg-slate-50/50 hover:shadow-lg transition-shadow duration-300 text-center reveal-up" style="animation-delay:.1s">
-            <div class="text-xs font-bold text-brand-600 uppercase tracking-widest mb-3">{{ t.cta_special_label }}</div>
-            <div class="w-28 h-28 sm:w-36 sm:h-36 mx-auto mb-4">
-              <img v-if="featuredProduct && featuredProduct.image_path"
-                   :src="featuredProduct.image_path" :alt="featuredProduct.name"
-                   class="w-full h-full object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300" />
-            </div>
-            <h4 class="font-bold text-slate-900 text-base mb-1">{{ featuredProduct?.name }}</h4>
-            <p class="text-slate-400 text-xs mb-4 leading-relaxed line-clamp-2">{{ featuredProduct?.description }}</p>
-            <div class="flex items-center justify-between">
-              <span class="text-brand-700 font-bold text-base">{{ featuredProduct ? formatPrice(featuredProduct.price_per_pack) + ' ' + t.currency : '' }}</span>
-              <button v-if="featuredProduct" @click="openInfoModal(featuredProduct)"
-                      class="flex items-center gap-1.5 text-brand-700 hover:text-brand-800 font-semibold text-sm transition-colors">
-                {{ t.cta_view }}
+          <!-- Right: Contact + Order block -->
+          <div class="grid sm:grid-cols-2 lg:grid-cols-1 gap-5 reveal-up" style="animation-delay:.1s">
+
+            <!-- Quick order block -->
+            <div class="bg-brand-950 rounded-3xl p-6 sm:p-7 text-white flex flex-col justify-between" style="min-height:160px">
+              <div>
+                <p class="text-white/60 text-xs font-semibold uppercase tracking-widest mb-2">{{ t.cta_quick_title }}</p>
+                <p class="text-white/80 text-sm leading-relaxed mb-5">{{ t.cta_quick_desc }}</p>
+              </div>
+              <a href="#products"
+                 class="self-start inline-flex items-center gap-2 bg-white text-brand-900 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-brand-50 hover:-translate-y-0.5 transition-all duration-200 shadow-lg shadow-brand-950/40">
+                {{ t.cta_order_btn }}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                 </svg>
-              </button>
+              </a>
             </div>
-          </div>
 
-          <div class="reveal-up" style="animation-delay:.2s">
-            <h3 class="text-xl sm:text-2xl font-bold text-slate-900 mb-5">{{ t.cta_contact_title }}</h3>
-            <div class="space-y-3">
-              <a :href="`tel:${t.contacts_phone.replace(/\s/g,'')}`" class="flex items-center gap-3 text-sm text-slate-600 hover:text-brand-700 transition-colors group">
-                <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
-                  <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
-                  </svg>
+            <!-- Contacts block -->
+            <div class="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-6 sm:p-7">
+              <h3 class="font-bold text-slate-900 text-base mb-4">{{ t.cta_contact_title }}</h3>
+              <div class="space-y-3">
+                <a :href="`tel:${t.contacts_phone.replace(/\s/g,'')}`"
+                   class="flex items-center gap-3 text-sm text-slate-600 hover:text-brand-700 transition-colors group">
+                  <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
+                    <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
+                    </svg>
+                  </div>
+                  {{ t.contacts_phone }}
+                </a>
+                <a :href="`tel:${t.contacts_phone2.replace(/\s/g,'')}`"
+                   class="flex items-center gap-3 text-sm text-slate-600 hover:text-brand-700 transition-colors group">
+                  <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
+                    <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
+                    </svg>
+                  </div>
+                  {{ t.contacts_phone2 }}
+                </a>
+                <div class="flex items-center gap-3 text-sm text-slate-500">
+                  <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  {{ t.cta_workdays_text }}
                 </div>
-                {{ t.contacts_phone }}
-              </a>
-              <a :href="`tel:${t.contacts_phone2.replace(/\s/g,'')}`" class="flex items-center gap-3 text-sm text-slate-600 hover:text-brand-700 transition-colors group">
-                <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
-                  <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
-                  </svg>
+                <div class="flex items-center gap-3 text-sm text-slate-400">
+                  <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
+                    </svg>
+                  </div>
+                  {{ t.cta_weekend_text }}
                 </div>
-                {{ t.contacts_phone2 }}
-              </a>
-              <div class="flex items-center gap-3 text-sm text-slate-600">
-                <div class="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-                  <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                {{ t.cta_workdays_text }}
-              </div>
-              <div class="flex items-center gap-3 text-sm text-slate-500">
-                <div class="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                  <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
-                  </svg>
-                </div>
-                {{ t.cta_weekend_text }}
               </div>
             </div>
+
           </div>
         </div>
       </div>

@@ -594,7 +594,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 	var orders []models.Order
 	database.DB.Where("worker_id = ? AND status = ? AND created_at >= ? AND created_at < ?",
 		workerID, "delivered", startTime, endTime).
-		Preload("Items").
+		Preload("Items.Product").
 		Find(&orders)
 
 	// Resolve marketolog id -> name for the breakdown.
@@ -710,6 +710,54 @@ func GetWorkerAnalytics(c *gin.Context) {
 		marketologList = append(marketologList, namedAgg{name, a.Orders, a.Capsules, a.Pieces, a.Revenue})
 	}
 
+	// Build top-products list from delivered orders.
+	type prodStat struct {
+		ProductName string
+		Orders      int
+		Capsules    int
+		Pieces      int
+		Revenue     float64
+	}
+	prodMap := map[uint]*prodStat{}
+	for _, order := range orders {
+		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue
+			}
+			ps, ok := prodMap[item.ProductID]
+			if !ok {
+				ps = &prodStat{ProductName: item.Product.Name}
+				prodMap[item.ProductID] = ps
+			}
+			ps.Orders++
+			ps.Revenue += item.Price
+			if item.UnitType == "piece" {
+				ps.Pieces += item.Quantity
+			} else {
+				ps.Capsules += item.Quantity
+			}
+		}
+	}
+	type prodStatOut struct {
+		ProductID   uint    `json:"product_id"`
+		ProductName string  `json:"product_name"`
+		Orders      int     `json:"orders"`
+		Capsules    int     `json:"capsules"`
+		Pieces      int     `json:"pieces"`
+		Revenue     float64 `json:"revenue"`
+	}
+	var topProducts []prodStatOut
+	for id, ps := range prodMap {
+		topProducts = append(topProducts, prodStatOut{id, ps.ProductName, ps.Orders, ps.Capsules, ps.Pieces, ps.Revenue})
+	}
+	for i := 0; i < len(topProducts)-1; i++ {
+		for j := i + 1; j < len(topProducts); j++ {
+			if topProducts[j].Revenue > topProducts[i].Revenue {
+				topProducts[i], topProducts[j] = topProducts[j], topProducts[i]
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"points":          points,
 		"total_revenue":   totalRevenue,
@@ -719,6 +767,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 		"breakdown":       cats,
 		"by_doctor":       doctorList,
 		"by_marketolog":   marketologList,
+		"top_products":    topProducts,
 	})
 }
 

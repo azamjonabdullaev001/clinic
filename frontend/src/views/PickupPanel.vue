@@ -2,17 +2,17 @@
   <div class="min-h-screen flex pp-root" :class="{ 'night-mode': night }">
 
     <!-- ===== SIDEBAR ===== -->
-    <aside class="worker-sidebar flex-shrink-0 flex flex-col"
-      style="width:200px;min-height:100vh;position:sticky;top:0;height:100vh;overflow-y:auto;background:#111827;border-right:1px solid rgba(255,255,255,0.06);">
-      <div class="px-4 py-5 flex items-center gap-3" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+    <aside class="worker-sidebar pp-sidebar flex-shrink-0 flex flex-col"
+      style="width:200px;min-height:100vh;position:sticky;top:0;height:100vh;overflow-y:auto;">
+      <div class="px-4 py-5 flex items-center gap-3 pp-sidebar-border-b">
         <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
           <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
           </svg>
         </div>
         <div class="min-w-0">
-          <p class="text-white text-sm font-bold leading-tight">{{ txt.title }}</p>
-          <p class="text-gray-400 text-xs leading-tight truncate">{{ authStore.worker?.name }}</p>
+          <p class="pp-sidebar-text text-sm font-bold leading-tight">{{ txt.title }}</p>
+          <p class="pp-sidebar-text-muted text-xs leading-tight truncate">{{ authStore.worker?.name }}</p>
         </div>
       </div>
 
@@ -27,7 +27,7 @@
           ]"
           :key="s.k"
           @click="tab = s.k"
-          :class="tab === s.k ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'"
+          :class="tab === s.k ? 'bg-blue-600 text-white' : 'pp-sidebar-nav-inactive'"
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" :d="s.icon"/>
@@ -36,13 +36,13 @@
         </button>
       </nav>
 
-      <div class="px-4 pb-5 pt-3 space-y-3" style="border-top:1px solid rgba(255,255,255,0.06);">
+      <div class="px-4 pb-5 pt-3 space-y-3 pp-sidebar-border-t">
         <div class="flex items-center gap-1.5">
-          <button @click="lang='ru'" :class="lang==='ru' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'" class="text-sm transition">RU</button>
-          <span class="text-gray-700 text-sm">|</span>
-          <button @click="lang='uz'" :class="lang==='uz' ? 'text-white font-bold' : 'text-gray-500 hover:text-gray-300'" class="text-sm transition">UZ</button>
+          <button @click="lang='ru'" :class="lang==='ru' ? 'pp-sidebar-lang-active font-bold' : 'pp-sidebar-lang-inactive'" class="text-sm transition">RU</button>
+          <span class="pp-sidebar-lang-sep text-sm">|</span>
+          <button @click="lang='uz'" :class="lang==='uz' ? 'pp-sidebar-lang-active font-bold' : 'pp-sidebar-lang-inactive'" class="text-sm transition">UZ</button>
         </div>
-        <button @click="toggleNight" class="flex items-center gap-2 text-sm transition w-full" :class="night ? 'text-amber-400 hover:text-amber-300' : 'text-gray-400 hover:text-gray-200'">
+        <button @click="toggleNight" class="flex items-center gap-2 text-sm transition w-full" :class="night ? 'text-amber-400 hover:text-amber-300' : 'pp-sidebar-theme-btn'">
           <svg v-if="night" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
           </svg>
@@ -51,7 +51,7 @@
           </svg>
           {{ night ? txt.day_mode : txt.night_mode }}
         </button>
-        <button @click="logout" class="flex items-center gap-2 text-red-400 hover:text-red-300 text-sm font-medium transition w-full">
+        <button @click="logout" class="flex items-center gap-2 text-red-500 hover:text-red-400 text-sm font-medium transition w-full">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
           </svg>
@@ -627,6 +627,35 @@
               </table>
             </div>
           </div>
+
+          <!-- Per-product breakdown -->
+          <div v-if="analyticsData.top_products && analyticsData.top_products.length" class="pp-card rounded-xl shadow-sm p-6">
+            <h3 class="font-semibold text-gray-800 mb-4">{{ txt.top_products }}</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100">
+                    <th class="text-left py-2 font-semibold text-gray-500">#</th>
+                    <th class="text-left py-2 font-semibold text-gray-500">{{ txt.product_name }}</th>
+                    <th class="text-right py-2 font-semibold text-gray-500">{{ txt.a_orders }}</th>
+                    <th class="text-right py-2 font-semibold text-gray-500">{{ txt.pack }}</th>
+                    <th class="text-right py-2 font-semibold text-gray-500">{{ txt.piece }}</th>
+                    <th class="text-right py-2 font-semibold text-gray-500">{{ txt.a_revenue }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="(prod, idx) in analyticsData.top_products" :key="prod.product_id" class="pp-row-hover">
+                    <td class="py-3 text-gray-400 font-medium w-8">{{ idx + 1 }}</td>
+                    <td class="py-3 font-semibold text-gray-800">{{ prod.product_name }}</td>
+                    <td class="py-3 text-right text-gray-700">{{ prod.orders }}</td>
+                    <td class="py-3 text-right text-gray-700">{{ prod.capsules }}</td>
+                    <td class="py-3 text-right text-gray-700">{{ prod.pieces }}</td>
+                    <td class="py-3 text-right font-bold text-blue-600">{{ formatPrice(prod.revenue) }} {{ txt.sum }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </template>
       </div>
 
@@ -896,6 +925,8 @@ const texts = {
     a_created: 'Создано',
     a_confirmed: 'Подтверждено',
     by_category: 'По категориям',
+    top_products: 'По препаратам',
+    product_name: 'Препарат',
     category: 'Категория',
     cat_all: 'Все категории',
     cat_vip: 'Свой пациент',
@@ -1029,6 +1060,8 @@ const texts = {
     a_created: 'Yaratilgan',
     a_confirmed: 'Tasdiqlangan',
     by_category: "Toifalar bo'yicha",
+    top_products: "Dorilar bo'yicha",
+    product_name: 'Dori nomi',
     category: 'Toifa',
     cat_all: 'Barcha toifalar',
     cat_vip: "O'z bemori",
@@ -1725,6 +1758,26 @@ onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
 
 .pp-row-hover:hover { background: #f1f5f9; }
 
+/* ── Sidebar – Light mode (default) ── */
+.pp-sidebar            { background: #1e293b; border-right: 1px solid rgba(255,255,255,0.06); }
+.pp-sidebar-border-b   { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.pp-sidebar-border-t   { border-top: 1px solid rgba(255,255,255,0.08); }
+.pp-sidebar-text       { color: #f1f5f9; }
+.pp-sidebar-text-muted { color: #94a3b8; }
+.pp-sidebar-nav-inactive       { color: #94a3b8; }
+.pp-sidebar-nav-inactive:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+.pp-sidebar-lang-active   { color: #f1f5f9; }
+.pp-sidebar-lang-inactive { color: #64748b; }
+.pp-sidebar-lang-inactive:hover { color: #94a3b8; }
+.pp-sidebar-lang-sep  { color: #334155; }
+.pp-sidebar-theme-btn { color: #94a3b8; }
+.pp-sidebar-theme-btn:hover { color: #cbd5e1; }
+
+/* ── Sidebar – Dark mode (night-mode) ── */
+.night-mode .pp-sidebar            { background: #0f172a; border-right: 1px solid rgba(255,255,255,0.06); }
+.night-mode .pp-sidebar-border-b   { border-bottom: 1px solid rgba(255,255,255,0.06); }
+.night-mode .pp-sidebar-border-t   { border-top: 1px solid rgba(255,255,255,0.06); }
+
 /* ── Dark mode ── */
 .night-mode .pp-root   { background: #0f172a; }
 .night-mode .pp-main   { background: #0f172a; }
@@ -1766,4 +1819,12 @@ onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
 /* Modal dark */
 .night-mode .relative.bg-white { background: #1e293b !important; }
 .night-mode input[type="date"] { color-scheme: dark; }
+
+/* Light mode: fix hardcoded gray text/bg inside cards */
+.pp-root:not(.night-mode) .text-gray-800 { color: #1e293b; }
+.pp-root:not(.night-mode) .text-gray-700 { color: #374151; }
+.pp-root:not(.night-mode) .text-gray-500 { color: #6b7280; }
+.pp-root:not(.night-mode) .text-gray-400 { color: #9ca3af; }
+.pp-root:not(.night-mode) .bg-gray-100   { background: #f3f4f6; }
+.pp-root:not(.night-mode) .bg-gray-50    { background: #f9fafb; }
 </style>
