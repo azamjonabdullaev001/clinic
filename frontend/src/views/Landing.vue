@@ -5,11 +5,11 @@
     <OrdersDrawer />
 
     <!-- ======= HERO SECTION ======= -->
-    <section class="relative bg-white pt-[72px]">
-      <div class="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 pointer-events-none"></div>
+    <section class="relative pt-[72px] overflow-hidden"
+             style="background: linear-gradient(115deg, #ffffff 0%, #ffffff 45%, #eef3ff 72%, #e4edff 100%)">
 
       <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24 sm:pb-32">
-        <div class="grid md:grid-cols-2 gap-8 lg:gap-16 items-center">
+        <div class="grid md:grid-cols-2 gap-8 lg:gap-10 items-center">
 
           <!-- LEFT: Text Content -->
           <div class="order-2 md:order-1">
@@ -66,65 +66,58 @@
             </a>
           </div>
 
-          <!-- RIGHT: 3 product images or fallback -->
+          <!-- RIGHT: 3 product images — free floating, no container box -->
           <div class="order-1 md:order-2 flex justify-center md:justify-end">
-            <div class="relative w-full max-w-[480px]">
 
-              <!-- Products arrangement (when products with images are loaded) -->
-              <div v-if="heroProducts.length > 0"
-                   class="relative h-[300px] sm:h-[400px] md:h-[460px] rounded-3xl overflow-hidden"
-                   style="background: linear-gradient(145deg, #f0f4ff 0%, #e8f0fe 50%, #f5f7ff 100%);">
-                <!-- Decorative circles -->
-                <div class="absolute top-8 right-8 w-32 h-32 rounded-full bg-white/40"></div>
-                <div class="absolute bottom-4 left-4 w-20 h-20 rounded-full bg-white/30"></div>
-
-                <!-- Product images row -->
-                <div class="absolute inset-0 flex items-end justify-center pb-4 sm:pb-8 gap-2 sm:gap-4 px-4">
-                  <!-- Left product (shorter, offset down) -->
-                  <div v-if="heroProducts.length >= 2" class="relative flex-shrink-0 self-end pb-2 sm:pb-4">
-                    <img :src="heroProducts[0].image_path" :alt="heroProducts[0].name"
-                         class="h-[140px] sm:h-[185px] md:h-[210px] w-auto object-contain drop-shadow-xl" />
-                  </div>
-                  <!-- Center product (tallest) -->
-                  <div class="relative flex-shrink-0 self-end">
-                    <img :src="heroProducts.length >= 2 ? heroProducts[1].image_path : heroProducts[0].image_path"
-                         :alt="heroProducts.length >= 2 ? heroProducts[1].name : heroProducts[0].name"
-                         class="h-[180px] sm:h-[235px] md:h-[270px] w-auto object-contain drop-shadow-2xl" />
-                  </div>
-                  <!-- Right product (shorter, offset down) -->
-                  <div v-if="heroProducts.length >= 3" class="relative flex-shrink-0 self-end pb-4 sm:pb-6">
-                    <img :src="heroProducts[2].image_path" :alt="heroProducts[2].name"
-                         class="h-[120px] sm:h-[160px] md:h-[185px] w-auto object-contain drop-shadow-xl" />
-                  </div>
+            <!-- Products floating freely (no rounded box, no overflow-hidden) -->
+            <div v-if="heroProducts.length > 0" class="relative w-full max-w-[520px]">
+              <!-- Products row -->
+              <div class="relative flex items-end justify-center gap-1 sm:gap-3 h-[290px] sm:h-[400px] md:h-[470px]">
+                <!-- Left product (lower) -->
+                <div v-if="heroProducts.length >= 2"
+                     class="self-end mb-5 sm:mb-10 flex-shrink-0 transition-transform duration-700 hover:-translate-y-1">
+                  <img :src="heroProducts[0].image_path" :alt="heroProducts[0].name"
+                       class="h-[148px] sm:h-[195px] md:h-[228px] w-auto object-contain drop-shadow-2xl" />
                 </div>
-
-                <!-- Floating badge top-left -->
-                <div class="absolute top-4 sm:top-6 left-4 sm:left-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-200/60">
-                  <div class="text-xl sm:text-2xl font-bold text-brand-700">40+</div>
-                  <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
+                <!-- Center product (tallest, most prominent) -->
+                <div class="self-end flex-shrink-0 transition-transform duration-700 hover:-translate-y-2">
+                  <img :src="heroProducts.length >= 2 ? heroProducts[1].image_path : heroProducts[0].image_path"
+                       :alt="heroProducts.length >= 2 ? heroProducts[1].name : heroProducts[0].name"
+                       class="h-[196px] sm:h-[260px] md:h-[308px] w-auto object-contain drop-shadow-2xl" />
                 </div>
-                <!-- Floating badge bottom-right -->
-                <div class="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-200/60">
-                  <div class="text-xl sm:text-2xl font-bold text-brand-700">500K+</div>
-                  <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.stats_clients_label }}</div>
+                <!-- Right product (lower) -->
+                <div v-if="heroProducts.length >= 3"
+                     class="self-end mb-9 sm:mb-14 flex-shrink-0 transition-transform duration-700 hover:-translate-y-1">
+                  <img :src="heroProducts[2].image_path" :alt="heroProducts[2].name"
+                       class="h-[126px] sm:h-[168px] md:h-[198px] w-auto object-contain drop-shadow-xl" />
                 </div>
               </div>
-
-              <!-- Fallback image (when no products have images) -->
-              <div v-else class="relative">
-                <img src="/images/patients/3%20landing.jpg" alt="Doctor Jalilov"
-                     class="w-full h-[300px] sm:h-[400px] md:h-[460px] object-cover object-top rounded-3xl shadow-2xl shadow-slate-200" />
-                <div class="absolute top-4 sm:top-6 left-4 sm:left-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl">
-                  <div class="text-xl sm:text-2xl font-bold text-brand-700">40+</div>
-                  <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
-                </div>
-                <div class="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl">
-                  <div class="text-xl sm:text-2xl font-bold text-brand-700">500K+</div>
-                  <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.stats_clients_label }}</div>
-                </div>
+              <!-- Floating badge top-left -->
+              <div class="absolute top-0 left-0 sm:-top-2 sm:-left-2 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-300/40">
+                <div class="text-xl sm:text-2xl font-bold text-brand-700">40+</div>
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
               </div>
-
+              <!-- Floating badge bottom-right -->
+              <div class="absolute bottom-0 right-0 sm:-bottom-2 sm:-right-2 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl shadow-slate-300/40">
+                <div class="text-xl sm:text-2xl font-bold text-brand-700">500K+</div>
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.stats_clients_label }}</div>
+              </div>
             </div>
+
+            <!-- Fallback: doctor photo (when no products have images) -->
+            <div v-else class="relative w-full max-w-[480px]">
+              <img src="/images/patients/3%20landing.jpg" alt="Doctor Jalilov"
+                   class="w-full h-[290px] sm:h-[400px] md:h-[470px] object-cover object-top rounded-3xl shadow-2xl shadow-slate-200" />
+              <div class="absolute top-4 sm:top-6 left-4 sm:left-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl">
+                <div class="text-xl sm:text-2xl font-bold text-brand-700">40+</div>
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.hero_years }}</div>
+              </div>
+              <div class="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 bg-white rounded-2xl px-3 sm:px-4 py-2 sm:py-3 shadow-xl">
+                <div class="text-xl sm:text-2xl font-bold text-brand-700">500K+</div>
+                <div class="text-[10px] sm:text-xs text-slate-400 font-medium">{{ t.stats_clients_label }}</div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
