@@ -450,10 +450,7 @@ const filteredProducts = computed(() => {
   return products.value.filter(p => p.category === selectedCategory.value)
 })
 
-const heroImageSrc = computed(() => {
-  const p = products.value.find(pr => pr.image_path)
-  return p?.image_path || '/images/patients/3%20landing.jpg'
-})
+const heroImageSrc = computed(() => '/images/tabletka.png')
 
 const featuredProduct = computed(() => products.value.find(p => p.image_path) || null)
 
