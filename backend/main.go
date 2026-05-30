@@ -72,6 +72,7 @@ func main() {
 				protected.GET("/support/threads/:id", handlers.GetSupportThreadByID)
 				protected.POST("/support/threads/:id/reply", handlers.ReplySupportThread)
 				protected.GET("/analytics", handlers.GetAnalytics)
+				protected.GET("/products/:id/analytics", handlers.GetProductAnalytics)
 				protected.GET("/news", handlers.GetNewsPosts)
 				protected.POST("/news", handlers.CreateNewsPost)
 				protected.PUT("/news/:id", handlers.UpdateNewsPost)

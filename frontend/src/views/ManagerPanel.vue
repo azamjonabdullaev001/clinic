@@ -305,6 +305,7 @@ const periods = [
   { v: 'daily', l: 'Сегодня' },
   { v: 'weekly', l: 'Неделя' },
   { v: 'monthly', l: 'Месяц' },
+  { v: 'yearly', l: 'Год' },
   { v: 'custom', l: 'Дата' },
 ]
 
