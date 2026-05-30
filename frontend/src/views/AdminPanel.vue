@@ -1284,20 +1284,6 @@
               class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition resize-none"></textarea>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Категория</label>
-            <select v-model="productForm.category"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition bg-white">
-              <option value="">— Категория не выбрана —</option>
-              <option value="Immunitet">Immunitet</option>
-              <option value="Jigar uchun">Jigar uchun</option>
-              <option value="Asab tizimi">Asab tizimi</option>
-              <option value="Bo'g'imlar">Bo'g'imlar</option>
-              <option value="Yurak-qon tomir">Yurak-qon tomir</option>
-              <option value="Boshqalar">Boshqalar</option>
-            </select>
-          </div>
-
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в капсуле <span class="text-red-400">*</span></label>
@@ -1571,7 +1557,6 @@ const editingProduct = ref(null)
 const productForm = reactive({
   name: '',
   description: '',
-  category: '',
   quantity_per_pack: 60,
   price_per_pill: 6500,
   stock_quantity: 0
@@ -2110,14 +2095,12 @@ function openProductModal(product = null) {
   if (product) {
     productForm.name = product.name
     productForm.description = product.description || ''
-    productForm.category = product.category || ''
     productForm.quantity_per_pack = product.quantity_per_pack
     productForm.price_per_pill = product.price_per_pill
     productForm.stock_quantity = product.stock_quantity || 0
   } else {
     productForm.name = ''
     productForm.description = ''
-    productForm.category = ''
     productForm.quantity_per_pack = 60
     productForm.price_per_pill = 6500
     productForm.stock_quantity = 0

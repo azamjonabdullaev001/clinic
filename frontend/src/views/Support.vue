@@ -55,7 +55,7 @@
             </div>
           </div>
 
-          <form @submit.prevent="sendMessage" class="p-4 sm:p-5 border-t border-stone-200 bg-white">
+          <form v-if="isLoggedIn" @submit.prevent="sendMessage" class="p-4 sm:p-5 border-t border-stone-200 bg-white">
             <div class="flex gap-3 items-end">
               <textarea
                 v-model="draft"
@@ -72,6 +72,10 @@
               </button>
             </div>
           </form>
+          <router-link v-else to="/login"
+            class="block m-4 sm:m-5 text-center bg-stone-50 border border-stone-200 rounded-2xl px-4 py-4 text-sm font-medium text-stone-500 hover:text-brand-700 hover:border-brand-300 transition">
+            {{ t.comments_login }}
+          </router-link>
         </div>
       </div>
     </section>
@@ -81,11 +85,13 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { api } from '../stores/auth'
+import { api, useAuthStore } from '../stores/auth'
 import { useLangStore } from '../stores/lang'
 
 const langStore = useLangStore()
+const authStore = useAuthStore()
 const t = computed(() => langStore.t)
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 const faqs = ref([])
 const openFaqId = ref(null)
@@ -138,10 +144,13 @@ async function sendMessage() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadFaqs(), loadThread(true)])
-  refreshTimer = setInterval(() => {
-    loadThread(false)
-  }, 5000)
+  await loadFaqs()
+  if (isLoggedIn.value) {
+    await loadThread(true)
+    refreshTimer = setInterval(() => {
+      loadThread(false)
+    }, 5000)
+  }
 })
 
 onUnmounted(() => {

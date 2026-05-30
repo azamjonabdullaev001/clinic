@@ -121,18 +121,6 @@
           <h2 class="text-3xl sm:text-4xl font-bold text-slate-900">{{ t.products_section_title }}</h2>
         </div>
 
-        <!-- Category filter -->
-        <div class="flex flex-wrap gap-2 mb-8 sm:mb-10 reveal-up" style="animation-delay:.1s">
-          <button v-for="cat in categories" :key="cat.key"
-                  @click="selectedCategory = cat.key"
-                  class="px-4 sm:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap"
-                  :class="selectedCategory === cat.key
-                    ? 'bg-brand-700 text-white shadow-sm'
-                    : 'border border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50'">
-            {{ cat.label }}
-          </button>
-        </div>
-
         <!-- Loading -->
         <div v-if="loading" class="flex justify-center py-20">
           <div class="w-10 h-10 border-[3px] border-brand-100 border-t-brand-600 rounded-full animate-spin"></div>
@@ -192,14 +180,6 @@
           </div>
         </div>
 
-        <div v-if="!loading && products.length > 8" class="text-center mt-10">
-          <button @click="selectedCategory = ''" class="inline-flex items-center gap-2 text-brand-700 font-semibold text-sm hover:text-brand-800 transition-colors group">
-            {{ t.products_show_all }}
-            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-            </svg>
-          </button>
-        </div>
       </div>
     </section>
 
@@ -384,10 +364,6 @@
             <div class="p-5 sm:p-7 flex flex-col gap-4 flex-1">
               <div>
                 <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mb-2 pr-8">{{ infoProduct.name }}</h2>
-                <span v-if="infoProduct.category"
-                      class="inline-block text-xs font-semibold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">
-                  {{ infoProduct.category }}
-                </span>
               </div>
 
               <p v-if="infoProduct.description"
@@ -408,6 +384,41 @@
                   </svg>
                   {{ t.modal_add_cart }}
                 </button>
+              </div>
+
+              <!-- ===== Reviews / comments ===== -->
+              <div class="pt-4 border-t border-slate-100">
+                <h3 class="text-sm font-bold text-slate-800 mb-3">
+                  {{ t.comments_title }}
+                  <span class="text-slate-400 font-normal">({{ comments.length }})</span>
+                </h3>
+
+                <div class="space-y-3 mb-4 max-h-48 overflow-y-auto pr-1">
+                  <div v-if="commentsLoading" class="text-sm text-slate-400">…</div>
+                  <template v-else>
+                    <div v-for="c in comments" :key="c.id" class="bg-slate-50 rounded-xl px-3.5 py-2.5">
+                      <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <span class="text-xs font-semibold text-slate-700">{{ c.author_name }}</span>
+                        <span class="text-[10px] text-slate-400">{{ new Date(c.created_at).toLocaleDateString('ru-RU') }}</span>
+                      </div>
+                      <p class="text-sm text-slate-600 leading-snug whitespace-pre-line">{{ c.text }}</p>
+                    </div>
+                    <p v-if="comments.length === 0" class="text-sm text-slate-400">{{ t.comments_empty }}</p>
+                  </template>
+                </div>
+
+                <div v-if="authStore.isLoggedIn" class="space-y-2">
+                  <textarea v-model="commentText" rows="2" :placeholder="t.comments_placeholder"
+                    class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none"></textarea>
+                  <button @click="addComment" :disabled="!commentText.trim() || postingComment"
+                    class="w-full sm:w-auto bg-slate-800 text-white py-2.5 px-6 rounded-xl text-sm font-semibold hover:bg-slate-900 transition disabled:opacity-40">
+                    {{ postingComment ? '…' : t.comments_send }}
+                  </button>
+                </div>
+                <router-link v-else to="/login" @click="infoProduct = null"
+                  class="block bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3 text-sm text-slate-500 hover:text-brand-700 hover:border-brand-300 transition">
+                  {{ t.comments_login }}
+                </router-link>
               </div>
             </div>
           </div>
@@ -444,14 +455,15 @@ import OrdersDrawer from '../components/OrdersDrawer.vue'
 import SimpleFooter from '../components/SimpleFooter.vue'
 import { useCartStore } from '../stores/cart'
 import { useLangStore } from '../stores/lang'
+import { api, useAuthStore } from '../stores/auth'
 
 const cartStore = useCartStore()
 const langStore = useLangStore()
+const authStore = useAuthStore()
 const t = computed(() => langStore.t)
 
 const products = ref([])
 const loading = ref(true)
-const selectedCategory = ref('')
 const infoProduct = ref(null)   // info modal (photo + description)
 const lightboxSrc = ref(null)   // lightbox (photo only)
 const cartDrawerRef = ref(null)
@@ -466,7 +478,40 @@ function handleAddToCart(product) {
   setTimeout(() => { delete addingMap[product.id] }, 700)
 }
 
-function openInfoModal(product) { infoProduct.value = product }
+// ── Reviews / comments ───────────────────────────────────────────────────────
+const comments = ref([])
+const commentText = ref('')
+const postingComment = ref(false)
+const commentsLoading = ref(false)
+
+async function loadComments(productId) {
+  commentsLoading.value = true
+  try {
+    comments.value = (await api.get(`/products/${productId}/comments`)).data || []
+  } catch { comments.value = [] }
+  finally { commentsLoading.value = false }
+}
+
+async function addComment() {
+  if (!infoProduct.value || !commentText.value.trim() || postingComment.value) return
+  postingComment.value = true
+  try {
+    const res = await api.post(`/products/${infoProduct.value.id}/comments`, {
+      text: commentText.value.trim(),
+    })
+    comments.value.unshift(res.data)
+    commentText.value = ''
+  } catch (e) {
+    alert(e.response?.data?.error || 'Xatolik')
+  } finally { postingComment.value = false }
+}
+
+function openInfoModal(product) {
+  infoProduct.value = product
+  comments.value = []
+  commentText.value = ''
+  loadComments(product.id)
+}
 
 function openLightbox(product) {
   if (product.image_path) lightboxSrc.value = product.image_path
@@ -485,20 +530,7 @@ const featureBarItems = computed(() => [
   { title: t.value.feat4_title, desc: t.value.feat4_desc, icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>' },
 ])
 
-const categories = computed(() => [
-  { key: '', label: t.value.cat_all },
-  { key: 'Immunitet', label: t.value.cat_immune },
-  { key: 'Jigar uchun', label: t.value.cat_liver },
-  { key: 'Asab tizimi', label: t.value.cat_nerve },
-  { key: "Bo'g'imlar", label: t.value.cat_bones },
-  { key: 'Yurak-qon tomir', label: t.value.cat_heart },
-  { key: 'Boshqalar', label: t.value.cat_other },
-])
-
-const filteredProducts = computed(() => {
-  if (!selectedCategory.value) return products.value
-  return products.value.filter(p => p.category === selectedCategory.value)
-})
+const filteredProducts = computed(() => products.value)
 
 const heroImageSrc = computed(() => '/images/tabletka.png')
 

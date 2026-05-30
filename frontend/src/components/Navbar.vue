@@ -6,10 +6,8 @@
 
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-3 group shrink-0">
-          <div class="w-10 h-10 rounded-xl bg-brand-700 flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 shrink-0">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-            </svg>
+          <div class="w-10 h-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 shrink-0">
+            <img src="/images/patients/logo.png" alt="Doctor Jalilov" class="w-full h-full object-contain" />
           </div>
           <div class="leading-tight">
             <span class="text-base font-bold tracking-tight text-slate-900 group-hover:text-brand-700 transition-colors duration-300">Doctor Jalilov</span>
@@ -34,6 +32,11 @@
             {{ t.nav_features_link }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
+          <router-link to="/support"
+             class="relative text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-2 rounded-lg hover:bg-brand-50 transition-all duration-200 group">
+            {{ t.nav_support }}
+            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
+          </router-link>
         </div>
 
         <!-- Right side -->
@@ -171,6 +174,10 @@
          class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
         {{ t.nav_features_link }}
       </a>
+      <router-link to="/support" @click="mobileMenuOpen = false"
+         class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
+        {{ t.nav_support }}
+      </router-link>
       <a href="tel:+998993251740"
          class="flex items-center gap-2 text-sm font-semibold text-slate-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
         <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">

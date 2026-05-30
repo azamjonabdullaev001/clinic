@@ -22,7 +22,7 @@ const routes = [
   { path: '/nurse', name: 'NursePanel', component: NursePanel, meta: { requiresWorker: true } },
   { path: '/manager', name: 'ManagerPanel', component: ManagerPanel, meta: { requiresWorker: true } },
   { path: '/doctor', name: 'DoctorPanel', component: DoctorPanel, meta: { requiresDoctor: true } },
-  { path: '/support', name: 'Support', component: Support, meta: { requiresUser: true } },
+  { path: '/support', name: 'Support', component: Support },
 ]
 
 const router = createRouter({
