@@ -228,6 +228,13 @@ const translations = {
     cta_weekend_text: 'Сб – Вс выходной',
     modal_add_cart: 'В корзину',
     modal_in_pack: 'капсул',
+    nav_products_link: 'Препараты',
+    nav_quick_order_link: 'Быстрый заказ',
+    nav_features_link: 'Особенности',
+    nav_logout_icon_title: 'Выйти',
+    product_view_desc: 'Описание',
+    product_zoom: 'Увеличить',
+    product_close_photo: 'Закрыть',
   },
   uz: {
     // Navbar
@@ -442,5 +449,12 @@ const translations = {
     cta_weekend_text: "Shanba – Yakshanba dam olish kuni",
     modal_add_cart: "Savatga qo'shish",
     modal_in_pack: "kapsul",
+    nav_products_link: "Mahsulotlar",
+    nav_quick_order_link: "Tez buyurtma",
+    nav_features_link: "Xususiyatlar",
+    nav_logout_icon_title: "Chiqish",
+    product_view_desc: "Tavsif",
+    product_zoom: "Kattalashtirish",
+    product_close_photo: "Yopish",
   }
 }
