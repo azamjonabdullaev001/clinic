@@ -19,6 +19,8 @@
 --    • 1 «капс» = 1 упаковка = 60 капсул (штук). price 6500 сум/штука, 390 000/упаковка.
 --    • products.stock_quantity is stored in ШТУК (individual capsules/pieces).
 --    • Analytics «Продано капсул» = number of packs sold; «штучно» = loose pieces.
+--    • Sales are WHOLE PACKS ONLY ⇒ stock is always a multiple of 60 ⇒ the «капс»
+--      view never rounds: «На складе» + «Продано» = 1000 капс exactly (0 штук lost).
 --
 --  Channels & rules:
 --    • online      — registered user, delivery, pay online/card; statuses incl. PENDING
@@ -136,24 +138,15 @@ BEGIN
       ELSE                     v_otype := 'marketolog';
       END IF;
 
-      -- 80% packs, 20% loose pieces
-      IF random() < 0.80 THEN
-        v_unit := 'pack';
-        v_rand := random();
-        IF    v_rand < 0.65 THEN v_qty := 1;
-        ELSIF v_rand < 0.90 THEN v_qty := 2;
-        ELSE                     v_qty := 3; END IF;
-        v_price := v_qty * PRICE_PILL * QPP;
-      ELSE
-        v_unit := 'piece';
-        v_rand := random();
-        IF    v_rand < 0.40 THEN v_qty := 1;
-        ELSIF v_rand < 0.70 THEN v_qty := 2;
-        ELSIF v_rand < 0.85 THEN v_qty := 3;
-        ELSIF v_rand < 0.93 THEN v_qty := 4;
-        ELSE                     v_qty := 5; END IF;
-        v_price := v_qty * PRICE_PILL;
-      END IF;
+      -- WHOLE PACKS ONLY. Every sale consumes a multiple of 60 штук, so stock
+      -- stays an exact multiple of 60 and «капс» (= stock/60) never rounds:
+      -- «На складе» + «Продано» = 1000 капс EXACTLY, not a single штука lost.
+      v_unit := 'pack';
+      v_rand := random();
+      IF    v_rand < 0.65 THEN v_qty := 1;
+      ELSIF v_rand < 0.90 THEN v_qty := 2;
+      ELSE                     v_qty := 3; END IF;
+      v_price := v_qty * PRICE_PILL * QPP;
 
       CASE v_otype
         WHEN 'online' THEN
@@ -303,7 +296,7 @@ SELECT round(avg(rev)) avg_day, min(rev) min_day, max(rev) max_day, count(*) day
 FROM (SELECT date_trunc('day',o.created_at) d, SUM(oi.price) rev
       FROM orders o JOIN order_items oi ON oi.order_id=o.id
       WHERE o.status<>'cancelled' AND o.marketolog_id IS NULL GROUP BY 1) t;
-\echo '=== stock reconcile: sklad_kaps + prodano_kaps must equal ~1000 ==='
+\echo '=== stock reconcile: sklad_kaps + prodano_kaps must equal EXACTLY 1000 ==='
 WITH consumed AS (
   SELECT oi.product_id pid, SUM(CASE WHEN oi.unit_type='pack' THEN oi.quantity ELSE 0 END) sold_packs
   FROM order_items oi JOIN orders o ON o.id=oi.order_id
