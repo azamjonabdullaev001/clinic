@@ -141,7 +141,7 @@ func CreateOrder(c *gin.Context) {
 func GetUserOrders(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	var orders []models.Order
-	database.DB.Where("user_id = ? AND archived = ?", userID, false).
+	database.DB.Where("user_id = ? AND archived = ? AND is_deleted = ?", userID, false, false).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)
@@ -167,7 +167,14 @@ func GetOrders(c *gin.Context) {
 
 	db := database.DB.Where("archived = ?", false)
 	if s := c.Query("status"); s != "" {
-		db = db.Where("status = ?", s)
+		switch s {
+		case "edited":
+			db = db.Where("is_edited = ? OR is_returned = ?", true, true)
+		case "deleted":
+			db = db.Where("is_deleted = ?", true)
+		default:
+			db = db.Where("status = ?", s)
+		}
 	}
 	if df := c.Query("date_from"); df != "" {
 		db = db.Where("created_at >= ?", df)
@@ -217,8 +224,6 @@ func UpdateOrderStatus(c *gin.Context) {
 
 	validStatuses := map[string]bool{
 		"pending":    true,
-		"confirmed":  true,
-		"shipped":    true,
 		"in_transit": true,
 		"delivered":  true,
 		"cancelled":  true,

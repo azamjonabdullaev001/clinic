@@ -167,9 +167,11 @@ const translations = {
     orders_empty: 'Заказов пока нет',
     orders_code: 'Код заказа',
     status_pending: 'Ожидает',
-    status_confirmed: 'Одобрено',
+    status_in_transit: 'В пути',
     status_delivered: 'Выдано',
     status_cancelled: 'Отменено',
+    status_edited: 'Редактировано',
+    status_deleted: 'Удалено',
 
     // News
     news_title: 'Новости',
@@ -389,9 +391,11 @@ const translations = {
     orders_empty: 'Hozircha buyurtmalar yo\'q',
     orders_code: 'Buyurtma kodi',
     status_pending: 'Kutilmoqda',
-    status_confirmed: 'Tasdiqlandi',
+    status_in_transit: 'Yo\'lda',
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
+    status_edited: 'Tahrirlangan',
+    status_deleted: 'O\'chirilgan',
 
     // News
     news_title: 'Yangiliklar',

@@ -145,7 +145,7 @@ func GetAnalytics(c *gin.Context) {
 
 	// Fetch all delivered/completed orders in range
 	var allOrders []models.Order
-	database.DB.Where("created_at >= ? AND created_at < ? AND status != ?", startTime, endTime, "cancelled").
+	database.DB.Where("created_at >= ? AND created_at < ? AND status != ? AND is_deleted = ?", startTime, endTime, "cancelled", false).
 		Preload("Items.Product").
 		Find(&allOrders)
 
@@ -418,8 +418,8 @@ func marketologAnalytics(marketologID uint, period, dateStr string) gin.H {
 	startTime, endTime, points := buildAnalyticsPeriod(period, dateStr)
 
 	var orders []models.Order
-	database.DB.Where("marketolog_id = ? AND status != ? AND created_at >= ? AND created_at < ?",
-		marketologID, "cancelled", startTime, endTime).
+	database.DB.Where("marketolog_id = ? AND status != ? AND is_deleted = ? AND created_at >= ? AND created_at < ?",
+		marketologID, "cancelled", false, startTime, endTime).
 		Preload("Items.Product").
 		Find(&orders)
 
@@ -592,8 +592,8 @@ func GetWorkerAnalytics(c *gin.Context) {
 	startTime, endTime, points := buildAnalyticsPeriod(period, dateStr)
 
 	var orders []models.Order
-	database.DB.Where("worker_id = ? AND status = ? AND created_at >= ? AND created_at < ?",
-		workerID, "delivered", startTime, endTime).
+	database.DB.Where("worker_id = ? AND status = ? AND is_deleted = ? AND created_at >= ? AND created_at < ?",
+		workerID, "delivered", false, startTime, endTime).
 		Preload("Items.Product").
 		Find(&orders)
 
@@ -801,7 +801,7 @@ func GetProductAnalytics(c *gin.Context) {
 	database.DB.Table("order_items").
 		Select("order_items.unit_type, order_items.quantity, orders.is_v_ip, orders.is_offline, (orders.marketolog_id IS NOT NULL) AS has_mktolog").
 		Joins("JOIN orders ON orders.id = order_items.order_id").
-		Where("order_items.product_id = ? AND orders.status != ? AND orders.archived = ?", id, "cancelled", false).
+		Where("order_items.product_id = ? AND orders.status != ? AND orders.archived = ? AND orders.is_deleted = ?", id, "cancelled", false, false).
 		Scan(&rows)
 
 	channels := map[string]*ProductChannelStat{

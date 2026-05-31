@@ -193,6 +193,10 @@ func UpdateOrderItems(c *gin.Context) {
 
 	tx.Commit()
 
+	// Any item edit is recorded so the admin can review what the cashier changed (red border).
+	order.IsEdited = true
+	database.DB.Model(&models.Order{}).Where("id = ?", order.ID).Update("is_edited", true)
+
 	// On a return, flag the order and put the brought-back pieces back into the warehouse.
 	if isReturn {
 		order.IsReturned = true
@@ -224,7 +228,7 @@ func GetPickupOrders(c *gin.Context) {
 	// shared with every pickup worker, so anyone can serve a walk-in. Everything that is
 	// already finalized or is a direct offline sale stays private to its own worker.
 	database.DB.Where(
-		"archived = false AND ("+
+		"archived = false AND is_deleted = false AND ("+
 			"(is_offline = false AND is_nurse_order = false AND status NOT IN ('delivered','cancelled')) "+
 			"OR (is_nurse_order = true AND status NOT IN ('delivered','cancelled')) "+
 			"OR worker_id = ?)",
@@ -278,8 +282,6 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 
 	validStatuses := map[string]bool{
 		"pending":    true,
-		"confirmed":  true,
-		"shipped":    true,
 		"in_transit": true,
 		"delivered":  true,
 		"cancelled":  true,
@@ -344,4 +346,60 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 	BroadcastOrders()
 
 	c.JSON(http.StatusOK, order)
+}
+
+// DeletePickupOrder soft-deletes an order from the pickup point. It disappears from
+// the cashier's lists and from analytics, but stays visible on the admin panel with a
+// black border so the admin can ask the cashier why it was removed. If the order was
+// already delivered, its pieces are returned to the warehouse so stock stays exact.
+func DeletePickupOrder(c *gin.Context) {
+	id := c.Param("id")
+	var order models.Order
+	if err := database.DB.Preload("Items").First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	if order.IsDeleted {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Заказ уже удалён"})
+		return
+	}
+
+	var input struct {
+		Reason string `json:"reason"`
+	}
+	c.ShouldBindJSON(&input)
+	reason := strings.TrimSpace(input.Reason)
+	if reason == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите причину удаления"})
+		return
+	}
+
+	// A delivered order had already drawn down stock — return those pieces so the
+	// closed-system reconciliation (stock + sold) stays exact after the deletion.
+	if order.Status == "delivered" {
+		for _, it := range order.Items {
+			if it.Quantity <= 0 {
+				continue
+			}
+			var p models.Product
+			if database.DB.First(&p, it.ProductID).Error == nil {
+				restockProduct(it.ProductID, pieceCount(p, it.Quantity, it.UnitType))
+			}
+		}
+	}
+
+	order.IsDeleted = true
+	order.DeletedReason = reason
+	if workerID, ok := c.Get("workerID"); ok {
+		wid := workerID.(uint)
+		var worker models.Worker
+		if err := database.DB.First(&worker, wid).Error; err == nil {
+			order.DeletedByName = worker.Name
+			order.DeletedByRole = worker.Role
+		}
+	}
+	database.DB.Save(&order)
+	BroadcastOrders()
+
+	c.JSON(http.StatusOK, gin.H{"message": "Заказ удалён"})
 }

@@ -7,7 +7,7 @@
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-3 group shrink-0">
           <div class="w-10 h-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-md group-hover:shadow-lg group-hover:scale-105 transition-all duration-300 shrink-0">
-            <img src="/images/patients/logo.png" alt="Doctor Jalilov" class="w-full h-full object-contain" />
+            <img src="/images/patients/Jalilov.jpg" alt="Doctor Jalilov" class="w-full h-full object-contain" />
           </div>
           <div class="leading-tight">
             <span class="text-base font-bold tracking-tight text-slate-900 group-hover:text-brand-700 transition-colors duration-300">Doctor Jalilov</span>

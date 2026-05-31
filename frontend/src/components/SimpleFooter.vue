@@ -6,7 +6,7 @@
         <div class="max-w-xs">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-xl overflow-hidden bg-white flex items-center justify-center shrink-0">
-              <img src="/images/patients/logo.png" alt="Doctor Jalilov" class="w-full h-full object-contain" />
+              <img src="/images/patients/Jalilov.jpg" alt="Doctor Jalilov" class="w-full h-full object-contain" />
             </div>
             <div>
               <div class="font-bold text-white">Doctor Jalilov</div>

@@ -136,6 +136,11 @@ type Order struct {
 	CancelledByRole    string   `json:"cancelled_by_role"`
 	IsReturned         bool     `gorm:"default:false" json:"is_returned"` // delivered order edited as a return
 	ReturnReason       string   `json:"return_reason"`
+	IsEdited           bool     `gorm:"default:false;index" json:"is_edited"` // items edited at pickup — shown on admin with red border
+	IsDeleted          bool     `gorm:"default:false;index" json:"is_deleted"` // soft-deleted by cashier — admin-only, black border, hidden everywhere else
+	DeletedReason      string   `json:"deleted_reason"`
+	DeletedByName      string   `json:"deleted_by_name"`
+	DeletedByRole      string   `json:"deleted_by_role"`
 	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
 	ArchiveReason      string   `json:"archive_reason"`
 	CreatedAt       time.Time   `json:"created_at"`

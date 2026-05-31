@@ -134,8 +134,7 @@
               </div>
             </div>
             <div class="flex gap-2 flex-wrap">
-              <button v-if="foundOrder.status === 'pending'" @click="updateStatus(foundOrder, 'confirmed')" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-medium text-sm">✓ {{ txt.confirm }}</button>
-              <button v-if="foundOrder.status === 'confirmed' || foundOrder.status === 'shipped'" @click="updateStatus(foundOrder, 'in_transit')" class="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition font-medium text-sm">🚚 {{ txt.in_transit }}</button>
+              <button v-if="foundOrder.status === 'pending'" @click="updateStatus(foundOrder, 'in_transit')" class="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition font-medium text-sm">🚚 {{ txt.in_transit }}</button>
               <button v-if="foundOrder.status === 'in_transit'" @click="updateStatus(foundOrder, 'delivered')" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition font-medium text-sm">✓ {{ txt.deliver }}</button>
               <button v-if="foundOrder.status !== 'cancelled' && foundOrder.status !== 'delivered'" @click="updateStatus(foundOrder, 'cancelled')" class="flex-1 bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg hover:bg-red-100 transition font-medium text-sm">{{ txt.cancel }}</button>
             </div>
@@ -184,8 +183,7 @@
                 </div>
               </div>
               <div class="mt-3 flex gap-2 flex-wrap">
-                <button v-if="order.status === 'pending'" @click="updateStatus(order, 'confirmed')" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition text-sm font-medium">✓ {{ txt.confirm }}</button>
-                <button v-if="order.status === 'confirmed' || order.status === 'shipped'" @click="updateStatus(order, 'in_transit')" class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium">🚚 {{ txt.in_transit }}</button>
+                <button v-if="order.status === 'pending'" @click="updateStatus(order, 'in_transit')" class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium">🚚 {{ txt.in_transit }}</button>
                 <button v-if="order.status === 'in_transit'" @click="updateStatus(order, 'delivered')" class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium">✓ {{ txt.deliver }}</button>
                 <button v-if="order.status !== 'cancelled' && order.status !== 'delivered'" @click="updateStatus(order, 'cancelled')" class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium">{{ txt.cancel }}</button>
                 <button @click="openChat(order)" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1">
@@ -749,6 +747,10 @@
                   @click="fullReturn(order)" class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium">
                   {{ txt.full_return }}
                 </button>
+                <button v-if="!listEdit[order.id]?.editing"
+                  @click="deletePickupOrder(order)" class="bg-gray-900 text-white border border-gray-900 px-4 py-1.5 rounded-lg hover:bg-black transition text-sm font-medium">
+                  {{ txt.delete_order }}
+                </button>
               </div>
             </div>
           </div>
@@ -883,11 +885,14 @@ const texts = {
     admin: 'Администратор',
     type_message: 'Введите сообщение...',
     status_pending: 'Ожидает',
-    status_confirmed: 'Подтверждён',
-    status_shipped: 'Отправлен',
     status_in_transit: 'В пути',
-    status_delivered: 'Выдан',
-    status_cancelled: 'Отменён',
+    status_delivered: 'Выдано',
+    status_cancelled: 'Отменено',
+    status_edited: 'Редактировано',
+    status_deleted: 'Удалено',
+    delete_order: 'Удалить',
+    delete_reason_prompt: 'Удаление заказа — укажите причину:',
+    delete_reason_required: 'Причина удаления обязательна',
     verify_error: 'Имя не совпадает. Проверьте данные пациента.',
     edit_items: 'Редактировать',
     return_edit: 'Возврат',
@@ -1018,11 +1023,14 @@ const texts = {
     admin: 'Administrator',
     type_message: 'Xabar kiriting...',
     status_pending: 'Kutilmoqda',
-    status_confirmed: 'Tasdiqlangan',
-    status_shipped: 'Yuborilgan',
     status_in_transit: "Yo'lda",
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
+    status_edited: 'Tahrirlangan',
+    status_deleted: "O'chirilgan",
+    delete_order: "O'chirish",
+    delete_reason_prompt: "Buyurtmani o'chirish — sababni kiriting:",
+    delete_reason_required: "O'chirish sababi majburiy",
     verify_error: "Ism mos kelmadi.",
     edit_items: "Tahrirlash",
     return_edit: 'Qaytarish',
@@ -1123,7 +1131,6 @@ const historyDate = ref('')
 const statusFilters = computed(() => [
   { label: txt.value.type_all, value: 'all' },
   { label: txt.value.status_pending, value: 'pending' },
-  { label: txt.value.status_confirmed, value: 'confirmed' },
   { label: txt.value.status_in_transit, value: 'in_transit' },
   { label: txt.value.status_delivered, value: 'delivered' },
   { label: txt.value.status_cancelled, value: 'cancelled' },
@@ -1185,12 +1192,12 @@ function paymentBadgeClass(order) {
 
 function statusLabel(status) {
   const t = txt.value
-  const m = { pending: t.status_pending, confirmed: t.status_confirmed, shipped: t.status_shipped, in_transit: t.status_in_transit, delivered: t.status_delivered, cancelled: t.status_cancelled }
+  const m = { pending: t.status_pending, in_transit: t.status_in_transit, delivered: t.status_delivered, cancelled: t.status_cancelled }
   return m[status] || status
 }
 
 function statusClass(status) {
-  const m = { pending: 'bg-yellow-100 text-yellow-700', confirmed: 'bg-blue-100 text-blue-700', shipped: 'bg-purple-100 text-purple-700', in_transit: 'bg-orange-100 text-orange-700', delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' }
+  const m = { pending: 'bg-yellow-100 text-yellow-700', in_transit: 'bg-orange-100 text-orange-700', delivered: 'bg-green-100 text-green-700', cancelled: 'bg-red-100 text-red-700' }
   return m[status] || 'bg-gray-100 text-gray-700'
 }
 
@@ -1427,6 +1434,18 @@ async function fullReturn(order) {
     if (idx !== -1) orders.value[idx] = res.data
     loadStock()
   } catch (e) { alert(e.response?.data?.error || 'Ошибка при возврате') }
+}
+
+async function deletePickupOrder(order) {
+  const r = prompt(txt.value.delete_reason_prompt)
+  if (r === null) return
+  const reason = r.trim()
+  if (!reason) { alert(txt.value.delete_reason_required); return }
+  try {
+    await api.delete(`/pickup/orders/${order.id}`, { data: { reason } })
+    orders.value = orders.value.filter(o => o.id !== order.id)
+    loadStock()
+  } catch (e) { alert(e.response?.data?.error || 'Ошибка при удалении') }
 }
 
 async function saveListEdit(order) {

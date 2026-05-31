@@ -136,11 +136,11 @@
               class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 min-w-[140px]">
               <option value="">Все статусы</option>
               <option value="pending">Ожидает</option>
-              <option value="confirmed">Подтверждён</option>
-              <option value="shipped">Отправлен</option>
               <option value="in_transit">В пути</option>
-              <option value="delivered">Доставлен</option>
-              <option value="cancelled">Отменён</option>
+              <option value="delivered">Выдано</option>
+              <option value="cancelled">Отменено</option>
+              <option value="edited">Редактировано</option>
+              <option value="deleted">Удалено</option>
             </select>
           </div>
           <div class="flex flex-col gap-1">
@@ -174,7 +174,7 @@
 
         <div class="space-y-4">
           <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-6"
-            :class="order.is_returned ? 'border-2 border-red-400' : ''">
+            :class="order.is_deleted ? 'border-2 border-gray-900' : ((order.is_edited || order.is_returned) ? 'border-2 border-red-400' : '')">
             <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
               <div>
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -185,7 +185,8 @@
                   </span>
                   <span v-if="order.is_offline" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Офлайн</span>
                   <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
-                  <span v-if="order.is_returned" class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">Возврат</span>
+                  <span v-if="order.is_edited || order.is_returned" class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">Редактировано</span>
+                  <span v-if="order.is_deleted" class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-900 text-white">Удалено</span>
                 </div>
                 <h3 class="font-semibold text-gray-800 text-lg">
                   <template v-if="order.is_offline">
@@ -270,11 +271,22 @@
               </div>
             </div>
 
+            <div v-if="order.is_deleted && (order.deleted_reason || order.deleted_by_name)" class="mb-4 bg-gray-900 rounded-lg px-3 py-2 space-y-1">
+              <div v-if="order.deleted_reason" class="text-sm">
+                <span class="font-semibold text-white">Причина удаления:</span>
+                <span class="text-gray-300 ml-1">{{ order.deleted_reason }}</span>
+              </div>
+              <div v-if="order.deleted_by_name" class="text-sm">
+                <span class="font-semibold text-white">Удалил:</span>
+                <span class="text-gray-300 ml-1">{{ order.deleted_by_name }}<span v-if="order.deleted_by_role" class="text-gray-400"> ({{ order.deleted_by_role === 'nurse' ? 'медсестра' : 'пункт выдачи' }})</span></span>
+              </div>
+            </div>
+
             <div class="border-t pt-4 space-y-2">
               <div v-for="item in order.items" :key="item.id" class="flex justify-between items-center text-sm py-1">
                 <span class="text-gray-600">
                   {{ item.product?.name }}
-                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} капс.</span>
+                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} {{ item.unit_type === 'piece' ? 'шт.' : 'капс.' }}</span>
                   <span v-if="itemDiffLabel(item)" :class="itemDiffClass(item)" class="ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded">{{ itemDiffLabel(item) }}</span>
                 </span>
                 <span class="font-medium text-gray-700">{{ item.quantity === 0 ? '—' : formatPrice(item.price) + ' сўм' }}</span>
@@ -1768,11 +1780,9 @@ function paymentBadgeClass(order) {
 function statusLabel(status) {
   const labels = {
     pending: 'Ожидает',
-    confirmed: 'Подтверждён',
-    shipped: 'Отправлен',
     in_transit: 'В пути',
-    delivered: 'Доставлен',
-    cancelled: 'Отменён'
+    delivered: 'Выдано',
+    cancelled: 'Отменено'
   }
   return labels[status] || status
 }
@@ -1780,8 +1790,6 @@ function statusLabel(status) {
 function statusClass(status) {
   const classes = {
     pending: 'bg-yellow-100 text-yellow-700',
-    confirmed: 'bg-blue-100 text-blue-700',
-    shipped: 'bg-purple-100 text-purple-700',
     in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-700'
