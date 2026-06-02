@@ -771,6 +771,7 @@
                     <span :class="statusClass(order.status)" class="text-xs font-medium px-2 py-0.5 rounded">{{ statusLabel(order.status) }}</span>
                     <span v-if="order.is_offline" class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ txt.offline_badge }}</span>
                     <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-medium px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
+                    <span v-if="order.discount_percent > 0" class="text-xs font-medium px-2 py-0.5 rounded bg-rose-100 text-rose-700">−{{ order.discount_percent }}%</span>
                   </div>
                   <p class="font-semibold pp-text">{{ order.is_offline ? (order.offline_note || '—') : (order.user?.first_name + ' ' + order.user?.last_name) }}</p>
                   <p v-if="!order.is_offline" class="text-sm text-gray-500">+{{ order.phone }}</p>
@@ -779,6 +780,7 @@
                 </div>
                 <div class="text-right flex-shrink-0">
                   <p class="font-bold pp-text">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
+                  <p v-if="order.discount_percent > 0" class="text-xs text-rose-500">{{ lang === 'uz' ? 'chegirma' : 'скидка' }} −{{ order.discount_percent }}%</p>
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
                 </div>
               </div>
@@ -1828,27 +1830,36 @@ async function addStock() {
 }
 
 // ===== Excel Export =====
+function buyerOf(order) {
+  return order.is_offline
+    ? (order.offline_note || '—')
+    : ((order.user?.first_name || '') + ' ' + (order.user?.last_name || '')).trim() || '—'
+}
+
 function exportHistoryExcel() {
-  const rows = historyOrders.value.flatMap(order => {
-    const buyerName = order.is_offline
-      ? (order.offline_note || '—')
-      : ((order.user?.first_name || '') + ' ' + (order.user?.last_name || '')).trim() || '—'
-    return boughtItems(order).map(item => ({
+  const list = historyOrders.value
+  // Price per piece stays the FIXED admin price; the line sum reflects the discount;
+  // the discount % is shown per order (blank when none was written).
+  const rows = list.flatMap(order => boughtItems(order).map(item => {
+    const pieces = pieceCount(item)
+    const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
+    return {
       'Дата': new Date(order.created_at).toLocaleString('ru-RU'),
       'Код заказа': order.order_code,
-      'Покупатель': buyerName,
+      'Покупатель': buyerOf(order),
       'Тип': order.is_offline ? 'Офлайн' : 'Онлайн',
       'Статус': statusLabel(order.status),
       'Препарат': item.product?.name || '—',
       'Единица': item.unit_type === 'piece' ? 'шт' : 'фл.',
       'Кол-во': item.quantity,
-      'Кол-во (шт)': pieceCount(item),
-      'Цена за шт (сум)': pieceCount(item) > 0 ? Math.round(item.price / pieceCount(item)) : 0,
-      'Общая стоимость (сум)': Math.round(item.price),
+      'Кол-во (шт)': pieces,
+      'Цена за шт (сум)': unit,
+      'Скидка %': order.discount_percent > 0 ? order.discount_percent : '',
+      'Сумма (сум)': Math.round(item.price),
       'Способ оплаты': paymentLabel(order) || '—',
       'Рекомендовал': order.referred_by || '—',
-    }))
-  })
+    }
+  }))
 
   if (rows.length === 0) {
     alert('Нет данных для экспорта')
@@ -1858,10 +1869,38 @@ function exportHistoryExcel() {
   const ws = XLSX.utils.json_to_sheet(rows)
   ws['!cols'] = [
     { wch: 18 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 12 },
-    { wch: 22 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 14 }, { wch: 18 },
+    { wch: 22 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 14 },
   ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'История заказов')
+
+  // Separate "Скидки" sheet — one row per order that actually had a discount.
+  const discRows = list
+    .filter(o => o.discount_percent > 0)
+    .map(o => {
+      let gross = 0, net = 0
+      for (const item of boughtItems(o)) {
+        const pieces = pieceCount(item)
+        const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
+        gross += unit * pieces
+        net += item.price
+      }
+      return {
+        'Дата': new Date(o.created_at).toLocaleString('ru-RU'),
+        'Код заказа': o.order_code,
+        'Покупатель': buyerOf(o),
+        'Скидка %': o.discount_percent,
+        'Сумма без скидки (сум)': Math.round(gross),
+        'Сумма скидки (сум)': Math.round(gross - net),
+        'К оплате (сум)': Math.round(net),
+      }
+    })
+  if (discRows.length) {
+    const wsDisc = XLSX.utils.json_to_sheet(discRows)
+    wsDisc['!cols'] = [{ wch: 18 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 20 }, { wch: 18 }, { wch: 16 }]
+    XLSX.utils.book_append_sheet(wb, wsDisc, 'Скидки')
+  }
+
   XLSX.writeFile(wb, `история_заказов_${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 
@@ -1916,57 +1955,89 @@ function pieceCount(item) {
   return item.quantity * qpp
 }
 
-// Builds the "по клиентам и товарам" rows (AOA) for delivered sales in the period.
-// Layout is a flat table: client (name+surname) in one column, product in the next,
-// then qty in pieces, price per piece and the line sum — one row per client+product.
-function buildClientProductRows() {
+// Aggregates delivered sales in the period for the client/product report.
+// Price per piece is the FIXED admin price (price_per_pill); the line sum is gross
+// (price × pieces). Discounts are collected per order so the final payable total
+// (gross − discounts) reflects what was actually received.
+function buildClientProductData() {
   const { start, end } = analyticsRange()
   const sold = orders.value.filter(o =>
     o.status === 'delivered' && !o.is_deleted &&
     new Date(o.created_at) >= start && new Date(o.created_at) < end
   )
 
-  // client -> Map(productName -> {pieces, sum})
+  // client -> Map(productName -> { pieces, gross, unit })
   const byClient = new Map()
+  const discounts = [] // { client, code, percent, amount }
+  let grandGross = 0, grandNet = 0
+
   for (const o of sold) {
     const name = clientName(o)
     let prods = byClient.get(name)
     if (!prods) { prods = new Map(); byClient.set(name, prods) }
+    let orderGross = 0, orderNet = 0
     for (const item of boughtItems(o)) {
+      const pieces = pieceCount(item)
+      const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
+      const gross = unit * pieces
+      orderGross += gross
+      orderNet += item.price
       const pname = item.product?.name || '—'
-      const p = prods.get(pname) || { pieces: 0, sum: 0 }
-      p.pieces += pieceCount(item)
-      p.sum += item.price
+      const p = prods.get(pname) || { pieces: 0, gross: 0, unit }
+      p.pieces += pieces
+      p.gross += gross
+      p.unit = unit
       prods.set(pname, p)
     }
-  }
-
-  const rows = [['Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)']]
-  let grandPieces = 0, grandSum = 0
-  for (const [name, prods] of byClient) {
-    for (const [pname, p] of prods) {
-      const pricePer = p.pieces > 0 ? Math.round(p.sum / p.pieces) : 0
-      rows.push([name, pname, p.pieces, pricePer, Math.round(p.sum)])
-      grandPieces += p.pieces
-      grandSum += p.sum
+    grandGross += orderGross
+    grandNet += orderNet
+    if (o.discount_percent > 0) {
+      discounts.push({ client: name, code: o.order_code, percent: o.discount_percent, amount: Math.round(orderGross - orderNet) })
     }
   }
-  if (byClient.size) rows.push(['ИТОГО', '', grandPieces, '', Math.round(grandSum)])
-  return byClient.size ? rows : []
+
+  return { byClient, discounts, grandGross, grandNet }
 }
 
-// "Экспорт в Excel формате" — sales grouped by client & product for the period.
+// "Экспорт в Excel формате" — sales by client & product, with a separate discounts
+// table before the final payable total.
 function exportClientProductExcel() {
-  const cpRows = buildClientProductRows()
-  if (!cpRows.length) { alert('Нет данных для экспорта'); return }
+  const { byClient, discounts, grandGross, grandNet } = buildClientProductData()
+  if (!byClient.size) { alert('Нет данных для экспорта'); return }
   const cashier = authStore.worker?.name || '—'
-  const ws = XLSX.utils.aoa_to_sheet([
+
+  const aoa = [
     ['Анализ продаж по клиенту и товару'],
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ...cpRows,
-  ])
+    ['Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)'],
+  ]
+  let grandPieces = 0
+  for (const [name, prods] of byClient) {
+    for (const [pname, p] of prods) {
+      aoa.push([name, pname, p.pieces, p.unit, Math.round(p.gross)])
+      grandPieces += p.pieces
+    }
+  }
+  aoa.push(['ИТОГО (без скидки)', '', grandPieces, '', Math.round(grandGross)])
+
+  // Discounts table — every discount written on the orders in this period.
+  aoa.push([''])
+  aoa.push(['СКИДКИ'])
+  aoa.push(['Клиент', 'Заказ', 'Скидка %', 'Сумма скидки (сум)'])
+  if (discounts.length) {
+    for (const d of discounts) aoa.push([d.client, d.code, `${d.percent}%`, d.amount])
+    aoa.push(['Итого скидок', '', '', Math.round(grandGross - grandNet)])
+  } else {
+    aoa.push(['Скидок нет', '', '', 0])
+  }
+
+  // Final amount actually received (after discounts).
+  aoa.push([''])
+  aoa.push(['К ОПЛАТЕ (со скидкой)', '', '', '', Math.round(grandNet)])
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa)
   ws['!cols'] = [{ wch: 26 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
