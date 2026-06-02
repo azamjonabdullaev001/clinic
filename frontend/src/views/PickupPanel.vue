@@ -582,14 +582,10 @@
             <input v-model="analyticsDate" type="date" @change="selectAnalyticsPeriod('custom')" class="text-sm text-gray-700 focus:outline-none bg-transparent"/>
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
-          <div class="ml-auto flex items-center gap-2">
-            <button @click="exportClientProductExcel" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
-              {{ lang === 'uz' ? 'Mijoz/tovar' : 'По клиентам' }}
-            </button>
-            <button @click="exportAnalyticsExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
+          <div class="ml-auto">
+            <button @click="exportClientProductExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              {{ txt.export_excel }}
+              {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
             </button>
           </div>
         </div>
@@ -680,7 +676,13 @@
 
           <!-- Payment-method breakdown: how much money came in via each channel -->
           <div v-if="paymentBreakdownRows.length" class="pp-card rounded-xl shadow-sm p-6">
-            <h3 class="font-semibold text-gray-800 mb-4">{{ txt.by_payment_title }}</h3>
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h3 class="font-semibold text-gray-800">{{ txt.by_payment_title }}</h3>
+              <button @click="exportPaymentMethodsExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -1863,98 +1865,6 @@ function exportHistoryExcel() {
   XLSX.writeFile(wb, `история_заказов_${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 
-function exportAnalyticsExcel() {
-  const data = analyticsData.value
-  if (!data) { alert('Нет данных для экспорта'); return }
-
-  const cashier = authStore.worker?.name || '—'
-  const headerRow = [`Кассир: ${cashier}`]
-  const periodRow = [`Период: ${periodLabel()}`]
-  const blank = ['']
-
-  const summaryRows = [
-    { 'Показатель': 'Всего заказов', 'Значение': data.total_orders },
-    { 'Показатель': 'Выручка (сум)', 'Значение': data.total_revenue },
-    { 'Показатель': 'Создано', 'Значение': data.created_count },
-    { 'Показатель': 'Подтверждено', 'Значение': data.confirmed_count },
-  ]
-
-  const catRows = allCats.value.map(cat => {
-    const d = catData(cat.key)
-    return {
-      'Категория': cat.label,
-      'Заказов': d.orders,
-      'Фл.': d.capsules,
-      'Шт.': d.pieces,
-      'Выручка (сум)': d.revenue,
-    }
-  })
-
-  // Payment-method breakdown. Card payments are split by their sub-type.
-  const payLabels = {
-    cash: 'Наличные', terminal: 'Терминал',
-    cassa1: 'Касса 1', click: 'Click', transfer: 'Перечисление (ХР)',
-    card: 'Карта (без типа)', online: 'Онлайн', free: 'Бесплатно',
-  }
-  const byPay = data.by_payment || {}
-  const payRows = Object.keys(payLabels)
-    .filter(k => byPay[k])
-    .map(k => ({
-      'Способ оплаты': payLabels[k],
-      'Валюта': 'Сум',
-      'Заказов': byPay[k].orders,
-      'Сумма': byPay[k].revenue,
-    }))
-  const payTotal = payRows.reduce((s, r) => s + r['Сумма'], 0)
-  payRows.push({ 'Способ оплаты': 'ИТОГО', 'Валюта': 'Сум', 'Заказов': payRows.reduce((s, r) => s + r['Заказов'], 0), 'Сумма': payTotal })
-
-  const wb = XLSX.utils.book_new()
-
-  // Sheet 1: Итоги — cashier header + summary
-  const wsSummary = XLSX.utils.aoa_to_sheet([headerRow, periodRow, blank])
-  XLSX.utils.sheet_add_json(wsSummary, summaryRows, { origin: 'A4' })
-  wsSummary['!cols'] = [{ wch: 24 }, { wch: 18 }]
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Итоги')
-
-  // Sheet 2: По способам оплаты
-  const wsPay = XLSX.utils.aoa_to_sheet([headerRow, blank])
-  XLSX.utils.sheet_add_json(wsPay, payRows, { origin: 'A3' })
-  wsPay['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 18 }]
-  XLSX.utils.book_append_sheet(wb, wsPay, 'По способам оплаты')
-
-  // Sheet 3: По категориям
-  const wsCat = XLSX.utils.aoa_to_sheet([headerRow, blank])
-  XLSX.utils.sheet_add_json(wsCat, catRows, { origin: 'A3' })
-  wsCat['!cols'] = [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }]
-  XLSX.utils.book_append_sheet(wb, wsCat, 'По категориям')
-
-  if ((data.by_doctor || []).length) {
-    const wsDoc = XLSX.utils.aoa_to_sheet([headerRow, blank])
-    XLSX.utils.sheet_add_json(wsDoc, data.by_doctor.map(d => ({
-      'Доктор': d.name, 'Фл.': d.capsules, 'Шт.': d.pieces, 'Выручка (сум)': d.revenue,
-    })), { origin: 'A3' })
-    XLSX.utils.book_append_sheet(wb, wsDoc, 'По докторам')
-  }
-
-  // Sheet: Скидки — how many clients got a discount and how much was given away.
-  const discRows = buildDiscountRows()
-  if (discRows.length) {
-    const wsDisc = XLSX.utils.aoa_to_sheet([headerRow, periodRow, blank, ...discRows])
-    wsDisc['!cols'] = [{ wch: 32 }, { wch: 20 }]
-    XLSX.utils.book_append_sheet(wb, wsDisc, 'Скидки')
-  }
-
-  // Sheet: По клиентам и товарам (piece-level, like the printed report)
-  const cpRows = buildClientProductRows()
-  if (cpRows.length) {
-    const wsCP = XLSX.utils.aoa_to_sheet([headerRow, periodRow, blank, ...cpRows])
-    wsCP['!cols'] = [{ wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
-    XLSX.utils.book_append_sheet(wb, wsCP, 'По клиентам и товарам')
-  }
-
-  XLSX.writeFile(wb, `аналитика_${cashier}_${periodSlug()}.xlsx`)
-}
-
 // ===== Period helpers (shared by exports) =====
 function periodLabel() {
   const map = { daily: 'День', weekly: 'Неделя', monthly: 'Месяц', yearly: 'Год', custom: 'Дата' }
@@ -2006,9 +1916,9 @@ function pieceCount(item) {
   return item.quantity * qpp
 }
 
-// Builds the "по клиентам и товарам" rows (AOA) for delivered sales in the period:
-// each client header carries its totals, then one row per product (qty in pieces,
-// price per piece, line sum). Mirrors the printed report layout.
+// Builds the "по клиентам и товарам" rows (AOA) for delivered sales in the period.
+// Layout is a flat table: client (name+surname) in one column, product in the next,
+// then qty in pieces, price per piece and the line sum — one row per client+product.
 function buildClientProductRows() {
   const { start, end } = analyticsRange()
   const sold = orders.value.filter(o =>
@@ -2016,74 +1926,36 @@ function buildClientProductRows() {
     new Date(o.created_at) >= start && new Date(o.created_at) < end
   )
 
-  // client -> { name, totalPieces, totalSum, products: Map(productName -> {pieces, sum}) }
+  // client -> Map(productName -> {pieces, sum})
   const byClient = new Map()
   for (const o of sold) {
     const name = clientName(o)
-    let c = byClient.get(name)
-    if (!c) { c = { name, totalPieces: 0, totalSum: 0, products: new Map() } ; byClient.set(name, c) }
+    let prods = byClient.get(name)
+    if (!prods) { prods = new Map(); byClient.set(name, prods) }
     for (const item of boughtItems(o)) {
-      const pieces = pieceCount(item)
-      const sum = item.price
-      c.totalPieces += pieces
-      c.totalSum += sum
       const pname = item.product?.name || '—'
-      const p = c.products.get(pname) || { pieces: 0, sum: 0 }
-      p.pieces += pieces
-      p.sum += sum
-      c.products.set(pname, p)
+      const p = prods.get(pname) || { pieces: 0, sum: 0 }
+      p.pieces += pieceCount(item)
+      p.sum += item.price
+      prods.set(pname, p)
     }
   }
 
-  const rows = [['Клиент / Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)']]
+  const rows = [['Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)']]
   let grandPieces = 0, grandSum = 0
-  for (const c of byClient.values()) {
-    rows.push([c.name, c.totalPieces, '', Math.round(c.totalSum)])
-    for (const [pname, p] of c.products) {
+  for (const [name, prods] of byClient) {
+    for (const [pname, p] of prods) {
       const pricePer = p.pieces > 0 ? Math.round(p.sum / p.pieces) : 0
-      rows.push([`    ${pname}`, p.pieces, pricePer, Math.round(p.sum)])
+      rows.push([name, pname, p.pieces, pricePer, Math.round(p.sum)])
+      grandPieces += p.pieces
+      grandSum += p.sum
     }
-    grandPieces += c.totalPieces
-    grandSum += c.totalSum
   }
-  if (byClient.size) rows.push(['ИТОГО', grandPieces, '', Math.round(grandSum)])
+  if (byClient.size) rows.push(['ИТОГО', '', grandPieces, '', Math.round(grandSum)])
   return byClient.size ? rows : []
 }
 
-// Discount summary (AOA) for delivered sales in the period: how many orders had a
-// discount, what share of all orders that is, and the average / range / total given away.
-function buildDiscountRows() {
-  const { start, end } = analyticsRange()
-  const sold = orders.value.filter(o =>
-    o.status === 'delivered' && !o.is_deleted &&
-    new Date(o.created_at) >= start && new Date(o.created_at) < end
-  )
-  if (!sold.length) return []
-  let withDisc = 0, sumPct = 0, minPct = 0, maxPct = 0, totalGiven = 0
-  for (const o of sold) {
-    const pct = o.discount_percent || 0
-    if (pct <= 0) continue
-    withDisc++
-    sumPct += pct
-    if (minPct === 0 || pct < minPct) minPct = pct
-    if (pct > maxPct) maxPct = pct
-    const finalSum = orderTotal(o)
-    const original = pct < 100 ? finalSum / (1 - pct / 100) : finalSum
-    totalGiven += original - finalSum
-  }
-  const share = sold.length > 0 ? (withDisc / sold.length) * 100 : 0
-  return [
-    ['Показатель', 'Значение'],
-    ['Всего заказов', sold.length],
-    ['Заказов со скидкой', withDisc],
-    ['Доля клиентов со скидкой', `${share.toFixed(1)}%`],
-    ['Средняя скидка', withDisc ? `${(sumPct / withDisc).toFixed(1)}%` : '0%'],
-    ['Мин / Макс скидка', `${minPct}% / ${maxPct}%`],
-    ['Сумма скидок (сум)', Math.round(totalGiven)],
-  ]
-}
-
-// Standalone "по клиентам и товарам" export (its own workbook).
+// "Экспорт в Excel формате" — sales grouped by client & product for the period.
 function exportClientProductExcel() {
   const cpRows = buildClientProductRows()
   if (!cpRows.length) { alert('Нет данных для экспорта'); return }
@@ -2095,10 +1967,33 @@ function exportClientProductExcel() {
     [''],
     ...cpRows,
   ])
-  ws['!cols'] = [{ wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
+  ws['!cols'] = [{ wch: 26 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
   XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
+}
+
+// Excel export of the payment-method breakdown for the period (button in that section).
+// Cashier name on top, then a table: payment method / orders / amount paid.
+function exportPaymentMethodsExcel() {
+  const rows = paymentBreakdownRows.value
+  if (!rows.length) { alert('Нет данных для экспорта'); return }
+  const cashier = authStore.worker?.name || '—'
+  const body = [
+    ['Способ оплаты', 'Заказов', 'Сумма (сум)'],
+    ...rows.map(r => [r.label, r.orders, Math.round(r.revenue)]),
+    ['ИТОГО', paymentBreakdownTotalOrders.value, Math.round(paymentBreakdownTotalRevenue.value)],
+  ]
+  const ws = XLSX.utils.aoa_to_sheet([
+    [`Кассир: ${cashier}`],
+    [`Период: ${periodLabel()}`],
+    [''],
+    ...body,
+  ])
+  ws['!cols'] = [{ wch: 26 }, { wch: 12 }, { wch: 18 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'По способам оплаты')
+  XLSX.writeFile(wb, `оплаты_${cashier}_${periodSlug()}.xlsx`)
 }
 
 watch(tab, (t) => {
