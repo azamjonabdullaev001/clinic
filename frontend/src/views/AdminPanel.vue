@@ -55,10 +55,10 @@
                 <tr>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Фото</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Название</th>
-                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">В капсуле</th>
+                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">В флаконе</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">На складе</th>
                   <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/шт</th>
-                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/капс.</th>
+                  <th class="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Цена/фл.</th>
                   <th class="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
@@ -79,7 +79,7 @@
                   <td class="px-5 py-3 text-gray-600">{{ product.quantity_per_pack }} шт</td>
                   <td class="px-5 py-3">
                     <span :class="liveQty(product) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'" class="px-2 py-0.5 rounded text-sm font-semibold">
-                      {{ liveCaps(product) }} капс / {{ liveQty(product) }} шт
+                      {{ liveCaps(product) }} фл. / {{ liveQty(product) }} шт
                     </span>
                   </td>
                   <td class="px-5 py-3 text-gray-600">{{ formatPrice(product.price_per_pill) }} сўм</td>
@@ -287,7 +287,7 @@
               <div v-for="item in order.items" :key="item.id" class="flex justify-between items-center text-sm py-1">
                 <span class="text-gray-600">
                   {{ item.product?.name }}
-                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} {{ item.unit_type === 'piece' ? 'шт.' : 'капс.' }}</span>
+                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} {{ item.unit_type === 'piece' ? 'шт.' : 'фл.' }}</span>
                   <span v-if="itemDiffLabel(item)" :class="itemDiffClass(item)" class="ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded">{{ itemDiffLabel(item) }}</span>
                 </span>
                 <span class="font-medium text-gray-700">{{ item.quantity === 0 ? '—' : formatPrice(item.price) + ' сўм' }}</span>
@@ -486,7 +486,7 @@
                           <thead class="bg-purple-100/60">
                             <tr>
                               <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
-                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                              <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Флакон</th>
                               <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
                               <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Выручка</th>
                             </tr>
@@ -494,7 +494,7 @@
                           <tbody class="divide-y divide-purple-100">
                             <tr v-for="p in doctorStats.products" :key="p.product_id" class="hover:bg-purple-50 transition">
                               <td class="px-4 py-2 font-medium text-gray-800">{{ p.product_name }}</td>
-                              <td class="px-4 py-2 text-gray-600">{{ p.total_packs }} капс.</td>
+                              <td class="px-4 py-2 text-gray-600">{{ p.total_packs }} фл.</td>
                               <td class="px-4 py-2 text-gray-600">{{ p.total_pieces }} шт</td>
                               <td class="px-4 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }} сўм</td>
                             </tr>
@@ -582,7 +582,7 @@
                 <tr>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Препарат</th>
-                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Капсул</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Флакон</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Штук</th>
                   <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Выручка</th>
                 </tr>
@@ -591,7 +591,7 @@
                 <tr v-for="(p, i) in analyticsData.top_products" :key="p.product_id" class="hover:bg-gray-50 transition">
                   <td class="px-5 py-3 text-gray-400 font-medium">{{ i + 1 }}</td>
                   <td class="px-5 py-3 font-medium text-gray-800">{{ p.product_name }}</td>
-                  <td class="px-5 py-3 text-gray-600">{{ p.total_packs }} капс.</td>
+                  <td class="px-5 py-3 text-gray-600">{{ p.total_packs }} фл.</td>
                   <td class="px-5 py-3 text-gray-600">{{ p.total_qty }} шт</td>
                   <td class="px-5 py-3 text-right font-bold text-teal-600">{{ formatPrice(p.revenue) }} сўм</td>
                 </tr>
@@ -629,7 +629,7 @@
             <div v-for="cat in breakdownCats" :key="cat.key" class="rounded-xl p-4 border" :class="cat.box">
               <p class="text-sm font-semibold mb-2" :class="cat.text">{{ cat.label }}</p>
               <div class="flex justify-between text-xs text-gray-500"><span>Заказов</span><span class="font-bold text-gray-800">{{ analyticsData.breakdown[cat.key]?.orders || 0 }}</span></div>
-              <div class="flex justify-between text-xs text-gray-500"><span>Капсул</span><span class="font-bold text-gray-800">{{ analyticsData.breakdown[cat.key]?.capsules || 0 }}</span></div>
+              <div class="flex justify-between text-xs text-gray-500"><span>Флакон</span><span class="font-bold text-gray-800">{{ analyticsData.breakdown[cat.key]?.capsules || 0 }}</span></div>
               <div class="flex justify-between text-xs text-gray-500"><span>Штук</span><span class="font-bold text-gray-800">{{ analyticsData.breakdown[cat.key]?.pieces || 0 }}</span></div>
               <div class="flex justify-between text-xs text-gray-500 mt-1 pt-1 border-t border-gray-100"><span>Сумма</span><span class="font-bold" :class="cat.text">{{ formatPrice(analyticsData.breakdown[cat.key]?.revenue || 0) }}</span></div>
             </div>
@@ -647,7 +647,7 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               <div class="bg-emerald-50 rounded-xl p-4"><p class="text-xs text-emerald-600 mb-1">Стоимость</p><p class="text-xl font-bold text-emerald-700">{{ formatPrice(analyticsData.vip.total_revenue) }} сўм</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Заказов</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.vip.total_orders }}</p></div>
-              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.vip.total_capsules }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Флакон</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.vip.total_capsules }}</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.vip.total_pieces }}</p></div>
             </div>
             <div v-if="analyticsData.vip.products?.length" class="overflow-x-auto rounded-xl border border-emerald-100">
@@ -655,7 +655,7 @@
                 <thead class="bg-emerald-50">
                   <tr>
                     <th class="text-left px-4 py-2.5 text-xs font-semibold text-emerald-700 uppercase">Препарат</th>
-                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-emerald-700 uppercase">Капсул</th>
+                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-emerald-700 uppercase">Флакон</th>
                     <th class="text-left px-4 py-2.5 text-xs font-semibold text-emerald-700 uppercase">Штук</th>
                     <th class="text-right px-4 py-2.5 text-xs font-semibold text-emerald-700 uppercase">Стоимость</th>
                   </tr>
@@ -684,7 +684,7 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Сумма (долг)</p><p class="text-xl font-bold text-purple-700">{{ formatPrice(analyticsData.marketolog.total_revenue) }} сўм</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Заказов</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_orders }}</p></div>
-              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_capsules }}</p></div>
+              <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Флакон</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_capsules }}</p></div>
               <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.marketolog.total_pieces }}</p></div>
             </div>
             <div v-if="analyticsData.marketolog.products?.length" class="overflow-x-auto rounded-xl border border-purple-100">
@@ -692,7 +692,7 @@
                 <thead class="bg-purple-50">
                   <tr>
                     <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
-                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                    <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Флакон</th>
                     <th class="text-left px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Штук</th>
                     <th class="text-right px-4 py-2.5 text-xs font-semibold text-purple-700 uppercase">Сумма</th>
                   </tr>
@@ -723,7 +723,7 @@
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">#</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Кто рекомендовал</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Заказов</th>
-                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Капсул</th>
+                  <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Флакон</th>
                   <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Штук</th>
                   <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase">Выручка</th>
                 </tr>
@@ -763,14 +763,14 @@
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Заказов</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_orders }}</p></div>
                 <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Сумма (долг)</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(perMktStats.total_revenue) }} сўм</p></div>
-                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_capsules }}</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Флакон</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_capsules }}</p></div>
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ perMktStats.total_pieces }}</p></div>
               </div>
               <div v-if="(perMktStats.products || []).length" class="overflow-x-auto rounded-xl border border-purple-100">
                 <table class="w-full text-sm">
                   <thead class="bg-purple-50"><tr>
                     <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
-                    <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                    <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Флакон</th>
                     <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
                     <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Сумма</th>
                   </tr></thead>
@@ -832,7 +832,7 @@
                   <thead class="bg-indigo-50">
                     <tr>
                       <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Препарат</th>
-                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Капсул</th>
+                      <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Флакон</th>
                       <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Штук</th>
                       <th class="text-left px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Заказов</th>
                       <th class="text-right px-4 py-2.5 text-xs font-semibold text-indigo-700 uppercase">Выручка</th>
@@ -841,7 +841,7 @@
                   <tbody class="divide-y divide-indigo-50">
                     <tr v-for="p in perDoctorStats.products" :key="p.product_id" class="hover:bg-indigo-50 transition">
                       <td class="px-4 py-2.5 font-medium text-gray-800">{{ p.product_name }}</td>
-                      <td class="px-4 py-2.5 text-gray-600">{{ p.total_packs }} капс.</td>
+                      <td class="px-4 py-2.5 text-gray-600">{{ p.total_packs }} фл.</td>
                       <td class="px-4 py-2.5 text-gray-600">{{ p.total_pieces }} шт</td>
                       <td class="px-4 py-2.5 text-gray-600">{{ p.order_count }}</td>
                       <td class="px-4 py-2.5 text-right font-bold text-indigo-700">{{ formatPrice(p.revenue) }} сўм</td>
@@ -1317,7 +1317,7 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в капсуле <span class="text-red-400">*</span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в флаконе <span class="text-red-400">*</span></label>
               <input v-model.number="productForm.quantity_per_pack" type="number" min="1" required
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
@@ -1335,7 +1335,7 @@
               placeholder="0" />
             <p class="text-xs text-gray-400 mt-1">
               <span v-if="productForm.stock_quantity > 0 && productForm.quantity_per_pack > 0">
-                = {{ Math.floor(productForm.stock_quantity / productForm.quantity_per_pack) }} капсул на складе
+                = {{ Math.floor(productForm.stock_quantity / productForm.quantity_per_pack) }} флакон на складе
               </span>
               <span v-else>Указывается в штуках</span>
             </p>
@@ -1343,7 +1343,7 @@
 
           <div v-if="productForm.quantity_per_pack > 0 && productForm.price_per_pill > 0" class="bg-teal-50 rounded-lg p-3.5 border border-teal-100">
             <div class="text-sm text-teal-800">
-              <span class="text-teal-600">Цена за капсулу ({{ productForm.quantity_per_pack }} шт):</span>
+              <span class="text-teal-600">Цена за флакону ({{ productForm.quantity_per_pack }} шт):</span>
               <span class="font-bold text-teal-700 ml-1">{{ formatPrice(productForm.quantity_per_pack * productForm.price_per_pill) }} сўм</span>
             </div>
           </div>
@@ -1480,13 +1480,13 @@
           <div class="grid grid-cols-3 gap-3">
             <div class="bg-gray-50 rounded-xl p-4 text-center">
               <p class="text-xs text-gray-500 mb-1">На складе</p>
-              <p class="text-xl font-bold text-gray-800">{{ Math.floor(productAnalyticsData.current_stock / (productAnalyticsData.qty_per_pack || 60)) }} капс</p>
+              <p class="text-xl font-bold text-gray-800">{{ Math.floor(productAnalyticsData.current_stock / (productAnalyticsData.qty_per_pack || 60)) }} фл.</p>
               <p class="text-xs text-gray-400">{{ productAnalyticsData.current_stock }} шт</p>
             </div>
             <div class="bg-teal-50 rounded-xl p-4 text-center">
-              <p class="text-xs text-teal-600 mb-1">Продано капсул</p>
+              <p class="text-xs text-teal-600 mb-1">Продано флакон</p>
               <p class="text-xl font-bold text-teal-700">{{ productAnalyticsData.total_capsules }}</p>
-              <p class="text-xs text-teal-400">капсул</p>
+              <p class="text-xs text-teal-400">флакон</p>
             </div>
             <div class="bg-blue-50 rounded-xl p-4 text-center">
               <p class="text-xs text-blue-600 mb-1">Продано штучно</p>
@@ -1502,7 +1502,7 @@
                 <tr>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Канал</th>
                   <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Заказов</th>
-                  <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Капсул</th>
+                  <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Флакон</th>
                   <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Штук</th>
                 </tr>
               </thead>
@@ -1676,7 +1676,7 @@ function exportProductAnalyticsExcel() {
 
   // Build HTML table for Excel export
   const rows = [
-    ['Канал', 'Заказов', 'Капсул', 'Штук'],
+    ['Канал', 'Заказов', 'Флакон', 'Штук'],
     ['Свои пациенты (VIP)', ch.vip.orders, ch.vip.capsules, ch.vip.pieces],
     ['Маркетолог', ch.marketolog.orders, ch.marketolog.capsules, ch.marketolog.pieces],
     ['Оффлайн (пункт выдачи)', ch.offline.orders, ch.offline.capsules, ch.offline.pieces],
@@ -1684,7 +1684,7 @@ function exportProductAnalyticsExcel() {
     ['', '', '', ''],
     ['Итого', d.total_orders, d.total_capsules, d.total_pieces],
     ['', '', '', ''],
-    ['На складе (капсул)', Math.floor(d.current_stock / (d.qty_per_pack || 60)), '', ''],
+    ['На складе (флакон)', Math.floor(d.current_stock / (d.qty_per_pack || 60)), '', ''],
     ['На складе (штук)', d.current_stock, '', ''],
   ]
 
@@ -1761,7 +1761,7 @@ function paymentLabel(order) {
   const m = {
     cash: 'Наличные',
     terminal: 'Терминал',
-    card: 'Карта',
+    card: 'Другое',
     online: 'Онлайн (карта)',
   }
   const sub = { cassa1: 'Касса 1', click: 'Click', transfer: 'Перечисление (ХР)' }

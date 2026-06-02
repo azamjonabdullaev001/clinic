@@ -88,7 +88,7 @@
           <div class="px-6 py-5 space-y-4">
             <!-- Unit toggle -->
             <div class="flex gap-2">
-              <button @click="setUnit('pack')" :class="saleUnit === 'pack' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'" class="px-3 py-1.5 rounded-lg text-sm font-medium border transition">Капсула</button>
+              <button @click="setUnit('pack')" :class="saleUnit === 'pack' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'" class="px-3 py-1.5 rounded-lg text-sm font-medium border transition">Флакон</button>
               <button @click="setUnit('piece')" :class="saleUnit === 'piece' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300'" class="px-3 py-1.5 rounded-lg text-sm font-medium border transition">Штука</button>
             </div>
             <!-- Product grid (tap to add) -->
@@ -99,14 +99,14 @@
                 <div v-if="cartQty(p.id) > 0" class="absolute -top-2 -right-2 w-6 h-6 bg-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center">{{ cartQty(p.id) }}</div>
                 <p class="text-xs font-semibold text-gray-800 leading-tight mb-1 line-clamp-2">{{ p.name }}</p>
                 <p class="text-xs font-bold text-purple-600">{{ formatPrice(saleUnit === 'piece' ? p.price_per_pill : p.price_per_pack) }} сўм</p>
-                <p class="text-[11px]" :class="availOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">склад: {{ saleUnit === 'piece' ? (stockOf(p.id) + ' шт') : (capsulesOf(p.id) + ' капс') }}</p>
+                <p class="text-[11px]" :class="availOf(p.id) > 0 ? 'text-gray-400' : 'text-red-500'">склад: {{ saleUnit === 'piece' ? (stockOf(p.id) + ' шт') : (capsulesOf(p.id) + ' фл.') }}</p>
               </button>
             </div>
 
             <!-- Cart -->
             <div v-if="items.length" class="border rounded-xl overflow-hidden">
               <div v-for="item in items" :key="item.product_id" class="flex items-center justify-between px-4 py-2.5 border-b last:border-0 bg-gray-50">
-                <span class="font-medium text-gray-800 text-sm flex-1 truncate">{{ item.name }} <span class="text-gray-400">({{ item.unit_type === 'piece' ? 'шт' : 'капс' }})</span></span>
+                <span class="font-medium text-gray-800 text-sm flex-1 truncate">{{ item.name }} <span class="text-gray-400">({{ item.unit_type === 'piece' ? 'шт' : 'фл.' }})</span></span>
                 <div class="flex items-center gap-1.5 mx-2">
                   <button @click="decQty(item)" class="w-7 h-7 bg-gray-200 rounded-lg font-bold text-sm">−</button>
                   <span class="w-7 text-center text-sm font-bold">{{ item.quantity }}</span>
@@ -156,7 +156,7 @@
                   </select>
                 </div>
                 <div class="w-28">
-                  <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во (капс.)</label>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во (фл.)</label>
                   <input v-model.number="stockQty" type="number" min="1" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
                 </div>
                 <button @click="addStock" :disabled="!stockProductId || stockQty < 1 || addingStock"
@@ -171,7 +171,7 @@
             <div class="divide-y divide-gray-100">
               <div v-for="s in stock" :key="s.id" class="flex justify-between items-center px-6 py-3 text-sm">
                 <span class="text-gray-700">{{ s.product?.name }}</span>
-                <span class="px-2.5 py-1 rounded-lg font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'">{{ capsulesOf(s.product_id) }} капс / {{ stockOf(s.product_id) }} шт</span>
+                <span class="px-2.5 py-1 rounded-lg font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'">{{ capsulesOf(s.product_id) }} фл. / {{ stockOf(s.product_id) }} шт</span>
               </div>
               <div v-if="stock.length === 0" class="px-6 py-8 text-center text-gray-400 text-sm">Склад пуст</div>
             </div>
@@ -192,7 +192,7 @@
                 </div>
                 <div class="mt-3 pt-3 border-t border-gray-100 space-y-1">
                   <div v-for="item in order.items" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                    <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'капс' }}</span></span>
+                    <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? 'шт' : 'фл.' }}</span></span>
                     <span class="font-medium">{{ formatPrice(item.price) }} сўм</span>
                   </div>
                 </div>
@@ -219,7 +219,7 @@
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Продаж</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_orders }}</p></div>
                 <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Сумма (долг)</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(analytics.total_revenue) }} сўм</p></div>
-                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Капсул</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_capsules }}</p></div>
+                <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Флакон</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_capsules }}</p></div>
                 <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Штук</p><p class="text-2xl font-bold text-gray-800">{{ analytics.total_pieces }}</p></div>
               </div>
               <LineChart :points="analytics.points || []" color="#a855f7" />
@@ -228,7 +228,7 @@
                   <thead class="bg-purple-50">
                     <tr>
                       <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Препарат</th>
-                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Капсул</th>
+                      <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Флакон</th>
                       <th class="text-left px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Штук</th>
                       <th class="text-right px-4 py-2 text-xs font-semibold text-purple-700 uppercase">Сумма</th>
                     </tr>

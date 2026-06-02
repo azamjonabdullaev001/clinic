@@ -665,6 +665,8 @@ func GetWorkerAnalytics(c *gin.Context) {
 	}
 	byDoctor := map[string]*catAgg{}
 	byMarketolog := map[string]*catAgg{}
+	// Payment-method breakdown. Key is `card_type` when payment is "card", otherwise the method name.
+	byPayment := map[string]*catAgg{}
 
 	mainOrders := 0
 	for _, order := range orders {
@@ -701,6 +703,23 @@ func GetWorkerAnalytics(c *gin.Context) {
 			} else {
 				confirmedCount++
 			}
+			// Bucket by payment method (card sub-types broken out).
+			payKey := order.PaymentMethod
+			if payKey == "card" && order.CardType != "" {
+				payKey = order.CardType
+			}
+			if payKey == "" {
+				payKey = "free"
+			}
+			p, ok := byPayment[payKey]
+			if !ok {
+				p = &catAgg{}
+				byPayment[payKey] = p
+			}
+			p.Orders++
+			p.Capsules += caps
+			p.Pieces += pcs
+			p.Revenue += revenue
 		}
 		c := cats[cat]
 		c.Orders++
@@ -809,6 +828,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 		"breakdown":       cats,
 		"by_doctor":       doctorList,
 		"by_marketolog":   marketologList,
+		"by_payment":      byPayment,
 		"top_products":    topProducts,
 	})
 }

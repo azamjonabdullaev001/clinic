@@ -121,7 +121,7 @@ const translations = {
 
     // Product card
     product_one_pill: '1 таблетка',
-    product_pack: 'Капсула',
+    product_pack: 'Флакон',
     comments_title: 'Отзывы',
     comments_empty: 'Пока нет отзывов. Будьте первым!',
     comments_name: 'Ваше имя (необязательно)',
@@ -137,7 +137,7 @@ const translations = {
     no_photo: 'Нет фото',
     currency: 'сўм',
     unit_piece: 'шт',
-    unit_pack: 'капсула',
+    unit_pack: 'флакон',
 
     // Footer
     footer_trich: 'Ваше здоровье - наша ответственность',
@@ -230,7 +230,7 @@ const translations = {
     cta_workdays_text: 'Пн-Пт 08:00 – 17:00',
     cta_weekend_text: 'Сб – Вс выходной',
     modal_add_cart: 'В корзину',
-    modal_in_pack: 'капсул',
+    modal_in_pack: 'флаконов',
     nav_products_link: 'Препараты',
     nav_quick_order_link: 'Быстрый заказ',
     nav_features_link: 'Особенности',
@@ -345,7 +345,7 @@ const translations = {
 
     // Product card
     product_one_pill: '1 tabletka',
-    product_pack: 'Kapsula',
+    product_pack: 'Flakon',
     comments_title: 'Sharhlar',
     comments_empty: "Hozircha sharhlar yo'q. Birinchi bo'ling!",
     comments_name: 'Ismingiz (ixtiyoriy)',
@@ -361,7 +361,7 @@ const translations = {
     no_photo: 'Rasm yo\'q',
     currency: 'so\'m',
     unit_piece: 'dona',
-    unit_pack: 'kapsula',
+    unit_pack: 'flakon',
 
     // Footer
     footer_trich: 'Sog\'ligingiz - bizning mas\'uliyatimiz',
@@ -454,7 +454,7 @@ const translations = {
     cta_workdays_text: "Du-Ju 08:00 – 17:00",
     cta_weekend_text: "Shanba – Yakshanba dam olish kuni",
     modal_add_cart: "Savatga qo'shish",
-    modal_in_pack: "kapsul",
+    modal_in_pack: "flakon",
     nav_products_link: "Mahsulotlar",
     nav_quick_order_link: "Tez buyurtma",
     nav_features_link: "Xususiyatlar",

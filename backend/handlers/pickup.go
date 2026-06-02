@@ -23,6 +23,12 @@ func ReturnOrderFull(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Полный возврат доступен только для выданных заказов"})
 		return
 	}
+	// Only the cashier who confirmed the order can return it. Other cashiers don't
+	// even see this order in their list, but enforce here too to be safe.
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
+		return
+	}
 	var input struct {
 		ReturnReason string `json:"return_reason"`
 	}
@@ -70,6 +76,12 @@ func UpdateOrderItems(c *gin.Context) {
 
 	if order.Status == "cancelled" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить отменённый заказ"})
+		return
+	}
+
+	// Once an order is finalized (worker_id set), only that cashier can edit it.
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
 		return
 	}
 
@@ -149,6 +161,11 @@ func UpdateOrderItems(c *gin.Context) {
 				price = product.PricePerPill * float64(item.Quantity)
 			} else {
 				price = product.PricePerPack * float64(item.Quantity)
+			}
+			// Preserve the original discount when prices are recomputed on edit/return,
+			// so analytics keeps reflecting the actual money received.
+			if order.DiscountPercent > 0 && order.DiscountPercent < 100 {
+				price *= 1 - order.DiscountPercent/100
 			}
 		}
 
@@ -267,6 +284,13 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 	var order models.Order
 	if err := database.DB.First(&order, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	// Once an order is owned by a cashier (worker_id set), only that cashier can
+	// change its status. New (still pending/shared) orders have nil WorkerID and
+	// any cashier can pick them up.
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
 		return
 	}
 

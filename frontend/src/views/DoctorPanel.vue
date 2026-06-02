@@ -309,7 +309,7 @@ const texts = {
     order_form: 'Оформление заказа',
     patient_fname: 'Имя пациента',
     patient_lname: 'Фамилия пациента',
-    pack: 'капс.',
+    pack: 'фл.',
     piece: 'шт.',
     total: 'Итого',
     sum: 'сўм',

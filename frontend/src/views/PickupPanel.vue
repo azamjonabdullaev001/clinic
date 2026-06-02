@@ -673,6 +673,34 @@
               </table>
             </div>
           </div>
+
+          <!-- Payment-method breakdown: how much money came in via each channel -->
+          <div v-if="paymentBreakdownRows.length" class="pp-card rounded-xl shadow-sm p-6">
+            <h3 class="font-semibold text-gray-800 mb-4">{{ txt.by_payment_title }}</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100">
+                    <th class="text-left py-2 font-semibold text-gray-500">{{ txt.payment_method }}</th>
+                    <th class="text-right py-2 font-semibold text-gray-500">{{ txt.a_orders }}</th>
+                    <th class="text-right py-2 font-semibold text-gray-500">{{ txt.a_revenue }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="row in paymentBreakdownRows" :key="row.key" class="pp-row-hover">
+                    <td class="py-3 font-semibold text-gray-800">{{ row.label }}</td>
+                    <td class="py-3 text-right text-gray-700">{{ row.orders }}</td>
+                    <td class="py-3 text-right font-bold text-emerald-600">{{ formatPrice(row.revenue) }} {{ txt.sum }}</td>
+                  </tr>
+                  <tr class="border-t-2 border-gray-200 bg-gray-50">
+                    <td class="py-3 font-bold text-gray-800">{{ txt.total_label }}</td>
+                    <td class="py-3 text-right font-bold text-gray-800">{{ paymentBreakdownTotalOrders }}</td>
+                    <td class="py-3 text-right font-bold text-emerald-700">{{ formatPrice(paymentBreakdownTotalRevenue) }} {{ txt.sum }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </template>
       </div>
 
@@ -908,7 +936,7 @@ const texts = {
     select_product: 'Выберите препарат',
     qty: 'Количество',
     unit: 'Единицы',
-    pack: 'капс.',
+    pack: 'фл.',
     piece: 'шт',
     add: 'Добавить',
     add_product: '+ Добавить товар',
@@ -962,9 +990,14 @@ const texts = {
     payment_method: 'Способ оплаты',
     pay_cash: 'Наличные',
     pay_terminal: 'Терминал',
-    pay_card: 'Карта',
+    pay_card: 'Другое',
     pay_online: 'Онлайн',
     payment_label: 'Оплата',
+    card_cassa1: 'Касса 1',
+    card_click: 'Click',
+    card_transfer: 'Перечисление (ХР)',
+    by_payment_title: 'По способам оплаты',
+    total_label: 'ИТОГО',
     vip_badge: 'Свой пациент · Бесплатно',
     choose_payment: 'Выберите способ оплаты',
     payment_hint: 'Как клиент оплатил этот заказ?',
@@ -1101,9 +1134,14 @@ const texts = {
     payment_method: "To'lov usuli",
     pay_cash: 'Naqd',
     pay_terminal: 'Terminal',
-    pay_card: 'Karta',
+    pay_card: 'Boshqa',
     pay_online: 'Onlayn',
     payment_label: "To'lov",
+    card_cassa1: 'Kassa 1',
+    card_click: 'Click',
+    card_transfer: "Pul o'tkazma (ХР)",
+    by_payment_title: "To'lov turi bo'yicha",
+    total_label: 'JAMI',
     vip_badge: "O'z bemori · Bepul",
     choose_payment: "To'lov usulini tanlang",
     payment_hint: "Mijoz qanday to'ladi?",
@@ -1575,13 +1613,13 @@ const paymentMethods = computed(() => [
   { value: 'card', label: txt.value.pay_card },
 ])
 
-// Sub-options shown once the cashier picks "Карта".
-const cardTypes = [
-  { value: 'cassa1', label: 'Касса 1' },
-  { value: 'click', label: 'Click' },
-  { value: 'transfer', label: 'Перечисление (ХР)' },
-]
-function cardTypeLabel(v) { return cardTypes.find(c => c.value === v)?.label || '' }
+// Sub-options shown once the cashier picks "Другое" (was "Карта").
+const cardTypes = computed(() => [
+  { value: 'cassa1', label: txt.value.card_cassa1 },
+  { value: 'click', label: txt.value.card_click },
+  { value: 'transfer', label: txt.value.card_transfer },
+])
+function cardTypeLabel(v) { return cardTypes.value.find(c => c.value === v)?.label || '' }
 
 const offlineCardType = ref('')
 const offlineDiscount = ref(0)
@@ -1674,6 +1712,26 @@ const analyticsDate = ref(new Date().toISOString().slice(0, 10))
 const analyticsData = ref(null)
 const analyticsLoading = ref(false)
 
+// Friendly labels for the by-payment breakdown table.
+const paymentBreakdownRows = computed(() => {
+  const by = analyticsData.value?.by_payment || {}
+  const t = txt.value
+  const order = [
+    { key: 'cash', label: t.pay_cash },
+    { key: 'terminal', label: t.pay_terminal },
+    { key: 'cassa1', label: t.card_cassa1 },
+    { key: 'click', label: t.card_click },
+    { key: 'transfer', label: t.card_transfer },
+    { key: 'card', label: t.pay_card },
+    { key: 'online', label: t.pay_online },
+  ]
+  return order
+    .filter(o => by[o.key] && by[o.key].orders)
+    .map(o => ({ key: o.key, label: o.label, orders: by[o.key].orders, revenue: by[o.key].revenue }))
+})
+const paymentBreakdownTotalOrders = computed(() => paymentBreakdownRows.value.reduce((s, r) => s + r.orders, 0))
+const paymentBreakdownTotalRevenue = computed(() => paymentBreakdownRows.value.reduce((s, r) => s + r.revenue, 0))
+
 async function loadAnalytics() {
   analyticsLoading.value = true
   try {
@@ -1749,7 +1807,7 @@ function exportHistoryExcel() {
       'Тип': order.is_offline ? 'Офлайн' : 'Онлайн',
       'Статус': statusLabel(order.status),
       'Препарат': item.product?.name || '—',
-      'Единица': item.unit_type === 'piece' ? 'шт' : 'капс.',
+      'Единица': item.unit_type === 'piece' ? 'шт' : 'фл.',
       'Кол-во': item.quantity,
       'Цена за ед. (сум)': item.quantity > 0 ? Math.round(item.price / item.quantity) : 0,
       'Общая стоимость (сум)': Math.round(item.price),
@@ -1777,6 +1835,11 @@ function exportAnalyticsExcel() {
   const data = analyticsData.value
   if (!data) { alert('Нет данных для экспорта'); return }
 
+  const cashier = authStore.worker?.name || '—'
+  const headerRow = [`Кассир: ${cashier}`]
+  const periodRow = [`Период: ${analyticsPeriod.value}${analyticsDate.value ? ' · ' + analyticsDate.value : ''}`]
+  const blank = ['']
+
   const summaryRows = [
     { 'Показатель': 'Всего заказов', 'Значение': data.total_orders },
     { 'Показатель': 'Выручка (сум)', 'Значение': data.total_revenue },
@@ -1789,29 +1852,59 @@ function exportAnalyticsExcel() {
     return {
       'Категория': cat.label,
       'Заказов': d.orders,
-      'Капс.': d.capsules,
+      'Фл.': d.capsules,
       'Шт.': d.pieces,
       'Выручка (сум)': d.revenue,
     }
   })
 
+  // Payment-method breakdown. Card payments are split by their sub-type.
+  const payLabels = {
+    cash: 'Наличные', terminal: 'Терминал',
+    cassa1: 'Касса 1', click: 'Click', transfer: 'Перечисление (ХР)',
+    card: 'Карта (без типа)', online: 'Онлайн', free: 'Бесплатно',
+  }
+  const byPay = data.by_payment || {}
+  const payRows = Object.keys(payLabels)
+    .filter(k => byPay[k])
+    .map(k => ({
+      'Способ оплаты': payLabels[k],
+      'Валюта': 'Сум',
+      'Заказов': byPay[k].orders,
+      'Сумма': byPay[k].revenue,
+    }))
+  const payTotal = payRows.reduce((s, r) => s + r['Сумма'], 0)
+  payRows.push({ 'Способ оплаты': 'ИТОГО', 'Валюта': 'Сум', 'Заказов': payRows.reduce((s, r) => s + r['Заказов'], 0), 'Сумма': payTotal })
+
   const wb = XLSX.utils.book_new()
-  const wsSummary = XLSX.utils.json_to_sheet(summaryRows)
-  wsSummary['!cols'] = [{ wch: 22 }, { wch: 18 }]
+
+  // Sheet 1: Итоги — cashier header + summary
+  const wsSummary = XLSX.utils.aoa_to_sheet([headerRow, periodRow, blank])
+  XLSX.utils.sheet_add_json(wsSummary, summaryRows, { origin: 'A4' })
+  wsSummary['!cols'] = [{ wch: 24 }, { wch: 18 }]
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Итоги')
 
-  const wsCat = XLSX.utils.json_to_sheet(catRows)
+  // Sheet 2: По способам оплаты
+  const wsPay = XLSX.utils.aoa_to_sheet([headerRow, blank])
+  XLSX.utils.sheet_add_json(wsPay, payRows, { origin: 'A3' })
+  wsPay['!cols'] = [{ wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 18 }]
+  XLSX.utils.book_append_sheet(wb, wsPay, 'По способам оплаты')
+
+  // Sheet 3: По категориям
+  const wsCat = XLSX.utils.aoa_to_sheet([headerRow, blank])
+  XLSX.utils.sheet_add_json(wsCat, catRows, { origin: 'A3' })
   wsCat['!cols'] = [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }]
   XLSX.utils.book_append_sheet(wb, wsCat, 'По категориям')
 
   if ((data.by_doctor || []).length) {
-    const wsDoc = XLSX.utils.json_to_sheet(data.by_doctor.map(d => ({
-      'Доктор': d.name, 'Капс.': d.capsules, 'Шт.': d.pieces, 'Выручка (сум)': d.revenue,
-    })))
+    const wsDoc = XLSX.utils.aoa_to_sheet([headerRow, blank])
+    XLSX.utils.sheet_add_json(wsDoc, data.by_doctor.map(d => ({
+      'Доктор': d.name, 'Фл.': d.capsules, 'Шт.': d.pieces, 'Выручка (сум)': d.revenue,
+    })), { origin: 'A3' })
     XLSX.utils.book_append_sheet(wb, wsDoc, 'По докторам')
   }
 
-  XLSX.writeFile(wb, `аналитика_${new Date().toISOString().slice(0,10)}.xlsx`)
+  XLSX.writeFile(wb, `аналитика_${cashier}_${new Date().toISOString().slice(0,10)}.xlsx`)
 }
 
 watch(tab, (t) => {

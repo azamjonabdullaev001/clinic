@@ -241,7 +241,7 @@ const texts = {
     add_product: 'Добавить препарат',
     select_product: 'Выберите препарат',
     quantity: 'Количество',
-    pack: 'капс.',
+    pack: 'фл.',
     piece: 'шт',
     add: 'Добавить',
     total: 'Итого',
