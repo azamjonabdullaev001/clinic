@@ -15,6 +15,7 @@ import (
 type ProductInput struct {
 	Name            string  `json:"name" binding:"required"`
 	Description     string  `json:"description"`
+	Category        string  `json:"category"`
 	QuantityPerPack int     `json:"quantity_per_pack" binding:"required,min=1"`
 	PricePerPill    float64 `json:"price_per_pill" binding:"required,min=0"`
 	StockQuantity   int     `json:"stock_quantity"`
@@ -52,6 +53,7 @@ func CreateProduct(c *gin.Context) {
 	product := models.Product{
 		Name:            input.Name,
 		Description:     input.Description,
+		Category:        input.Category,
 		QuantityPerPack: input.QuantityPerPack,
 		PricePerPill:    input.PricePerPill,
 		StockQuantity:   input.StockQuantity,
@@ -82,6 +84,7 @@ func UpdateProduct(c *gin.Context) {
 
 	product.Name = input.Name
 	product.Description = input.Description
+	product.Category = input.Category
 	product.QuantityPerPack = input.QuantityPerPack
 	product.PricePerPill = input.PricePerPill
 	product.StockQuantity = input.StockQuantity

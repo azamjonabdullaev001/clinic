@@ -39,6 +39,7 @@ type Product struct {
 	ID              uint      `gorm:"primaryKey" json:"id"`
 	Name            string    `gorm:"not null" json:"name"`
 	Description     string    `json:"description"`
+	Category        string    `gorm:"default:''" json:"category"`
 	QuantityPerPack int       `gorm:"not null" json:"quantity_per_pack"`
 	PricePerPill    float64   `gorm:"not null" json:"price_per_pill"`
 	PricePerPack    float64   `gorm:"-" json:"price_per_pack"`
@@ -135,6 +136,11 @@ type Order struct {
 	CancelledByRole    string   `json:"cancelled_by_role"`
 	IsReturned         bool     `gorm:"default:false" json:"is_returned"` // delivered order edited as a return
 	ReturnReason       string   `json:"return_reason"`
+	IsEdited           bool     `gorm:"default:false;index" json:"is_edited"` // items edited at pickup — shown on admin with red border
+	IsDeleted          bool     `gorm:"default:false;index" json:"is_deleted"` // soft-deleted by cashier — admin-only, black border, hidden everywhere else
+	DeletedReason      string   `json:"deleted_reason"`
+	DeletedByName      string   `json:"deleted_by_name"`
+	DeletedByRole      string   `json:"deleted_by_role"`
 	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
 	ArchiveReason      string   `json:"archive_reason"`
 	CreatedAt       time.Time   `json:"created_at"`

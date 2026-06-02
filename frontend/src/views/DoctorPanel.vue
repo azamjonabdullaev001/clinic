@@ -332,11 +332,9 @@ const texts = {
     orders: 'заказов',
     no_data: 'Нет данных',
     status_pending: 'Ожидает',
-    status_confirmed: 'Подтверждён',
-    status_shipped: 'Отправлен',
     status_in_transit: 'В пути',
-    status_delivered: 'Выдан',
-    status_cancelled: 'Отменён',
+    status_delivered: 'Выдано',
+    status_cancelled: 'Отменено',
     add: 'Добавить',
   },
   uz: {
@@ -371,8 +369,6 @@ const texts = {
     orders: 'buyurtma',
     no_data: "Ma'lumot yo'q",
     status_pending: 'Kutilmoqda',
-    status_confirmed: 'Tasdiqlangan',
-    status_shipped: 'Yuborilgan',
     status_in_transit: "Yo'lda",
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
@@ -474,8 +470,6 @@ function statusLabel(status) {
   const t = txt.value
   const m = {
     pending: t.status_pending,
-    confirmed: t.status_confirmed,
-    shipped: t.status_shipped,
     in_transit: t.status_in_transit,
     delivered: t.status_delivered,
     cancelled: t.status_cancelled,
@@ -486,8 +480,6 @@ function statusLabel(status) {
 function statusClass(status) {
   const m = {
     pending: 'bg-yellow-100 text-yellow-700',
-    confirmed: 'bg-blue-100 text-blue-700',
-    shipped: 'bg-purple-100 text-purple-700',
     in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-700',

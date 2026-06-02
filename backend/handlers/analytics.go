@@ -100,6 +100,15 @@ func GetAnalytics(c *gin.Context) {
 			})
 		}
 		endTime = startTime.AddDate(0, 0, 30)
+	case "yearly":
+		endTime = now.Add(24 * time.Hour)
+		startTime = now.AddDate(-1, 0, 0)
+		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
+		for i := 0; i < 52; i++ {
+			t := startTime.AddDate(0, 0, i*7)
+			points = append(points, AnalyticsPoint{Label: t.Format("02.01")})
+		}
+		endTime = startTime.AddDate(0, 0, 52*7)
 	case "custom":
 		// 24 points for a specific day
 		var chosenDay time.Time
@@ -136,7 +145,7 @@ func GetAnalytics(c *gin.Context) {
 
 	// Fetch all delivered/completed orders in range
 	var allOrders []models.Order
-	database.DB.Where("created_at >= ? AND created_at < ? AND status != ?", startTime, endTime, "cancelled").
+	database.DB.Where("created_at >= ? AND created_at < ? AND status != ? AND is_deleted = ?", startTime, endTime, "cancelled", false).
 		Preload("Items.Product").
 		Find(&allOrders)
 
@@ -209,6 +218,12 @@ func GetAnalytics(c *gin.Context) {
 					points[pi].Orders++
 					break
 				}
+			}
+		case "yearly":
+			weekIndex := int(orderTime.Sub(startTime).Hours() / (24 * 7))
+			if weekIndex >= 0 && weekIndex < len(points) {
+				points[weekIndex].Revenue += revenue
+				points[weekIndex].Orders++
 			}
 		default:
 			// hourly (daily or custom)
@@ -403,8 +418,8 @@ func marketologAnalytics(marketologID uint, period, dateStr string) gin.H {
 	startTime, endTime, points := buildAnalyticsPeriod(period, dateStr)
 
 	var orders []models.Order
-	database.DB.Where("marketolog_id = ? AND status != ? AND created_at >= ? AND created_at < ?",
-		marketologID, "cancelled", startTime, endTime).
+	database.DB.Where("marketolog_id = ? AND status != ? AND is_deleted = ? AND created_at >= ? AND created_at < ?",
+		marketologID, "cancelled", false, startTime, endTime).
 		Preload("Items.Product").
 		Find(&orders)
 
@@ -496,6 +511,15 @@ func buildAnalyticsPeriod(period, dateStr string) (time.Time, time.Time, []Analy
 			points = append(points, AnalyticsPoint{Label: t.Format("02.01")})
 		}
 		endTime = startTime.AddDate(0, 0, 30)
+	case "yearly":
+		endTime = now.Add(24 * time.Hour)
+		startTime = now.AddDate(-1, 0, 0)
+		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
+		for i := 0; i < 52; i++ {
+			t := startTime.AddDate(0, 0, i*7)
+			points = append(points, AnalyticsPoint{Label: t.Format("02.01")})
+		}
+		endTime = startTime.AddDate(0, 0, 52*7)
 	case "custom":
 		chosenDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		if dateStr != "" {
@@ -542,6 +566,12 @@ func addRevenueToPoint(points []AnalyticsPoint, period string, startTime, orderT
 				return
 			}
 		}
+	case "yearly":
+		weekIndex := int(orderTime.Sub(startTime).Hours() / (24 * 7))
+		if weekIndex >= 0 && weekIndex < len(points) {
+			points[weekIndex].Revenue += revenue
+			points[weekIndex].Orders++
+		}
 	default:
 		hour := orderTime.Hour()
 		if hour >= 0 && hour < len(points) {
@@ -562,9 +592,9 @@ func GetWorkerAnalytics(c *gin.Context) {
 	startTime, endTime, points := buildAnalyticsPeriod(period, dateStr)
 
 	var orders []models.Order
-	database.DB.Where("worker_id = ? AND status = ? AND created_at >= ? AND created_at < ?",
-		workerID, "delivered", startTime, endTime).
-		Preload("Items").
+	database.DB.Where("worker_id = ? AND status = ? AND is_deleted = ? AND created_at >= ? AND created_at < ?",
+		workerID, "delivered", false, startTime, endTime).
+		Preload("Items.Product").
 		Find(&orders)
 
 	// Resolve marketolog id -> name for the breakdown.
@@ -680,6 +710,54 @@ func GetWorkerAnalytics(c *gin.Context) {
 		marketologList = append(marketologList, namedAgg{name, a.Orders, a.Capsules, a.Pieces, a.Revenue})
 	}
 
+	// Build top-products list from delivered orders.
+	type prodStat struct {
+		ProductName string
+		Orders      int
+		Capsules    int
+		Pieces      int
+		Revenue     float64
+	}
+	prodMap := map[uint]*prodStat{}
+	for _, order := range orders {
+		for _, item := range order.Items {
+			if item.Quantity <= 0 {
+				continue
+			}
+			ps, ok := prodMap[item.ProductID]
+			if !ok {
+				ps = &prodStat{ProductName: item.Product.Name}
+				prodMap[item.ProductID] = ps
+			}
+			ps.Orders++
+			ps.Revenue += item.Price
+			if item.UnitType == "piece" {
+				ps.Pieces += item.Quantity
+			} else {
+				ps.Capsules += item.Quantity
+			}
+		}
+	}
+	type prodStatOut struct {
+		ProductID   uint    `json:"product_id"`
+		ProductName string  `json:"product_name"`
+		Orders      int     `json:"orders"`
+		Capsules    int     `json:"capsules"`
+		Pieces      int     `json:"pieces"`
+		Revenue     float64 `json:"revenue"`
+	}
+	var topProducts []prodStatOut
+	for id, ps := range prodMap {
+		topProducts = append(topProducts, prodStatOut{id, ps.ProductName, ps.Orders, ps.Capsules, ps.Pieces, ps.Revenue})
+	}
+	for i := 0; i < len(topProducts)-1; i++ {
+		for j := i + 1; j < len(topProducts); j++ {
+			if topProducts[j].Revenue > topProducts[i].Revenue {
+				topProducts[i], topProducts[j] = topProducts[j], topProducts[i]
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"points":          points,
 		"total_revenue":   totalRevenue,
@@ -689,5 +767,85 @@ func GetWorkerAnalytics(c *gin.Context) {
 		"breakdown":       cats,
 		"by_doctor":       doctorList,
 		"by_marketolog":   marketologList,
+		"top_products":    topProducts,
+	})
+}
+
+// ProductChannelStat holds the per-channel totals for a single product.
+type ProductChannelStat struct {
+	Orders   int `json:"orders"`
+	Capsules int `json:"capsules"`
+	Pieces   int `json:"pieces"`
+}
+
+// GetProductAnalytics returns a breakdown of one product's sales by channel
+// (VIP own-patients, online, offline pickup, marketolog).
+func GetProductAnalytics(c *gin.Context) {
+	id := c.Param("id")
+
+	var product models.Product
+	if err := database.DB.First(&product, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Препарат не найден"})
+		return
+	}
+	product.ComputePackPrice()
+
+	type ItemRow struct {
+		UnitType   string `gorm:"column:unit_type"`
+		Quantity   int    `gorm:"column:quantity"`
+		IsVIP      bool   `gorm:"column:is_v_ip"`
+		IsOffline  bool   `gorm:"column:is_offline"`
+		HasMktolog bool   `gorm:"column:has_mktolog"`
+	}
+	var rows []ItemRow
+	database.DB.Table("order_items").
+		Select("order_items.unit_type, order_items.quantity, orders.is_v_ip, orders.is_offline, (orders.marketolog_id IS NOT NULL) AS has_mktolog").
+		Joins("JOIN orders ON orders.id = order_items.order_id").
+		Where("order_items.product_id = ? AND orders.status != ? AND orders.archived = ? AND orders.is_deleted = ?", id, "cancelled", false, false).
+		Scan(&rows)
+
+	channels := map[string]*ProductChannelStat{
+		"vip":        {},
+		"online":     {},
+		"offline":    {},
+		"marketolog": {},
+	}
+	totalCaps, totalPcs := 0, 0
+	for _, row := range rows {
+		var ch string
+		if row.IsVIP {
+			ch = "vip"
+		} else if row.HasMktolog {
+			ch = "marketolog"
+		} else if row.IsOffline {
+			ch = "offline"
+		} else {
+			ch = "online"
+		}
+		stat := channels[ch]
+		stat.Orders++
+		if row.UnitType == "pack" {
+			stat.Capsules += row.Quantity
+			totalCaps += row.Quantity
+		} else {
+			stat.Pieces += row.Quantity
+			totalPcs += row.Quantity
+		}
+	}
+
+	totalOrders := 0
+	for _, s := range channels {
+		totalOrders += s.Orders
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"product_id":     product.ID,
+		"product_name":   product.Name,
+		"current_stock":  product.StockQuantity,
+		"qty_per_pack":   product.QuantityPerPack,
+		"total_capsules": totalCaps,
+		"total_pieces":   totalPcs,
+		"total_orders":   totalOrders,
+		"channels":       channels,
 	})
 }

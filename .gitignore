@@ -4,3 +4,10 @@ dist/
 uploads/*
 !uploads/.gitkeep
 .env
+
+# Local-only seed helpers: contain server credentials / large DB dumps.
+# Keep only the credential-free algorithm (seed_full.sql), runner and README.
+scripts/*.py
+scripts/*.sql
+!scripts/seed_full.sql
+clinic_backup_*.sql

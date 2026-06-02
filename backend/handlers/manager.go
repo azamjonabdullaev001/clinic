@@ -13,7 +13,7 @@ import (
 func GetManagerOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
 	var orders []models.Order
-	database.DB.Where("marketolog_id = ? AND archived = ?", workerID, false).
+	database.DB.Where("marketolog_id = ? AND archived = ? AND is_deleted = ?", workerID, false, false).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)

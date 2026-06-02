@@ -92,6 +92,12 @@
                       <button @click="openProductModal(product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" title="Редактировать">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
+                      <button @click="openProductAnalytics(product)" class="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition" title="Аналитика препарата">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                      </button>
+                      <button @click="openProductReviews(product)" class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition" title="Отзывы">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h6m-6 8l-4-4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12l4-4z"/></svg>
+                      </button>
                       <button @click="deleteProduct(product.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
@@ -114,16 +120,61 @@
 
       <!-- ===== Orders Tab ===== -->
       <div v-if="activeTab === 'orders'">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-gray-800">Заказы</h2>
-          <button v-if="orders.length" @click="deleteAllOrders"
-            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-            Удалить все заказы
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-bold text-gray-800">Заказы <span class="text-sm font-normal text-gray-400 ml-2">всего: {{ ordersTotal }}</span></h2>
+          <button v-if="ordersTotal > 0" @click="deleteAllOrders"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+            Удалить все
           </button>
         </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-end">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-500 font-medium">Статус</label>
+            <select v-model="ordersStatus" @change="ordersPage=0; loadOrders()"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 min-w-[140px]">
+              <option value="">Все статусы</option>
+              <option value="pending">Ожидает</option>
+              <option value="in_transit">В пути</option>
+              <option value="delivered">Выдано</option>
+              <option value="cancelled">Отменено</option>
+              <option value="edited">Редактировано</option>
+              <option value="deleted">Удалено</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-500 font-medium">С даты</label>
+            <input type="date" v-model="ordersDateFrom" @change="ordersPage=0; loadOrders()"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-500 font-medium">По дату</label>
+            <input type="date" v-model="ordersDateTo" @change="ordersPage=0; loadOrders()"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs text-gray-500 font-medium">На странице</label>
+            <select v-model="ordersLimit" @change="ordersPage=0; loadOrders()"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+              <option :value="200">200</option>
+            </select>
+          </div>
+          <button @click="ordersStatus=''; ordersDateFrom=''; ordersDateTo=''; ordersPage=0; loadOrders()"
+            class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+            Сбросить
+          </button>
+          <div v-if="ordersLoading" class="flex items-center gap-2 text-sm text-gray-400">
+            <div class="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+            Загрузка...
+          </div>
+        </div>
+
         <div class="space-y-4">
           <div v-for="order in orders" :key="order.id" class="bg-white rounded-xl shadow-sm p-6"
-            :class="order.is_returned ? 'border-2 border-red-400' : ''">
+            :class="order.is_deleted ? 'border-2 border-gray-900' : ((order.is_edited || order.is_returned) ? 'border-2 border-red-400' : '')">
             <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
               <div>
                 <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -134,7 +185,8 @@
                   </span>
                   <span v-if="order.is_offline" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Офлайн</span>
                   <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
-                  <span v-if="order.is_returned" class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">Возврат</span>
+                  <span v-if="order.is_edited || order.is_returned" class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">Редактировано</span>
+                  <span v-if="order.is_deleted" class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-900 text-white">Удалено</span>
                 </div>
                 <h3 class="font-semibold text-gray-800 text-lg">
                   <template v-if="order.is_offline">
@@ -219,11 +271,22 @@
               </div>
             </div>
 
+            <div v-if="order.is_deleted && (order.deleted_reason || order.deleted_by_name)" class="mb-4 bg-gray-900 rounded-lg px-3 py-2 space-y-1">
+              <div v-if="order.deleted_reason" class="text-sm">
+                <span class="font-semibold text-white">Причина удаления:</span>
+                <span class="text-gray-300 ml-1">{{ order.deleted_reason }}</span>
+              </div>
+              <div v-if="order.deleted_by_name" class="text-sm">
+                <span class="font-semibold text-white">Удалил:</span>
+                <span class="text-gray-300 ml-1">{{ order.deleted_by_name }}<span v-if="order.deleted_by_role" class="text-gray-400"> ({{ order.deleted_by_role === 'nurse' ? 'медсестра' : 'пункт выдачи' }})</span></span>
+              </div>
+            </div>
+
             <div class="border-t pt-4 space-y-2">
               <div v-for="item in order.items" :key="item.id" class="flex justify-between items-center text-sm py-1">
                 <span class="text-gray-600">
                   {{ item.product?.name }}
-                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} капс.</span>
+                  <span class="text-gray-400" :class="{ 'line-through': item.quantity === 0 }">× {{ item.quantity === 0 ? item.original_quantity : item.quantity }} {{ item.unit_type === 'piece' ? 'шт.' : 'капс.' }}</span>
                   <span v-if="itemDiffLabel(item)" :class="itemDiffClass(item)" class="ml-1 text-[11px] font-semibold px-1.5 py-0.5 rounded">{{ itemDiffLabel(item) }}</span>
                 </span>
                 <span class="font-medium text-gray-700">{{ item.quantity === 0 ? '—' : formatPrice(item.price) + ' сўм' }}</span>
@@ -235,11 +298,29 @@
             </div>
           </div>
 
-          <div v-if="orders.length === 0" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
+          <div v-if="orders.length === 0 && !ordersLoading" class="bg-white rounded-xl shadow-sm p-12 text-center text-gray-400">
             <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             Нет заказов
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="ordersTotal > ordersLimit" class="flex items-center justify-between mt-6 bg-white rounded-xl shadow-sm px-5 py-3">
+          <span class="text-sm text-gray-500">
+            Показано {{ ordersPage * ordersLimit + 1 }}–{{ Math.min((ordersPage + 1) * ordersLimit, ordersTotal) }} из {{ ordersTotal }}
+          </span>
+          <div class="flex items-center gap-2">
+            <button @click="ordersPage--; loadOrders()" :disabled="ordersPage === 0"
+              class="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+              ← Назад
+            </button>
+            <span class="text-sm text-gray-600 font-medium px-2">{{ ordersPage + 1 }} / {{ Math.ceil(ordersTotal / ordersLimit) }}</span>
+            <button @click="ordersPage++; loadOrders()" :disabled="(ordersPage + 1) * ordersLimit >= ordersTotal"
+              class="px-4 py-2 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition">
+              Вперёд →
+            </button>
           </div>
         </div>
       </div>
@@ -1267,6 +1348,46 @@
       </div>
     </div>
 
+    <!-- Product Reviews Modal -->
+    <div v-if="showReviewsModal" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showReviewsModal = false"></div>
+      <div class="relative bg-white rounded-2xl p-6 w-full max-w-lg mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-gray-800">Отзывы о препарате</h3>
+            <p class="text-sm text-gray-500 mt-0.5">{{ reviewsProduct?.name }}</p>
+          </div>
+          <button @click="showReviewsModal = false" class="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto -mx-1 px-1 space-y-3">
+          <div v-if="reviewsLoading" class="text-center py-10 text-gray-400 text-sm">Загрузка...</div>
+          <template v-else>
+            <div v-for="review in productReviews" :key="review.id" class="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-sm font-semibold text-gray-800">{{ review.author_name }}</span>
+                    <span class="text-[11px] text-gray-400">{{ new Date(review.created_at).toLocaleDateString('ru-RU') }}</span>
+                  </div>
+                  <p class="text-sm text-gray-600 leading-snug whitespace-pre-line break-words">{{ review.text }}</p>
+                </div>
+                <button @click="deleteReview(review.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition flex-shrink-0" title="Удалить отзыв">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+            <div v-if="productReviews.length === 0" class="text-center py-10 text-gray-400">
+              <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h6m-6 8l-4-4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12l4-4z"/></svg>
+              Отзывов пока нет
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- Worker Modal (Add / Edit) -->
     <div v-if="showWorkerModal" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showWorkerModal = false"></div>
@@ -1321,6 +1442,112 @@
     <!-- Image upload hidden input (for table button) -->
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="handleImageUpload" />
 
+    <!-- Product Analytics Modal -->
+    <div v-if="showProductAnalyticsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showProductAnalyticsModal=false">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 py-4 border-b">
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">{{ productAnalyticsData?.product_name }}</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Аналитика продаж по каналам</p>
+          </div>
+          <button @click="showProductAnalyticsModal=false" class="p-2 hover:bg-gray-100 rounded-lg transition">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div v-if="productAnalyticsLoading" class="flex items-center justify-center py-16">
+          <div class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+
+        <div v-else-if="productAnalyticsData" class="p-6 space-y-5">
+          <!-- Stock summary -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-gray-50 rounded-xl p-4 text-center">
+              <p class="text-xs text-gray-500 mb-1">На складе</p>
+              <p class="text-xl font-bold text-gray-800">{{ Math.floor(productAnalyticsData.current_stock / (productAnalyticsData.qty_per_pack || 60)) }} капс</p>
+              <p class="text-xs text-gray-400">{{ productAnalyticsData.current_stock }} шт</p>
+            </div>
+            <div class="bg-teal-50 rounded-xl p-4 text-center">
+              <p class="text-xs text-teal-600 mb-1">Продано капсул</p>
+              <p class="text-xl font-bold text-teal-700">{{ productAnalyticsData.total_capsules }}</p>
+              <p class="text-xs text-teal-400">капсул</p>
+            </div>
+            <div class="bg-blue-50 rounded-xl p-4 text-center">
+              <p class="text-xs text-blue-600 mb-1">Продано штучно</p>
+              <p class="text-xl font-bold text-blue-700">{{ productAnalyticsData.total_pieces }}</p>
+              <p class="text-xs text-blue-400">штук</p>
+            </div>
+          </div>
+
+          <!-- Channel breakdown -->
+          <div class="overflow-x-auto rounded-xl border border-gray-100">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Канал</th>
+                  <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Заказов</th>
+                  <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Капсул</th>
+                  <th class="text-center px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Штук</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr class="hover:bg-emerald-50 transition">
+                  <td class="px-4 py-3 font-medium text-emerald-700 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    Свои пациенты (VIP)
+                  </td>
+                  <td class="px-4 py-3 text-center text-gray-700">{{ productAnalyticsData.channels.vip.orders }}</td>
+                  <td class="px-4 py-3 text-center font-semibold text-emerald-700">{{ productAnalyticsData.channels.vip.capsules }}</td>
+                  <td class="px-4 py-3 text-center text-gray-600">{{ productAnalyticsData.channels.vip.pieces }}</td>
+                </tr>
+                <tr class="hover:bg-purple-50 transition">
+                  <td class="px-4 py-3 font-medium text-purple-700 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
+                    Маркетолог
+                  </td>
+                  <td class="px-4 py-3 text-center text-gray-700">{{ productAnalyticsData.channels.marketolog.orders }}</td>
+                  <td class="px-4 py-3 text-center font-semibold text-purple-700">{{ productAnalyticsData.channels.marketolog.capsules }}</td>
+                  <td class="px-4 py-3 text-center text-gray-600">{{ productAnalyticsData.channels.marketolog.pieces }}</td>
+                </tr>
+                <tr class="hover:bg-blue-50 transition">
+                  <td class="px-4 py-3 font-medium text-blue-700 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+                    Оффлайн (пункт выдачи)
+                  </td>
+                  <td class="px-4 py-3 text-center text-gray-700">{{ productAnalyticsData.channels.offline.orders }}</td>
+                  <td class="px-4 py-3 text-center font-semibold text-blue-700">{{ productAnalyticsData.channels.offline.capsules }}</td>
+                  <td class="px-4 py-3 text-center text-gray-600">{{ productAnalyticsData.channels.offline.pieces }}</td>
+                </tr>
+                <tr class="hover:bg-teal-50 transition">
+                  <td class="px-4 py-3 font-medium text-teal-700 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-teal-500 inline-block"></span>
+                    Онлайн
+                  </td>
+                  <td class="px-4 py-3 text-center text-gray-700">{{ productAnalyticsData.channels.online.orders }}</td>
+                  <td class="px-4 py-3 text-center font-semibold text-teal-700">{{ productAnalyticsData.channels.online.capsules }}</td>
+                  <td class="px-4 py-3 text-center text-gray-600">{{ productAnalyticsData.channels.online.pieces }}</td>
+                </tr>
+                <tr class="bg-gray-50 font-bold">
+                  <td class="px-4 py-3 text-gray-800">Итого</td>
+                  <td class="px-4 py-3 text-center text-gray-800">{{ productAnalyticsData.total_orders }}</td>
+                  <td class="px-4 py-3 text-center text-gray-800">{{ productAnalyticsData.total_capsules }}</td>
+                  <td class="px-4 py-3 text-center text-gray-800">{{ productAnalyticsData.total_pieces }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Export button -->
+          <div class="flex justify-end">
+            <button @click="exportProductAnalyticsExcel()" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-medium transition text-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              Экспорт Excel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Route Modal -->
     <div v-if="showRouteModal" class="fixed inset-0 z-[60] flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeRouteModal"></div>
@@ -1374,8 +1601,8 @@ const tabs = [
   { id: 'doctors', label: 'Доктора' },
   { id: 'analytics', label: 'Аналитика' },
   { id: 'faq', label: 'FAQ' },
-  { id: 'support', label: 'Поддержка' },
   { id: 'news', label: 'Новости' },
+  { id: 'support', label: 'Поддержка' },
   { id: 'settings', label: 'Настройки' },
 ]
 
@@ -1399,6 +1626,67 @@ const imagePreview = ref(null)
 
 // Orders
 const orders = ref([])
+const ordersTotal = ref(0)
+const ordersPage = ref(0)
+const ordersLimit = ref(100)
+const ordersStatus = ref('')
+const ordersDateFrom = ref('')
+const ordersDateTo = ref('')
+const ordersLoading = ref(false)
+
+// Product analytics
+const showProductAnalyticsModal = ref(false)
+const productAnalyticsData = ref(null)
+const productAnalyticsLoading = ref(false)
+
+async function openProductAnalytics(product) {
+  showProductAnalyticsModal.value = true
+  productAnalyticsLoading.value = true
+  productAnalyticsData.value = null
+  try {
+    const res = await api.get(`/admin/products/${product.id}/analytics`)
+    productAnalyticsData.value = res.data
+  } catch (e) {
+    console.error(e)
+  } finally {
+    productAnalyticsLoading.value = false
+  }
+}
+
+function exportProductAnalyticsExcel() {
+  if (!productAnalyticsData.value) return
+  const d = productAnalyticsData.value
+  const ch = d.channels
+
+  // Build HTML table for Excel export
+  const rows = [
+    ['Канал', 'Заказов', 'Капсул', 'Штук'],
+    ['Свои пациенты (VIP)', ch.vip.orders, ch.vip.capsules, ch.vip.pieces],
+    ['Маркетолог', ch.marketolog.orders, ch.marketolog.capsules, ch.marketolog.pieces],
+    ['Оффлайн (пункт выдачи)', ch.offline.orders, ch.offline.capsules, ch.offline.pieces],
+    ['Онлайн', ch.online.orders, ch.online.capsules, ch.online.pieces],
+    ['', '', '', ''],
+    ['Итого', d.total_orders, d.total_capsules, d.total_pieces],
+    ['', '', '', ''],
+    ['На складе (капсул)', Math.floor(d.current_stock / (d.qty_per_pack || 60)), '', ''],
+    ['На складе (штук)', d.current_stock, '', ''],
+  ]
+
+  const tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Аналитика</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1">` +
+    `<tr><td colspan="4" style="font-weight:bold;font-size:14px;">${d.product_name} — Аналитика продаж</td></tr>` +
+    rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') +
+    `</table></body></html>`
+
+  const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = d.product_name.replace(/\s+/g, '_') + '_analytics.xls'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 // Workers
 const workers = ref([])
@@ -1420,6 +1708,7 @@ const analyticsPeriods = [
   { value: 'daily', label: 'День' },
   { value: 'weekly', label: 'Неделя' },
   { value: 'monthly', label: 'Месяц' },
+  { value: 'yearly', label: 'Год' },
   { value: 'custom', label: 'Выбрать дату' },
 ]
 
@@ -1491,11 +1780,9 @@ function paymentBadgeClass(order) {
 function statusLabel(status) {
   const labels = {
     pending: 'Ожидает',
-    confirmed: 'Подтверждён',
-    shipped: 'Отправлен',
     in_transit: 'В пути',
-    delivered: 'Доставлен',
-    cancelled: 'Отменён'
+    delivered: 'Выдано',
+    cancelled: 'Отменено'
   }
   return labels[status] || status
 }
@@ -1503,8 +1790,6 @@ function statusLabel(status) {
 function statusClass(status) {
   const classes = {
     pending: 'bg-yellow-100 text-yellow-700',
-    confirmed: 'bg-blue-100 text-blue-700',
-    shipped: 'bg-purple-100 text-purple-700',
     in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-700'
@@ -1522,11 +1807,26 @@ async function loadProducts() {
 }
 
 async function loadOrders() {
+  ordersLoading.value = true
   try {
-    const res = await api.get('/admin/orders')
-    orders.value = res.data || []
+    const params = new URLSearchParams({
+      limit: ordersLimit.value,
+      offset: ordersPage.value * ordersLimit.value,
+    })
+    if (ordersStatus.value) params.append('status', ordersStatus.value)
+    if (ordersDateFrom.value) params.append('date_from', ordersDateFrom.value)
+    if (ordersDateTo.value) {
+      const d = new Date(ordersDateTo.value)
+      d.setDate(d.getDate() + 1)
+      params.append('date_to', d.toISOString().split('T')[0])
+    }
+    const res = await api.get('/admin/orders?' + params.toString())
+    orders.value = res.data.orders || []
+    ordersTotal.value = res.data.total || 0
   } catch (e) {
     console.error(e)
+  } finally {
+    ordersLoading.value = false
   }
 }
 
@@ -1912,6 +2212,37 @@ async function deleteProduct(id) {
     await loadProducts()
   } catch (e) {
     alert('Ошибка при удалении')
+  }
+}
+
+// Product reviews (comments) management
+const showReviewsModal = ref(false)
+const reviewsProduct = ref(null)
+const productReviews = ref([])
+const reviewsLoading = ref(false)
+
+async function openProductReviews(product) {
+  reviewsProduct.value = product
+  productReviews.value = []
+  showReviewsModal.value = true
+  reviewsLoading.value = true
+  try {
+    const res = await api.get(`/products/${product.id}/comments`)
+    productReviews.value = res.data || []
+  } catch (e) {
+    productReviews.value = []
+  } finally {
+    reviewsLoading.value = false
+  }
+}
+
+async function deleteReview(commentId) {
+  if (!confirm('Удалить этот отзыв?')) return
+  try {
+    await api.delete(`/admin/product-comments/${commentId}`)
+    productReviews.value = productReviews.value.filter(r => r.id !== commentId)
+  } catch (e) {
+    alert('Ошибка при удалении отзыва')
   }
 }
 

@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -140,7 +141,7 @@ func CreateOrder(c *gin.Context) {
 func GetUserOrders(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	var orders []models.Order
-	database.DB.Where("user_id = ? AND archived = ?", userID, false).
+	database.DB.Where("user_id = ? AND archived = ? AND is_deleted = ?", userID, false, false).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)
@@ -155,10 +156,40 @@ func GetUserOrders(c *gin.Context) {
 }
 
 func GetOrders(c *gin.Context) {
+	limit := 100
+	offset := 0
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", "100")); err == nil && l > 0 && l <= 500 {
+		limit = l
+	}
+	if o, err := strconv.Atoi(c.DefaultQuery("offset", "0")); err == nil && o >= 0 {
+		offset = o
+	}
+
+	db := database.DB.Where("archived = ?", false)
+	if s := c.Query("status"); s != "" {
+		switch s {
+		case "edited":
+			db = db.Where("is_edited = ? OR is_returned = ?", true, true)
+		case "deleted":
+			db = db.Where("is_deleted = ?", true)
+		default:
+			db = db.Where("status = ?", s)
+		}
+	}
+	if df := c.Query("date_from"); df != "" {
+		db = db.Where("created_at >= ?", df)
+	}
+	if dt := c.Query("date_to"); dt != "" {
+		db = db.Where("created_at < ?", dt)
+	}
+
+	var total int64
+	db.Model(&models.Order{}).Count(&total)
+
 	var orders []models.Order
-	database.DB.Where("archived = ?", false).
-		Preload("Items.Product").Preload("User").
+	db.Preload("Items.Product").Preload("User").
 		Order("created_at desc").
+		Limit(limit).Offset(offset).
 		Find(&orders)
 
 	for i := range orders {
@@ -167,7 +198,12 @@ func GetOrders(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, orders)
+	c.JSON(http.StatusOK, gin.H{
+		"orders": orders,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
 }
 
 func UpdateOrderStatus(c *gin.Context) {
@@ -188,8 +224,6 @@ func UpdateOrderStatus(c *gin.Context) {
 
 	validStatuses := map[string]bool{
 		"pending":    true,
-		"confirmed":  true,
-		"shipped":    true,
 		"in_transit": true,
 		"delivered":  true,
 		"cancelled":  true,

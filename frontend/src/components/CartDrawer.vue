@@ -472,8 +472,7 @@ function orderTotal(order) {
 function statusLabel(status) {
   const map = {
     pending: t.value.status_pending,
-    confirmed: t.value.status_confirmed,
-    shipped: t.value.status_confirmed,
+    in_transit: t.value.status_in_transit,
     delivered: t.value.status_delivered,
     cancelled: t.value.status_cancelled,
   }
@@ -483,8 +482,7 @@ function statusLabel(status) {
 function statusClass(status) {
   const map = {
     pending: 'bg-yellow-100 text-yellow-700',
-    confirmed: 'bg-blue-100 text-blue-700',
-    shipped: 'bg-blue-100 text-blue-700',
+    in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
     cancelled: 'bg-red-100 text-red-600',
   }

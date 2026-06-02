@@ -306,7 +306,7 @@ func GetWorkerStats(c *gin.Context) {
 	calc := func(since time.Time) WorkerPeriodStats {
 		var orders []models.Order
 		database.DB.
-			Where("worker_id = ? AND status = ? AND created_at >= ?", worker.ID, "delivered", since).
+			Where("worker_id = ? AND status = ? AND is_deleted = ? AND created_at >= ?", worker.ID, "delivered", false, since).
 			Preload("Items").
 			Find(&orders)
 		stats := WorkerPeriodStats{Orders: len(orders)}
