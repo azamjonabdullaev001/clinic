@@ -771,6 +771,30 @@
             {{ txt.no_orders }}
           </div>
         </div>
+
+        <!-- Top-30 most recent orders (offline tab) — any type: online, offline, own patient -->
+        <div v-if="tab === 'offline'" class="mt-6 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <h3 class="font-semibold text-gray-800">{{ txt.recent_30 }}</h3>
+            <span class="text-xs text-gray-400 ml-auto">{{ recent30Orders.length }}</span>
+          </div>
+          <div class="divide-y divide-gray-100">
+            <div v-for="o in recent30Orders" :key="'r' + o.id" class="px-5 py-3 flex items-center gap-3 flex-wrap hover:bg-gray-50">
+              <span class="text-base font-bold text-blue-700 tracking-widest">{{ o.order_code }}</span>
+              <span :class="statusClass(o.status)" class="text-xs font-medium px-2 py-0.5 rounded">{{ statusLabel(o.status) }}</span>
+              <span v-if="o.is_vip" class="text-xs font-medium px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">{{ txt.own_patient }}</span>
+              <span v-else-if="o.is_offline" class="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">{{ txt.offline_badge }}</span>
+              <span v-else class="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 text-blue-700">{{ txt.type_online }}</span>
+              <span class="text-sm text-gray-600 truncate max-w-[220px]">
+                {{ o.is_offline ? (o.offline_note || '—') : ((o.user?.first_name || '') + ' ' + (o.user?.last_name || '')).trim() }}
+              </span>
+              <span class="text-xs text-gray-400 ml-auto">{{ new Date(o.created_at).toLocaleString('ru-RU') }}</span>
+              <span class="font-semibold text-emerald-700">{{ formatPrice(orderTotal(o)) }} {{ txt.sum }}</span>
+            </div>
+            <div v-if="!recent30Orders.length" class="px-5 py-6 text-center text-gray-400 text-sm">{{ txt.no_orders }}</div>
+          </div>
+        </div>
       </div>
       <!-- /Section content -->
       </div>
@@ -970,6 +994,7 @@ const texts = {
     pending_online: 'Ожидаемые онлайн-заказы',
     pending_offline: 'Ожидаемые офлайн-заказы',
     history_title: 'История заказов',
+    recent_30: 'Последние 30 заказов',
     type_all: 'Все',
     type_online: 'Онлайн',
     type_offline: 'Офлайн',
@@ -1084,6 +1109,7 @@ const texts = {
     pending_online: 'Kutilayotgan onlayn buyurtmalar',
     pending_offline: 'Kutilayotgan oflayn buyurtmalar',
     history_title: 'Buyurtmalar tarixi',
+    recent_30: 'Oxirgi 30 buyurtma',
     type_all: 'Hammasi',
     type_online: 'Onlayn',
     type_offline: 'Oflayn',
@@ -1126,6 +1152,13 @@ function inPeriod(order) {
   if (historyPeriod.value === 'custom') return historyDate.value ? d.toDateString() === new Date(historyDate.value).toDateString() : true
   return true
 }
+
+// Top-30 most recent orders, regardless of type (online / offline / own patient).
+const recent30Orders = computed(() => {
+  return [...orders.value]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 30)
+})
 
 const displayedOrders = computed(() => {
   if (tab.value === 'online') {
