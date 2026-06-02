@@ -372,9 +372,28 @@
               <div v-if="saleType==='regular'">
                 <label class="text-xs font-medium text-gray-500 mb-1.5 block">{{ txt.payment_method }}</label>
                 <div class="flex gap-2">
-                  <button v-for="pm in paymentMethods" :key="pm.value" @click="offlinePaymentMethod=pm.value"
+                  <button v-for="pm in paymentMethods" :key="pm.value"
+                    @click="offlinePaymentMethod=pm.value; if (pm.value !== 'card') offlineCardType=''"
                     :class="offlinePaymentMethod===pm.value?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
                     class="flex-1 py-2 rounded-lg text-sm font-medium border transition">{{ pm.label }}</button>
+                </div>
+                <!-- Card sub-options: cashier picks which card endpoint was used. -->
+                <div v-if="offlinePaymentMethod==='card'" class="flex gap-2 mt-2">
+                  <button v-for="ct in cardTypes" :key="ct.value" @click="offlineCardType=ct.value"
+                    :class="offlineCardType===ct.value?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                    class="flex-1 py-2 rounded-lg text-xs font-medium border transition">{{ ct.label }}</button>
+                </div>
+              </div>
+              <div v-if="saleType==='regular'">
+                <label class="text-xs font-medium text-gray-500 mb-1.5 block">Скидка, %</label>
+                <div class="flex items-center gap-3">
+                  <input v-model.number="offlineDiscount" type="number" min="0" max="100" step="1"
+                    placeholder="0"
+                    class="w-24 pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                  <span v-if="offlineDiscountPct > 0" class="text-sm">
+                    <span class="text-gray-400 line-through">{{ formatPrice(offlineTotal) }} {{ txt.sum }}</span>
+                    <span class="ml-2 font-bold text-emerald-700">{{ formatPrice(offlineDiscountedTotal) }} {{ txt.sum }}</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -770,6 +789,7 @@
               <span v-if="o.is_vip" class="text-xs font-medium px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">{{ txt.own_patient }}</span>
               <span v-else-if="o.is_offline" class="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">{{ txt.offline_badge }}</span>
               <span v-else class="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 text-blue-700">{{ txt.type_online }}</span>
+              <span v-if="o.discount_percent > 0" class="text-xs font-medium px-2 py-0.5 rounded bg-rose-100 text-rose-700">−{{ o.discount_percent }}%</span>
               <span class="text-sm text-gray-600 truncate max-w-[220px]">
                 {{ o.is_offline ? (o.offline_note || '—') : ((o.user?.first_name || '') + ' ' + (o.user?.last_name || '')).trim() }}
               </span>
@@ -795,11 +815,19 @@
         <h3 class="text-lg font-bold text-gray-800">{{ txt.choose_payment }}</h3>
         <p v-if="payOrder" class="text-emerald-700 font-bold mt-2">{{ formatPrice(orderTotal(payOrder)) }} {{ txt.sum }}</p>
       </div>
-      <div class="grid gap-2">
-        <button v-for="pm in paymentMethods" :key="pm.value" @click="confirmPayment(pm.value)" :disabled="paySubmitting"
+      <div v-if="!payCardStep" class="grid gap-2">
+        <button v-for="pm in paymentMethods" :key="pm.value"
+          @click="pm.value === 'card' ? (payCardStep = true) : confirmPayment(pm.value)" :disabled="paySubmitting"
           class="w-full py-3 rounded-xl border-2 border-emerald-200 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-40">
           {{ pm.label }}
         </button>
+      </div>
+      <div v-else class="grid gap-2">
+        <button v-for="ct in cardTypes" :key="ct.value" @click="confirmPayment('card', ct.value)" :disabled="paySubmitting"
+          class="w-full py-3 rounded-xl border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition disabled:opacity-40">
+          {{ ct.label }}
+        </button>
+        <button @click="payCardStep = false" :disabled="paySubmitting" class="w-full py-2 text-xs text-gray-500 hover:text-gray-700 transition">← Назад</button>
       </div>
       <button @click="closePayModal" :disabled="paySubmitting" class="w-full mt-3 py-2 text-sm text-gray-400 hover:text-gray-600 transition">{{ txt.cancel }}</button>
     </div>
@@ -1213,7 +1241,12 @@ function paymentLabel(order) {
   if (order.is_vip) return txt.value.vip_badge
   const t = txt.value
   const m = { cash: t.pay_cash, terminal: t.pay_terminal, card: t.pay_card, online: t.pay_online }
-  return m[order.payment_method] || ''
+  const base = m[order.payment_method] || ''
+  if (order.payment_method === 'card' && order.card_type) {
+    const sub = cardTypeLabel(order.card_type)
+    if (sub) return `${base} · ${sub}`
+  }
+  return base
 }
 
 function paymentBadgeClass(order) {
@@ -1336,10 +1369,12 @@ const showPayModal = ref(false)
 const payOrder = ref(null)
 const payContext = ref('list')
 const paySubmitting = ref(false)
+const payCardStep = ref(false)
 
 function askPayment(order, context) {
   payOrder.value = order
   payContext.value = context || 'list'
+  payCardStep.value = false
   showPayModal.value = true
 }
 
@@ -1347,13 +1382,14 @@ function closePayModal() {
   if (paySubmitting.value) return
   showPayModal.value = false
   payOrder.value = null
+  payCardStep.value = false
 }
 
-async function confirmPayment(method) {
+async function confirmPayment(method, cardType = '') {
   if (!payOrder.value || paySubmitting.value) return
   paySubmitting.value = true
   try {
-    const res = await api.put(`/pickup/orders/${payOrder.value.id}/status`, { status: 'delivered', payment_method: method })
+    const res = await api.put(`/pickup/orders/${payOrder.value.id}/status`, { status: 'delivered', payment_method: method, card_type: cardType })
     const idx = orders.value.findIndex(o => o.id === payOrder.value.id)
     if (idx !== -1) orders.value[idx] = res.data
     if (foundOrder.value?.id === payOrder.value.id) foundOrder.value = res.data
@@ -1539,11 +1575,28 @@ const paymentMethods = computed(() => [
   { value: 'card', label: txt.value.pay_card },
 ])
 
+// Sub-options shown once the cashier picks "Карта".
+const cardTypes = [
+  { value: 'cassa1', label: 'Касса 1' },
+  { value: 'click', label: 'Click' },
+  { value: 'transfer', label: 'Перечисление (ХР)' },
+]
+function cardTypeLabel(v) { return cardTypes.find(c => c.value === v)?.label || '' }
+
+const offlineCardType = ref('')
+const offlineDiscount = ref(0)
+
 const offlineTotal = computed(() => offlineItems.value.reduce((s, i) => s + i.price, 0))
+const offlineDiscountPct = computed(() => {
+  const n = Number(offlineDiscount.value) || 0
+  return Math.min(100, Math.max(0, n))
+})
+const offlineDiscountedTotal = computed(() => offlineTotal.value * (1 - offlineDiscountPct.value / 100))
 
 const offlineCanSubmit = computed(() => {
   if (offlineItems.value.length === 0) return false
   if (saleType.value === 'marketolog' && !offlineMarketolog.value) return false
+  if (saleType.value === 'regular' && offlinePaymentMethod.value === 'card' && !offlineCardType.value) return false
   return true
 })
 
@@ -1584,6 +1637,8 @@ function resetOfflineSale() {
   saleType.value = 'regular'
   offlineMarketolog.value = null
   offlinePaymentMethod.value = 'cash'
+  offlineCardType.value = ''
+  offlineDiscount.value = 0
   offlineReferral.value = ''
   offlineUnit.value = 'pack'
 }
@@ -1601,6 +1656,8 @@ async function submitOfflineSale() {
       is_vip: isVip,
       marketolog_id: isMkt ? offlineMarketolog.value : null,
       payment_method: (isVip || isMkt) ? '' : offlinePaymentMethod.value,
+      card_type: (!isVip && !isMkt && offlinePaymentMethod.value === 'card') ? offlineCardType.value : '',
+      discount_percent: (!isVip && !isMkt) ? Number(offlineDiscount.value) || 0 : 0,
       referred_by: offlineReferral.value.trim(),
     })
     offlineSuccess.value = true

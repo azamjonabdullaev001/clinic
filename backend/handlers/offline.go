@@ -42,10 +42,11 @@ func validOfflinePayment(m string) bool {
 
 type OfflineSaleInput struct {
 	Items         []OfflineItemInput `json:"items" binding:"required,min=1"`
-	OfflineNote   string             `json:"offline_note"`
-	IsVIP         bool               `json:"is_vip"`
-	PaymentMethod string             `json:"payment_method"` // "cash", "terminal", "card"
-	CardType      string             `json:"card_type"`      // "humo", "uzcard", "visa", "mastercard"
+	OfflineNote     string             `json:"offline_note"`
+	IsVIP           bool               `json:"is_vip"`
+	PaymentMethod   string             `json:"payment_method"`   // "cash", "terminal", "card"
+	CardType        string             `json:"card_type"`        // "cassa1", "click", "transfer"
+	DiscountPercent float64            `json:"discount_percent"` // 0..100 — cashier-typed discount on the whole sale
 	ReferredBy    string             `json:"referred_by"`    // doctor who referred the patient
 	SalesChannel  string             `json:"sales_channel"`  // marketplace for manager sales
 	MarketologID  *uint              `json:"marketolog_id"`  // marketolog the debt-sale is assigned to
@@ -94,7 +95,24 @@ func CreateOfflineSale(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный способ оплаты"})
 			return
 		}
+		if paymentMethod == "card" {
+			cardType = input.CardType
+		}
 	}
+
+	// Clamp the cashier-typed discount to a sane range. VIP and marketolog sales never
+	// get a discount applied (VIP is already free, marketolog is debt).
+	discount := input.DiscountPercent
+	if isDebt || input.IsVIP {
+		discount = 0
+	}
+	if discount < 0 {
+		discount = 0
+	}
+	if discount > 100 {
+		discount = 100
+	}
+	discountFactor := 1 - discount/100
 
 	// Offline & marketolog sales draw from the shared warehouse and cannot exceed it.
 	if err := reserveProductStock(tx, input.Items); err != nil {
@@ -112,9 +130,10 @@ func CreateOfflineSale(c *gin.Context) {
 		OrderCode:     generateNurseCode(), // offline orders use a 5-digit code
 		IsOffline:     true,
 		IsVIP:         input.IsVIP,
-		PaymentMethod: paymentMethod,
-		CardType:      cardType,
-		SalesChannel:  input.SalesChannel,
+		PaymentMethod:   paymentMethod,
+		CardType:        cardType,
+		DiscountPercent: discount,
+		SalesChannel:    input.SalesChannel,
 		ReferredBy:    input.ReferredBy,
 		OfflineNote:   input.OfflineNote,
 	}
@@ -145,6 +164,9 @@ func CreateOfflineSale(c *gin.Context) {
 			} else {
 				price = product.PricePerPack * float64(item.Quantity)
 			}
+			// Cashier-typed discount reduces each item proportionally so analytics
+			// naturally reflects the actual money received.
+			price *= discountFactor
 		}
 
 		orderItem := models.OrderItem{

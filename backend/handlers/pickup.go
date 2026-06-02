@@ -274,6 +274,7 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 		Status             string `json:"status" binding:"required"`
 		CancellationReason string `json:"cancellation_reason"`
 		PaymentMethod      string `json:"payment_method"`
+		CardType           string `json:"card_type"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный статус"})
@@ -324,6 +325,11 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 				return
 			}
 			order.PaymentMethod = input.PaymentMethod
+			if input.PaymentMethod == "card" {
+				order.CardType = input.CardType
+			} else {
+				order.CardType = ""
+			}
 		} else {
 			order.PaymentMethod = "online"
 		}

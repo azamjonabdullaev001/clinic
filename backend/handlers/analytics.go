@@ -56,6 +56,16 @@ type MarketologStat struct {
 	Products      []MarketologProduct `json:"products"`
 }
 
+// DiscountSummary aggregates cashier-typed discounts across all offline sales
+// in the period, so the admin sees how much was given away.
+type DiscountSummary struct {
+	OrderCount     int     `json:"order_count"`     // orders that had a discount
+	MinPercent     float64 `json:"min_percent"`     // smallest non-zero discount used
+	MaxPercent     float64 `json:"max_percent"`     // largest discount used
+	AvgPercent     float64 `json:"avg_percent"`     // average across discounted orders
+	TotalDiscount  float64 `json:"total_discount"`  // sum of money discounted (estimated from final price)
+}
+
 type AnalyticsResponse struct {
 	Points          []AnalyticsPoint         `json:"points"`
 	TopProducts     []TopProduct             `json:"top_products"`
@@ -65,6 +75,7 @@ type AnalyticsResponse struct {
 	Marketolog      MarketologStat           `json:"marketolog"`
 	VIP             MarketologStat           `json:"vip"`
 	Breakdown       map[string]*CategoryStat `json:"breakdown"`
+	Discounts       DiscountSummary          `json:"discounts"`
 }
 
 func GetAnalytics(c *gin.Context) {
@@ -400,6 +411,36 @@ func GetAnalytics(c *gin.Context) {
 		}
 	}
 
+	// Cashier-typed discount stats across every order in range (including marketolog).
+	var disc DiscountSummary
+	sumPct := 0.0
+	for _, o := range allOrders {
+		if o.DiscountPercent <= 0 {
+			continue
+		}
+		var orderRevenue float64
+		for _, it := range o.Items {
+			orderRevenue += it.Price
+		}
+		// orderRevenue already reflects the discount, so the original was revenue / (1 - pct/100).
+		originalTotal := orderRevenue
+		if o.DiscountPercent < 100 {
+			originalTotal = orderRevenue / (1 - o.DiscountPercent/100)
+		}
+		disc.OrderCount++
+		sumPct += o.DiscountPercent
+		if disc.MinPercent == 0 || o.DiscountPercent < disc.MinPercent {
+			disc.MinPercent = o.DiscountPercent
+		}
+		if o.DiscountPercent > disc.MaxPercent {
+			disc.MaxPercent = o.DiscountPercent
+		}
+		disc.TotalDiscount += originalTotal - orderRevenue
+	}
+	if disc.OrderCount > 0 {
+		disc.AvgPercent = sumPct / float64(disc.OrderCount)
+	}
+
 	c.JSON(http.StatusOK, AnalyticsResponse{
 		Points:          points,
 		TopProducts:     topSlice,
@@ -409,6 +450,7 @@ func GetAnalytics(c *gin.Context) {
 		Marketolog:      marketolog,
 		VIP:             vip,
 		Breakdown:       breakdown,
+		Discounts:       disc,
 	})
 }
 

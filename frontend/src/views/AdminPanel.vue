@@ -185,6 +185,7 @@
                   </span>
                   <span v-if="order.is_offline" class="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-700">Офлайн</span>
                   <span v-if="paymentLabel(order)" :class="paymentBadgeClass(order)" class="text-xs font-semibold px-2 py-0.5 rounded">{{ paymentLabel(order) }}</span>
+                  <span v-if="order.discount_percent > 0" class="text-xs font-semibold px-2 py-0.5 rounded bg-rose-100 text-rose-700">Скидка {{ order.discount_percent }}%</span>
                   <span v-if="order.is_edited || order.is_returned" class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">Редактировано</span>
                   <span v-if="order.is_deleted" class="text-xs font-semibold px-2 py-0.5 rounded bg-gray-900 text-white">Удалено</span>
                 </div>
@@ -600,6 +601,21 @@
         </div>
         <div v-else-if="analyticsData && !analyticsData.top_products?.length" class="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">
           Нет данных о продажах за выбранный период
+        </div>
+
+        <!-- Cashier discounts (offline sales only) — min / avg / max + total given away -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5" v-if="analyticsData && analyticsData.discounts && analyticsData.discounts.order_count > 0">
+          <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+            <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z"/></svg>
+            <h3 class="text-lg font-semibold text-gray-800">Скидки кассиров</h3>
+            <span class="text-xs text-gray-400">только офлайн-заказы</span>
+          </div>
+          <div class="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Заказов со скидкой</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.discounts.order_count }}</p></div>
+            <div class="bg-rose-50 rounded-xl p-4"><p class="text-xs text-rose-600 mb-1">Мин / Макс</p><p class="text-xl font-bold text-rose-700">{{ analyticsData.discounts.min_percent }}% / {{ analyticsData.discounts.max_percent }}%</p></div>
+            <div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500 mb-1">Средняя</p><p class="text-2xl font-bold text-gray-800">{{ analyticsData.discounts.avg_percent.toFixed(1) }}%</p></div>
+            <div class="bg-rose-50 rounded-xl p-4"><p class="text-xs text-rose-600 mb-1">Сумма скидки</p><p class="text-xl font-bold text-rose-700">{{ formatPrice(analyticsData.discounts.total_discount) }} сўм</p></div>
+          </div>
         </div>
 
         <!-- Category breakdown (separate, non-overlapping) -->
@@ -1748,7 +1764,12 @@ function paymentLabel(order) {
     card: 'Карта',
     online: 'Онлайн (карта)',
   }
-  return m[order.payment_method] || ''
+  const sub = { cassa1: 'Касса 1', click: 'Click', transfer: 'Перечисление (ХР)' }
+  const base = m[order.payment_method] || ''
+  if (order.payment_method === 'card' && sub[order.card_type]) {
+    return `${base} · ${sub[order.card_type]}`
+  }
+  return base
 }
 
 // Difference between what the doctor prescribed and what was actually bought at the till.

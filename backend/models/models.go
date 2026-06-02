@@ -126,7 +126,8 @@ type Order struct {
 	IsNurseOrder    bool        `gorm:"default:false" json:"is_nurse_order"`
 	IsVIP           bool        `gorm:"default:false" json:"is_vip"` // own hospital patient — free
 	PaymentMethod   string      `json:"payment_method"`              // "cash", "terminal", "card", "online", "marketplace"
-	CardType        string      `json:"card_type"`                   // "humo", "uzcard", "visa", "mastercard"
+	CardType        string      `json:"card_type"`                   // "cassa1", "click", "transfer" (legacy: humo/uzcard/visa/mastercard)
+	DiscountPercent float64     `gorm:"default:0" json:"discount_percent"` // cashier-applied discount on offline sales
 	SalesChannel    string      `json:"sales_channel"`               // marketplace for manager sales: "ozon", "yandex", ...
 	OfflineNote     string      `json:"offline_note"`
 	PatientFName    string      `json:"patient_first_name"`
