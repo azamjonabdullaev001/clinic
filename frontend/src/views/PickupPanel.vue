@@ -373,15 +373,15 @@
                 <label class="text-xs font-medium text-gray-500 mb-1.5 block">{{ txt.payment_method }}</label>
                 <div class="flex gap-2">
                   <button v-for="pm in paymentMethods" :key="pm.value"
-                    @click="offlinePaymentMethod=pm.value; if (pm.value !== 'card') offlineCardType=''"
+                    @click="selectOfflinePayment(pm.value)"
                     :class="offlinePaymentMethod===pm.value?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
                     class="flex-1 py-2 rounded-lg text-sm font-medium border transition">{{ pm.label }}</button>
                 </div>
-                <!-- Card sub-options: cashier picks which card endpoint was used. -->
-                <div v-if="offlinePaymentMethod==='card'" class="flex gap-2 mt-2">
-                  <button v-for="ct in cardTypes" :key="ct.value" @click="offlineCardType=ct.value"
-                    :class="offlineCardType===ct.value?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                    class="flex-1 py-2 rounded-lg text-xs font-medium border transition">{{ ct.label }}</button>
+                <!-- "Другое" opens a mini-panel; once a sub-option is chosen we show it here. -->
+                <div v-if="offlinePaymentMethod==='card' && offlineCardType" class="flex items-center gap-2 mt-2 text-sm">
+                  <span class="text-gray-500">{{ txt.pay_card }}:</span>
+                  <span class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-medium">{{ cardTypeLabel(offlineCardType) }}</span>
+                  <button @click="showOfflineCardPanel=true" class="text-xs text-indigo-500 hover:underline">{{ lang === 'uz' ? "O'zgartirish" : 'Изменить' }}</button>
                 </div>
               </div>
               <div v-if="saleType==='regular'">
@@ -582,7 +582,11 @@
             <input v-model="analyticsDate" type="date" @change="selectAnalyticsPeriod('custom')" class="text-sm text-gray-700 focus:outline-none bg-transparent"/>
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
-          <div class="ml-auto">
+          <div class="ml-auto flex items-center gap-2">
+            <button @click="exportClientProductExcel" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z"/></svg>
+              {{ lang === 'uz' ? 'Mijoz/tovar' : 'По клиентам' }}
+            </button>
             <button @click="exportAnalyticsExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               {{ txt.export_excel }}
@@ -829,6 +833,20 @@
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- "Другое" sub-option mini-panel (offline sale form) -->
+  <div v-if="showOfflineCardPanel" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="showOfflineCardPanel=false">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5">
+      <h3 class="text-base font-bold text-gray-800 mb-3 text-center">{{ txt.pay_card }}</h3>
+      <div class="grid gap-2">
+        <button v-for="ct in cardTypes" :key="ct.value" @click="offlineCardType=ct.value; showOfflineCardPanel=false"
+          :class="offlineCardType===ct.value?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-gray-200 text-gray-700 hover:bg-gray-50'"
+          class="w-full py-3 rounded-xl border-2 font-semibold transition">{{ ct.label }}</button>
+      </div>
+      <button @click="showOfflineCardPanel=false" class="w-full mt-3 py-2 text-sm text-gray-400 hover:text-gray-600 transition">{{ txt.cancel }}</button>
     </div>
   </div>
 
@@ -1622,7 +1640,19 @@ const cardTypes = computed(() => [
 function cardTypeLabel(v) { return cardTypes.value.find(c => c.value === v)?.label || '' }
 
 const offlineCardType = ref('')
+const showOfflineCardPanel = ref(false)
 const offlineDiscount = ref(0)
+
+// Picking a payment method in the offline form. "Другое" (card) opens a mini-panel
+// to choose the endpoint (Касса 1 / Click / Перечисление); others apply directly.
+function selectOfflinePayment(method) {
+  offlinePaymentMethod.value = method
+  if (method === 'card') {
+    showOfflineCardPanel.value = true
+  } else {
+    offlineCardType.value = ''
+  }
+}
 
 const offlineTotal = computed(() => offlineItems.value.reduce((s, i) => s + i.price, 0))
 const offlineDiscountPct = computed(() => {
@@ -1676,6 +1706,7 @@ function resetOfflineSale() {
   offlineMarketolog.value = null
   offlinePaymentMethod.value = 'cash'
   offlineCardType.value = ''
+  showOfflineCardPanel.value = false
   offlineDiscount.value = 0
   offlineReferral.value = ''
   offlineUnit.value = 'pack'
@@ -1809,7 +1840,8 @@ function exportHistoryExcel() {
       'Препарат': item.product?.name || '—',
       'Единица': item.unit_type === 'piece' ? 'шт' : 'фл.',
       'Кол-во': item.quantity,
-      'Цена за ед. (сум)': item.quantity > 0 ? Math.round(item.price / item.quantity) : 0,
+      'Кол-во (шт)': pieceCount(item),
+      'Цена за шт (сум)': pieceCount(item) > 0 ? Math.round(item.price / pieceCount(item)) : 0,
       'Общая стоимость (сум)': Math.round(item.price),
       'Способ оплаты': paymentLabel(order) || '—',
       'Рекомендовал': order.referred_by || '—',
@@ -1824,7 +1856,7 @@ function exportHistoryExcel() {
   const ws = XLSX.utils.json_to_sheet(rows)
   ws['!cols'] = [
     { wch: 18 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 12 },
-    { wch: 22 }, { wch: 8 }, { wch: 8 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 18 },
+    { wch: 22 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 14 }, { wch: 18 },
   ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'История заказов')
@@ -1837,7 +1869,7 @@ function exportAnalyticsExcel() {
 
   const cashier = authStore.worker?.name || '—'
   const headerRow = [`Кассир: ${cashier}`]
-  const periodRow = [`Период: ${analyticsPeriod.value}${analyticsDate.value ? ' · ' + analyticsDate.value : ''}`]
+  const periodRow = [`Период: ${periodLabel()}`]
   const blank = ['']
 
   const summaryRows = [
@@ -1904,7 +1936,169 @@ function exportAnalyticsExcel() {
     XLSX.utils.book_append_sheet(wb, wsDoc, 'По докторам')
   }
 
-  XLSX.writeFile(wb, `аналитика_${cashier}_${new Date().toISOString().slice(0,10)}.xlsx`)
+  // Sheet: Скидки — how many clients got a discount and how much was given away.
+  const discRows = buildDiscountRows()
+  if (discRows.length) {
+    const wsDisc = XLSX.utils.aoa_to_sheet([headerRow, periodRow, blank, ...discRows])
+    wsDisc['!cols'] = [{ wch: 32 }, { wch: 20 }]
+    XLSX.utils.book_append_sheet(wb, wsDisc, 'Скидки')
+  }
+
+  // Sheet: По клиентам и товарам (piece-level, like the printed report)
+  const cpRows = buildClientProductRows()
+  if (cpRows.length) {
+    const wsCP = XLSX.utils.aoa_to_sheet([headerRow, periodRow, blank, ...cpRows])
+    wsCP['!cols'] = [{ wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
+    XLSX.utils.book_append_sheet(wb, wsCP, 'По клиентам и товарам')
+  }
+
+  XLSX.writeFile(wb, `аналитика_${cashier}_${periodSlug()}.xlsx`)
+}
+
+// ===== Period helpers (shared by exports) =====
+function periodLabel() {
+  const map = { daily: 'День', weekly: 'Неделя', monthly: 'Месяц', yearly: 'Год', custom: 'Дата' }
+  const base = map[analyticsPeriod.value] || analyticsPeriod.value
+  if (analyticsPeriod.value === 'custom' && analyticsDate.value) return `${base}: ${analyticsDate.value}`
+  const { start, end } = analyticsRange()
+  const fmt = (d) => d.toLocaleDateString('ru-RU')
+  return `${base} (${fmt(start)} – ${fmt(end)})`
+}
+
+function periodSlug() {
+  if (analyticsPeriod.value === 'custom' && analyticsDate.value) return analyticsDate.value
+  return `${analyticsPeriod.value}_${new Date().toISOString().slice(0, 10)}`
+}
+
+// Date window for the currently selected analytics period (mirrors the backend).
+function analyticsRange() {
+  const now = new Date()
+  let start, end = now
+  switch (analyticsPeriod.value) {
+    case 'weekly':
+      start = new Date(now.getTime() - 7 * 864e5); break
+    case 'monthly':
+      start = new Date(now.getTime() - 30 * 864e5); break
+    case 'yearly':
+      start = new Date(now.getFullYear(), now.getMonth() - 11, 1); break
+    case 'custom': {
+      const base = analyticsDate.value ? new Date(analyticsDate.value) : now
+      start = new Date(base.getFullYear(), base.getMonth(), base.getDate())
+      end = new Date(start.getTime() + 864e5)
+      break
+    }
+    default: // daily
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  }
+  return { start, end }
+}
+
+function clientName(order) {
+  if (order.is_offline) return order.offline_note || '—'
+  const n = ((order.user?.first_name || '') + ' ' + (order.user?.last_name || '')).trim()
+  return n || '—'
+}
+
+// Pieces for an item: packs are multiplied out (60 pieces per флакон by default).
+function pieceCount(item) {
+  if (item.unit_type === 'piece') return item.quantity
+  const qpp = item.product?.quantity_per_pack || 60
+  return item.quantity * qpp
+}
+
+// Builds the "по клиентам и товарам" rows (AOA) for delivered sales in the period:
+// each client header carries its totals, then one row per product (qty in pieces,
+// price per piece, line sum). Mirrors the printed report layout.
+function buildClientProductRows() {
+  const { start, end } = analyticsRange()
+  const sold = orders.value.filter(o =>
+    o.status === 'delivered' && !o.is_deleted &&
+    new Date(o.created_at) >= start && new Date(o.created_at) < end
+  )
+
+  // client -> { name, totalPieces, totalSum, products: Map(productName -> {pieces, sum}) }
+  const byClient = new Map()
+  for (const o of sold) {
+    const name = clientName(o)
+    let c = byClient.get(name)
+    if (!c) { c = { name, totalPieces: 0, totalSum: 0, products: new Map() } ; byClient.set(name, c) }
+    for (const item of boughtItems(o)) {
+      const pieces = pieceCount(item)
+      const sum = item.price
+      c.totalPieces += pieces
+      c.totalSum += sum
+      const pname = item.product?.name || '—'
+      const p = c.products.get(pname) || { pieces: 0, sum: 0 }
+      p.pieces += pieces
+      p.sum += sum
+      c.products.set(pname, p)
+    }
+  }
+
+  const rows = [['Клиент / Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)']]
+  let grandPieces = 0, grandSum = 0
+  for (const c of byClient.values()) {
+    rows.push([c.name, c.totalPieces, '', Math.round(c.totalSum)])
+    for (const [pname, p] of c.products) {
+      const pricePer = p.pieces > 0 ? Math.round(p.sum / p.pieces) : 0
+      rows.push([`    ${pname}`, p.pieces, pricePer, Math.round(p.sum)])
+    }
+    grandPieces += c.totalPieces
+    grandSum += c.totalSum
+  }
+  if (byClient.size) rows.push(['ИТОГО', grandPieces, '', Math.round(grandSum)])
+  return byClient.size ? rows : []
+}
+
+// Discount summary (AOA) for delivered sales in the period: how many orders had a
+// discount, what share of all orders that is, and the average / range / total given away.
+function buildDiscountRows() {
+  const { start, end } = analyticsRange()
+  const sold = orders.value.filter(o =>
+    o.status === 'delivered' && !o.is_deleted &&
+    new Date(o.created_at) >= start && new Date(o.created_at) < end
+  )
+  if (!sold.length) return []
+  let withDisc = 0, sumPct = 0, minPct = 0, maxPct = 0, totalGiven = 0
+  for (const o of sold) {
+    const pct = o.discount_percent || 0
+    if (pct <= 0) continue
+    withDisc++
+    sumPct += pct
+    if (minPct === 0 || pct < minPct) minPct = pct
+    if (pct > maxPct) maxPct = pct
+    const finalSum = orderTotal(o)
+    const original = pct < 100 ? finalSum / (1 - pct / 100) : finalSum
+    totalGiven += original - finalSum
+  }
+  const share = sold.length > 0 ? (withDisc / sold.length) * 100 : 0
+  return [
+    ['Показатель', 'Значение'],
+    ['Всего заказов', sold.length],
+    ['Заказов со скидкой', withDisc],
+    ['Доля клиентов со скидкой', `${share.toFixed(1)}%`],
+    ['Средняя скидка', withDisc ? `${(sumPct / withDisc).toFixed(1)}%` : '0%'],
+    ['Мин / Макс скидка', `${minPct}% / ${maxPct}%`],
+    ['Сумма скидок (сум)', Math.round(totalGiven)],
+  ]
+}
+
+// Standalone "по клиентам и товарам" export (its own workbook).
+function exportClientProductExcel() {
+  const cpRows = buildClientProductRows()
+  if (!cpRows.length) { alert('Нет данных для экспорта'); return }
+  const cashier = authStore.worker?.name || '—'
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Анализ продаж по клиенту и товару'],
+    [`Кассир: ${cashier}`],
+    [`Период: ${periodLabel()}`],
+    [''],
+    ...cpRows,
+  ])
+  ws['!cols'] = [{ wch: 32 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
+  XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
 }
 
 watch(tab, (t) => {
