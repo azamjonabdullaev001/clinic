@@ -1956,9 +1956,9 @@ function pieceCount(item) {
 }
 
 // Aggregates delivered sales in the period for the client/product report.
-// Price per piece is the FIXED admin price (price_per_pill); the line sum is gross
-// (price × pieces). Discounts are collected per order so the final payable total
-// (gross − discounts) reflects what was actually received.
+// Price per piece is the FIXED admin price (price_per_pill). Per product line we keep
+// both gross (price × pieces) and net (after discount) so the discount % can be shown
+// as its own column and the sum already reflects it.
 function buildClientProductData() {
   const { start, end } = analyticsRange()
   const sold = orders.value.filter(o =>
@@ -1966,43 +1966,35 @@ function buildClientProductData() {
     new Date(o.created_at) >= start && new Date(o.created_at) < end
   )
 
-  // client -> Map(productName -> { pieces, gross, unit })
+  // client -> Map(productName -> { pieces, gross, net, unit })
   const byClient = new Map()
-  const discounts = [] // { client, code, percent, amount }
-  let grandGross = 0, grandNet = 0
+  let grandNet = 0
 
   for (const o of sold) {
     const name = clientName(o)
     let prods = byClient.get(name)
     if (!prods) { prods = new Map(); byClient.set(name, prods) }
-    let orderGross = 0, orderNet = 0
     for (const item of boughtItems(o)) {
       const pieces = pieceCount(item)
       const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
-      const gross = unit * pieces
-      orderGross += gross
-      orderNet += item.price
+      grandNet += item.price
       const pname = item.product?.name || '—'
-      const p = prods.get(pname) || { pieces: 0, gross: 0, unit }
+      const p = prods.get(pname) || { pieces: 0, gross: 0, net: 0, unit }
       p.pieces += pieces
-      p.gross += gross
+      p.gross += unit * pieces
+      p.net += item.price
       p.unit = unit
       prods.set(pname, p)
     }
-    grandGross += orderGross
-    grandNet += orderNet
-    if (o.discount_percent > 0) {
-      discounts.push({ client: name, code: o.order_code, percent: o.discount_percent, amount: Math.round(orderGross - orderNet) })
-    }
   }
 
-  return { byClient, discounts, grandGross, grandNet }
+  return { byClient, grandNet }
 }
 
-// "Экспорт в Excel формате" — sales by client & product, with a separate discounts
-// table before the final payable total.
+// "Экспорт в Excel формате" — sales by client & product. Discount is a column between
+// "Цена за шт" and "Сумма" (just the %, blank when none); the sum already has it applied.
 function exportClientProductExcel() {
-  const { byClient, discounts, grandGross, grandNet } = buildClientProductData()
+  const { byClient, grandNet } = buildClientProductData()
   if (!byClient.size) { alert('Нет данных для экспорта'); return }
   const cashier = authStore.worker?.name || '—'
 
@@ -2011,34 +2003,20 @@ function exportClientProductExcel() {
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)'],
+    ['Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Сумма (сум)'],
   ]
   let grandPieces = 0
   for (const [name, prods] of byClient) {
     for (const [pname, p] of prods) {
-      aoa.push([name, pname, p.pieces, p.unit, Math.round(p.gross)])
+      const pct = p.gross > 0 ? Math.round((p.gross - p.net) / p.gross * 100) : 0
+      aoa.push([name, pname, p.pieces, p.unit, pct > 0 ? pct : '', Math.round(p.net)])
       grandPieces += p.pieces
     }
   }
-  aoa.push(['ИТОГО (без скидки)', '', grandPieces, '', Math.round(grandGross)])
-
-  // Discounts table — every discount written on the orders in this period.
-  aoa.push([''])
-  aoa.push(['СКИДКИ'])
-  aoa.push(['Клиент', 'Заказ', 'Скидка %', 'Сумма скидки (сум)'])
-  if (discounts.length) {
-    for (const d of discounts) aoa.push([d.client, d.code, `${d.percent}%`, d.amount])
-    aoa.push(['Итого скидок', '', '', Math.round(grandGross - grandNet)])
-  } else {
-    aoa.push(['Скидок нет', '', '', 0])
-  }
-
-  // Final amount actually received (after discounts).
-  aoa.push([''])
-  aoa.push(['К ОПЛАТЕ (со скидкой)', '', '', '', Math.round(grandNet)])
+  aoa.push(['ИТОГО', '', grandPieces, '', '', Math.round(grandNet)])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 26 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 18 }]
+  ws['!cols'] = [{ wch: 26 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 18 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
   XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
