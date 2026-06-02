@@ -346,7 +346,7 @@ const texts = {
     order_form: 'Buyurtmani rasmiylashtirish',
     patient_fname: 'Bemorning ismi',
     patient_lname: 'Bemorning familiyasi',
-    pack: 'kapsula',
+    pack: 'flakon',
     piece: 'dona',
     total: 'Jami',
     sum: "so'm",

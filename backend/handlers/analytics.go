@@ -112,14 +112,14 @@ func GetAnalytics(c *gin.Context) {
 		}
 		endTime = startTime.AddDate(0, 0, 30)
 	case "yearly":
-		endTime = now.Add(24 * time.Hour)
-		startTime = now.AddDate(-1, 0, 0)
-		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
-		for i := 0; i < 52; i++ {
-			t := startTime.AddDate(0, 0, i*7)
-			points = append(points, AnalyticsPoint{Label: t.Format("02.01")})
+		// 12 points, one per month, ending with the current month so today is included.
+		curMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+		startTime = curMonth.AddDate(0, -11, 0)
+		endTime = curMonth.AddDate(0, 1, 0)
+		for i := 0; i < 12; i++ {
+			t := startTime.AddDate(0, i, 0)
+			points = append(points, AnalyticsPoint{Label: t.Format("01.2006")})
 		}
-		endTime = startTime.AddDate(0, 0, 52*7)
 	case "custom":
 		// 24 points for a specific day
 		var chosenDay time.Time
@@ -231,10 +231,10 @@ func GetAnalytics(c *gin.Context) {
 				}
 			}
 		case "yearly":
-			weekIndex := int(orderTime.Sub(startTime).Hours() / (24 * 7))
-			if weekIndex >= 0 && weekIndex < len(points) {
-				points[weekIndex].Revenue += revenue
-				points[weekIndex].Orders++
+			monthIndex := (orderTime.Year()-startTime.Year())*12 + int(orderTime.Month()) - int(startTime.Month())
+			if monthIndex >= 0 && monthIndex < len(points) {
+				points[monthIndex].Revenue += revenue
+				points[monthIndex].Orders++
 			}
 		default:
 			// hourly (daily or custom)
@@ -554,14 +554,14 @@ func buildAnalyticsPeriod(period, dateStr string) (time.Time, time.Time, []Analy
 		}
 		endTime = startTime.AddDate(0, 0, 30)
 	case "yearly":
-		endTime = now.Add(24 * time.Hour)
-		startTime = now.AddDate(-1, 0, 0)
-		startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc)
-		for i := 0; i < 52; i++ {
-			t := startTime.AddDate(0, 0, i*7)
-			points = append(points, AnalyticsPoint{Label: t.Format("02.01")})
+		// 12 points, one per month, ending with the current month so today is included.
+		curMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
+		startTime = curMonth.AddDate(0, -11, 0)
+		endTime = curMonth.AddDate(0, 1, 0)
+		for i := 0; i < 12; i++ {
+			t := startTime.AddDate(0, i, 0)
+			points = append(points, AnalyticsPoint{Label: t.Format("01.2006")})
 		}
-		endTime = startTime.AddDate(0, 0, 52*7)
 	case "custom":
 		chosenDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		if dateStr != "" {
@@ -609,10 +609,10 @@ func addRevenueToPoint(points []AnalyticsPoint, period string, startTime, orderT
 			}
 		}
 	case "yearly":
-		weekIndex := int(orderTime.Sub(startTime).Hours() / (24 * 7))
-		if weekIndex >= 0 && weekIndex < len(points) {
-			points[weekIndex].Revenue += revenue
-			points[weekIndex].Orders++
+		monthIndex := (orderTime.Year()-startTime.Year())*12 + int(orderTime.Month()) - int(startTime.Month())
+		if monthIndex >= 0 && monthIndex < len(points) {
+			points[monthIndex].Revenue += revenue
+			points[monthIndex].Orders++
 		}
 	default:
 		hour := orderTime.Hour()

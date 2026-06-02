@@ -1080,7 +1080,7 @@ const texts = {
     select_product: 'Dori tanlang',
     qty: 'Miqdor',
     unit: 'Birlik',
-    pack: 'kapsula',
+    pack: 'flakon',
     piece: 'dona',
     add: "Qo'shish",
     add_product: "+ Tovar qo'shish",

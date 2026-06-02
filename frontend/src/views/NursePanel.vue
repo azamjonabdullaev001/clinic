@@ -269,7 +269,7 @@ const texts = {
     add_product: "Dori qo'shish",
     select_product: 'Dori tanlang',
     quantity: 'Miqdor',
-    pack: 'kapsula',
+    pack: 'flakon',
     piece: 'dona',
     add: "Qo'shish",
     total: 'Jami',
