@@ -784,27 +784,58 @@
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
                 </div>
               </div>
-              <div class="mt-3 pt-3 pp-border-t space-y-1">
+              <!-- Read-only items (hidden while editing) -->
+              <div v-if="!listEdit[order.id]?.editing" class="mt-3 pt-3 pp-border-t space-y-1">
                 <div v-for="item in boughtItems(order)" :key="item.id" class="flex justify-between text-sm text-gray-600">
-                  <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ txt.pack }}</span></span>
+                  <span>{{ item.product?.name }} <span class="text-gray-400">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span></span>
                   <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
                 </div>
               </div>
-              <!-- Actions for non-delivered/cancelled history items -->
-              <div class="mt-3 flex gap-2 flex-wrap">
-                <button v-if="order.is_offline && !order.marketolog_id && order.status !== 'cancelled' && !listEdit[order.id]?.editing"
+
+              <!-- Inline edit form: change qty / unit (шт ↔ флакон), delete or add items -->
+              <div v-else class="mt-3 pt-3 pp-border-t space-y-2">
+                <div v-for="(it, idx) in listEdit[order.id].items" :key="idx" class="flex items-center gap-2 flex-wrap bg-gray-50 rounded-lg px-3 py-2">
+                  <span class="flex-1 min-w-[120px] text-sm font-medium text-gray-800">{{ it.name }}</span>
+                  <div class="flex gap-1">
+                    <button @click="it.unit_type='pack'" :class="it.unit_type==='pack'?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300'" class="px-2 py-1 rounded border text-xs font-medium">{{ txt.pack }}</button>
+                    <button @click="it.unit_type='piece'" :class="it.unit_type==='piece'?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300'" class="px-2 py-1 rounded border text-xs font-medium">{{ txt.piece }}</button>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <button @click="listEditDec(order.id, idx)" class="w-7 h-7 rounded bg-gray-200 text-gray-700 font-bold">−</button>
+                    <input v-model.number="it.quantity" type="number" min="1" class="w-16 text-center pp-input rounded px-1 py-1 text-sm"/>
+                    <button @click="listEditInc(order.id, idx)" class="w-7 h-7 rounded bg-gray-200 text-gray-700 font-bold">+</button>
+                  </div>
+                  <button @click="listEdit[order.id].items.splice(idx, 1)" class="text-red-500 hover:text-red-700 px-1 font-bold" title="Удалить позицию">✕</button>
+                </div>
+                <!-- add a new item -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <select v-model="listEdit[order.id].addProductId" class="flex-1 min-w-[140px] pp-input rounded px-2 py-1.5 text-sm">
+                    <option value="">{{ txt.select_product }}</option>
+                    <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
+                  </select>
+                  <div class="flex gap-1">
+                    <button @click="listEdit[order.id].addUnit='pack'" :class="listEdit[order.id].addUnit==='pack'?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300'" class="px-2 py-1 rounded border text-xs font-medium">{{ txt.pack }}</button>
+                    <button @click="listEdit[order.id].addUnit='piece'" :class="listEdit[order.id].addUnit==='piece'?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300'" class="px-2 py-1 rounded border text-xs font-medium">{{ txt.piece }}</button>
+                  </div>
+                  <input v-model.number="listEdit[order.id].addQty" type="number" min="1" class="w-16 text-center pp-input rounded px-1 py-1 text-sm"/>
+                  <button @click="listEditAddItem(order.id)" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700">{{ txt.add }}</button>
+                </div>
+                <div class="flex gap-2 pt-1">
+                  <button @click="saveListEdit(order)" :disabled="listEdit[order.id].saving || !listEdit[order.id].items.length" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-40">{{ listEdit[order.id].saving ? txt.saving : (lang === 'uz' ? 'Saqlash' : 'Сохранить') }}</button>
+                  <button @click="cancelListEdit(order.id)" class="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-300">{{ txt.cancel }}</button>
+                </div>
+              </div>
+
+              <!-- Actions: only Редактировать and Полный возврат remain -->
+              <div v-if="!listEdit[order.id]?.editing" class="mt-3 flex gap-2 flex-wrap">
+                <button v-if="order.is_offline && !order.marketolog_id && order.status !== 'cancelled'"
                   @click="startListEdit(order)"
-                  :class="order.status === 'delivered' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-700 border-gray-200'"
-                  class="border px-4 py-1.5 rounded-lg transition text-sm font-medium">
-                  {{ order.status === 'delivered' ? txt.return_edit : txt.edit_items }}
+                  class="bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 px-4 py-1.5 rounded-lg transition text-sm font-medium">
+                  {{ txt.edit_items }}
                 </button>
-                <button v-if="order.is_offline && !order.marketolog_id && order.status === 'delivered' && !listEdit[order.id]?.editing"
+                <button v-if="order.is_offline && !order.marketolog_id && order.status === 'delivered'"
                   @click="fullReturn(order)" class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium">
                   {{ txt.full_return }}
-                </button>
-                <button v-if="!listEdit[order.id]?.editing"
-                  @click="deletePickupOrder(order)" class="bg-gray-900 text-white border border-gray-900 px-4 py-1.5 rounded-lg hover:bg-black transition text-sm font-medium">
-                  {{ txt.delete_order }}
                 </button>
               </div>
             </div>
@@ -1565,27 +1596,15 @@ async function fullReturn(order) {
   } catch (e) { alert(e.response?.data?.error || 'Ошибка при возврате') }
 }
 
-async function deletePickupOrder(order) {
-  const r = prompt(txt.value.delete_reason_prompt)
-  if (r === null) return
-  const reason = r.trim()
-  if (!reason) { alert(txt.value.delete_reason_required); return }
-  try {
-    await api.delete(`/pickup/orders/${order.id}`, { data: { reason } })
-    orders.value = orders.value.filter(o => o.id !== order.id)
-    loadStock()
-  } catch (e) { alert(e.response?.data?.error || 'Ошибка при удалении') }
-}
-
 async function saveListEdit(order) {
   const state = listEdit.value[order.id]
   if (!state || state.items.length === 0) return
   let returnReason = ''
   if (order.status === 'delivered') {
-    const r = prompt('Причина возврата:')
+    const r = prompt('Причина изменения заказа:')
     if (r === null) return
     returnReason = r.trim()
-    if (!returnReason) { alert('Причина возврата обязательна'); return }
+    if (!returnReason) { alert('Укажите причину изменения'); return }
   }
   state.saving = true
   try {
@@ -1955,29 +1974,32 @@ function pieceCount(item) {
   return item.quantity * qpp
 }
 
-// Aggregates delivered sales in the period for the client/product report.
-// Price per piece is the FIXED admin price (price_per_pill). Per product line we keep
-// both gross (price × pieces) and net (after discount) so the discount % can be shown
-// as its own column and the sum already reflects it.
+// Date + time down to the minute (e.g. 03.06.2026 14:37).
+function fmtDateTime(d) {
+  return new Date(d).toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+// Builds the client/product report rows for delivered sales in the period.
+// One row per order × product. Price per piece is the FIXED admin price (price_per_pill);
+// we expose gross (price × pieces), the discount amount, and the net (with discount).
 function buildClientProductData() {
   const { start, end } = analyticsRange()
-  const sold = orders.value.filter(o =>
-    o.status === 'delivered' && !o.is_deleted &&
-    new Date(o.created_at) >= start && new Date(o.created_at) < end
-  )
+  const sold = orders.value
+    .filter(o => o.status === 'delivered' && !o.is_deleted &&
+      new Date(o.created_at) >= start && new Date(o.created_at) < end)
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 
-  // client -> Map(productName -> { pieces, gross, net, unit })
-  const byClient = new Map()
-  let grandNet = 0
-
+  const rows = []
+  const totals = { pieces: 0, discount: 0, gross: 0, net: 0 }
   for (const o of sold) {
-    const name = clientName(o)
-    let prods = byClient.get(name)
-    if (!prods) { prods = new Map(); byClient.set(name, prods) }
+    const client = clientName(o)
+    // merge duplicate products within the same order
+    const prods = new Map()
     for (const item of boughtItems(o)) {
       const pieces = pieceCount(item)
       const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
-      grandNet += item.price
       const pname = item.product?.name || '—'
       const p = prods.get(pname) || { pieces: 0, gross: 0, net: 0, unit }
       p.pieces += pieces
@@ -1986,16 +2008,28 @@ function buildClientProductData() {
       p.unit = unit
       prods.set(pname, p)
     }
+    for (const [pname, p] of prods) {
+      const discount = Math.round(p.gross - p.net)
+      const pct = p.gross > 0 ? Math.round(discount / p.gross * 100) : 0
+      rows.push({
+        created: o.created_at, client, product: pname, pieces: p.pieces, unit: p.unit,
+        pct, discount, gross: Math.round(p.gross), net: Math.round(p.net),
+      })
+      totals.pieces += p.pieces
+      totals.discount += discount
+      totals.gross += Math.round(p.gross)
+      totals.net += Math.round(p.net)
+    }
   }
-
-  return { byClient, grandNet }
+  return { rows, totals }
 }
 
-// "Экспорт в Excel формате" — sales by client & product. Discount is a column between
-// "Цена за шт" and "Сумма" (just the %, blank when none); the sum already has it applied.
+// "Экспорт в Excel формате" — sales by client & product, one row per order line.
+// Columns: creation time (to the minute) first, then client/product, fixed unit price,
+// discount %, discount amount, gross (без скидки) and net (со скидкой).
 function exportClientProductExcel() {
-  const { byClient, grandNet } = buildClientProductData()
-  if (!byClient.size) { alert('Нет данных для экспорта'); return }
+  const { rows, totals } = buildClientProductData()
+  if (!rows.length) { alert('Нет данных для экспорта'); return }
   const cashier = authStore.worker?.name || '—'
 
   const aoa = [
@@ -2003,20 +2037,15 @@ function exportClientProductExcel() {
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Сумма (сум)'],
+    ['Дата создания', 'Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма без скидки (сум)', 'Сумма (со скидкой) (сум)'],
   ]
-  let grandPieces = 0
-  for (const [name, prods] of byClient) {
-    for (const [pname, p] of prods) {
-      const pct = p.gross > 0 ? Math.round((p.gross - p.net) / p.gross * 100) : 0
-      aoa.push([name, pname, p.pieces, p.unit, pct > 0 ? pct : '', Math.round(p.net)])
-      grandPieces += p.pieces
-    }
+  for (const r of rows) {
+    aoa.push([fmtDateTime(r.created), r.client, r.product, r.pieces, r.unit, r.pct > 0 ? r.pct : '', r.discount, r.gross, r.net])
   }
-  aoa.push(['ИТОГО', '', grandPieces, '', '', Math.round(grandNet)])
+  aoa.push(['ИТОГО', '', '', totals.pieces, '', '', totals.discount, totals.gross, totals.net])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 26 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 18 }]
+  ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 20 }, { wch: 20 }, { wch: 22 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
   XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
