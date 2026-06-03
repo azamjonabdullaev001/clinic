@@ -2047,8 +2047,8 @@ function exportClientProductExcel() {
 }
 
 // Per-doctor sales report for paying doctor salaries (based on referred sales).
-// Only doctor-referred orders, grouped by doctor; no time column — instead the patient
-// name and the discount % are shown per product line.
+// Only doctor-referred orders, grouped by doctor. Lines are merged by patient+product
+// (no time). Each doctor carries its total pieces and total sum.
 function buildDoctorSalesData() {
   const { start, end } = analyticsRange()
   const sold = orders.value
@@ -2056,38 +2056,33 @@ function buildDoctorSalesData() {
       o.referred_by && o.referred_by.trim() && o.referred_by.trim() !== 'Самостоятельно' &&
       new Date(o.created_at) >= start && new Date(o.created_at) < end)
 
-  // doctor -> { rows: [{patient, product, pieces, unit, pct, sum}], pieces, sum }
+  // doctor -> { lines: Map(patient|product -> {patient, product, pieces, unit, sum}), pieces, sum }
   const byDoctor = new Map()
   for (const o of sold) {
     const doc = o.referred_by.trim()
     const patient = clientName(o)
     let d = byDoctor.get(doc)
-    if (!d) { d = { rows: [], pieces: 0, sum: 0 }; byDoctor.set(doc, d) }
-    // merge duplicate products within the same order
-    const prods = new Map()
+    if (!d) { d = { lines: new Map(), pieces: 0, sum: 0 }; byDoctor.set(doc, d) }
     for (const item of boughtItems(o)) {
       const pieces = pieceCount(item)
       const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
       const pname = item.product?.name || '—'
-      const p = prods.get(pname) || { pieces: 0, gross: 0, net: 0, unit }
-      p.pieces += pieces
-      p.gross += unit * pieces
-      p.net += item.price
-      p.unit = unit
-      prods.set(pname, p)
-    }
-    for (const [pname, p] of prods) {
-      const pct = p.gross > 0 ? Math.round((p.gross - p.net) / p.gross * 100) : 0
-      d.rows.push({ patient, product: pname, pieces: p.pieces, unit: p.unit, pct, sum: Math.round(p.net) })
-      d.pieces += p.pieces
-      d.sum += p.net
+      const key = patient + '|' + pname
+      const line = d.lines.get(key) || { patient, product: pname, pieces: 0, unit, sum: 0 }
+      line.pieces += pieces
+      line.unit = unit
+      line.sum += item.price
+      d.lines.set(key, line)
+      d.pieces += pieces
+      d.sum += item.price
     }
   }
   return byDoctor
 }
 
-// New "Экспорт докторов" — doctor analytics for salaries: grouped by doctor, with the
-// patient name, product, pieces, unit price, discount % and sum. No time column.
+// New "Экспорт докторов" — grouped like the printed report: a doctor header row with its
+// totals, then one indented line per patient × product (qty, price, sum). No time column,
+// no discount columns.
 function exportDoctorSalesExcel() {
   const byDoctor = buildDoctorSalesData()
   if (!byDoctor.size) { alert('Нет данных по докторам за выбранный период'); return }
@@ -2098,22 +2093,23 @@ function exportDoctorSalesExcel() {
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Доктор', 'Имя пациента', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Сумма (сум)'],
+    ['Доктор / Пациент', 'Препарат', 'Кол-во (шт)', 'Цена (сум)', 'Сумма (сум)'],
   ]
   let gPieces = 0, gSum = 0
   for (const [doc, d] of byDoctor) {
-    for (const r of d.rows) {
-      aoa.push([doc, r.patient, r.product, r.pieces, r.unit, r.pct > 0 ? r.pct : '', r.sum])
+    // group header: doctor name + its totals (pieces, sum)
+    aoa.push([doc, '', d.pieces, '', Math.round(d.sum)])
+    for (const line of d.lines.values()) {
+      aoa.push([`    ${line.patient}`, line.product, line.pieces, line.unit, Math.round(line.sum)])
     }
-    aoa.push([`Итого по доктору: ${doc}`, '', '', d.pieces, '', '', Math.round(d.sum)])
     aoa.push([''])
     gPieces += d.pieces
     gSum += d.sum
   }
-  aoa.push(['ВСЕГО', '', '', gPieces, '', '', Math.round(gSum)])
+  aoa.push(['ВСЕГО', '', gPieces, '', Math.round(gSum)])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 26 }, { wch: 24 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 18 }]
+  ws['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 12 }, { wch: 12 }, { wch: 16 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'По докторам')
   XLSX.writeFile(wb, `доктора_${cashier}_${periodSlug()}.xlsx`)
