@@ -303,19 +303,18 @@ func GetWorkerStats(c *gin.Context) {
 	weekStart := todayStart.AddDate(0, 0, -6)
 	monthStart := todayStart.AddDate(0, 0, -29)
 
+	// Aggregate in SQL instead of loading every order + its items into memory and
+	// summing in Go. One indexed query per period returns three scalars.
 	calc := func(since time.Time) WorkerPeriodStats {
-		var orders []models.Order
-		database.DB.
-			Where("worker_id = ? AND status = ? AND is_deleted = ? AND created_at >= ?", worker.ID, "delivered", false, since).
-			Preload("Items").
-			Find(&orders)
-		stats := WorkerPeriodStats{Orders: len(orders)}
-		for _, o := range orders {
-			for _, it := range o.Items {
-				stats.Revenue += it.Price
-				stats.Items += it.Quantity
-			}
-		}
+		var stats WorkerPeriodStats
+		database.DB.Raw(`
+			SELECT COUNT(DISTINCT o.id)        AS orders,
+			       COALESCE(SUM(oi.price), 0)  AS revenue,
+			       COALESCE(SUM(oi.quantity), 0) AS items
+			FROM orders o
+			JOIN order_items oi ON oi.order_id = o.id
+			WHERE o.worker_id = ? AND o.status = 'delivered' AND o.is_deleted = false AND o.created_at >= ?`,
+			worker.ID, since).Scan(&stats)
 		return stats
 	}
 
