@@ -2078,41 +2078,59 @@ function buildDoctorSalesData() {
   return byDoctor
 }
 
-// New "Экспорт докторов": a doctor header row with its totals, then one line per product
-// (qty, price, sum). No buyer name, no time, no discount. Each doctor is separated by a
-// divider line so the blocks are easy to tell apart.
+// New "Экспорт докторов" — rendered as a styled HTML table (.xls) so it looks like the
+// printed report: bordered cells, a bold shaded header row per doctor carrying its totals,
+// product lines underneath, and a grand total. No buyer name, no time, no discount.
 function exportDoctorSalesExcel() {
   const byDoctor = buildDoctorSalesData()
   if (!byDoctor.size) { alert('Нет данных по докторам за выбранный период'); return }
   const cashier = authStore.worker?.name || '—'
+  const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0))
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-  const dash = '────────────'
-  const divider = [dash, dash, dash, dash, dash]
-  const aoa = [
-    ['Аналитика по докторам'],
-    [`Кассир: ${cashier}`],
-    [`Период: ${periodLabel()}`],
-    [''],
-    ['Доктор', 'Препарат', 'Кол-во (шт)', 'Цена (сум)', 'Сумма (сум)'],
-  ]
   let gPieces = 0, gSum = 0
+  let body = ''
   for (const [doc, d] of byDoctor) {
-    aoa.push(divider) // line dividing each doctor
-    aoa.push([doc, '', d.pieces, '', Math.round(d.sum)])
+    body += `<tr>` +
+      `<td style="font-weight:bold;background:#dce6f7;">${esc(doc)}</td>` +
+      `<td style="background:#dce6f7;"></td>` +
+      `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(d.pieces)}</td>` +
+      `<td style="background:#dce6f7;"></td>` +
+      `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(d.sum)}</td></tr>`
     for (const line of d.lines.values()) {
-      aoa.push(['', line.product, line.pieces, line.unit, Math.round(line.sum)])
+      body += `<tr>` +
+        `<td></td>` +
+        `<td>${esc(line.product)}</td>` +
+        `<td style="text-align:right;">${fmt(line.pieces)}</td>` +
+        `<td style="text-align:right;">${fmt(line.unit)}</td>` +
+        `<td style="text-align:right;">${fmt(line.sum)}</td></tr>`
     }
     gPieces += d.pieces
     gSum += d.sum
   }
-  aoa.push(divider)
-  aoa.push(['ВСЕГО', '', gPieces, '', Math.round(gSum)])
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 12 }, { wch: 12 }, { wch: 16 }]
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'По докторам')
-  XLSX.writeFile(wb, `доктора_${cashier}_${periodSlug()}.xlsx`)
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>По докторам</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>` +
+    `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;">` +
+    `<tr><td colspan="5" style="border:none;font-weight:bold;font-size:15px;">Аналитика по докторам</td></tr>` +
+    `<tr><td colspan="5" style="border:none;">Кассир: ${esc(cashier)}</td></tr>` +
+    `<tr><td colspan="5" style="border:none;">Период: ${esc(periodLabel())}</td></tr>` +
+    `<tr><td colspan="5" style="border:none;"></td></tr>` +
+    `<tr style="background:#b9c9e6;font-weight:bold;text-align:center;">` +
+      `<td>Доктор</td><td>Препарат</td><td>Кол-во (шт)</td><td>Цена (сум)</td><td>Сумма (сум)</td></tr>` +
+    body +
+    `<tr style="background:#cfe3cf;font-weight:bold;">` +
+      `<td>ВСЕГО</td><td></td><td style="text-align:right;">${fmt(gPieces)}</td><td></td><td style="text-align:right;">${fmt(gSum)}</td></tr>` +
+    `</table></body></html>`
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `доктора_${cashier}_${periodSlug()}.xls`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 // Excel export of the payment-method breakdown for the period (button in that section).
