@@ -398,7 +398,7 @@
               </div>
             </div>
             <div v-if="saleType !== 'marketolog'" class="flex gap-3">
-              <input v-model="offlineNote" :placeholder="txt.buyer_name" class="flex-1 pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+              <input v-model="offlineNote" :placeholder="txt.buyer_name + ' *'" :class="!offlineNote.trim() ? 'ring-1 ring-rose-300' : ''" class="flex-1 pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               <datalist id="offline-doctors">
                 <option value="Самостоятельно"></option>
@@ -1034,7 +1034,7 @@ const texts = {
     saving_items: 'Сохранение...',
     cancel_edit: 'Отмена',
     view_on_map: 'На карте',
-    vip_free: 'Свой пациент (бесплатно)',
+    vip_free: 'Бесплатный',
     sale_type: 'Тип продажи',
     sale_regular: 'Обычная',
     sale_marketolog: 'Маркетолог (долг)',
@@ -1051,7 +1051,7 @@ const texts = {
     card_transfer: 'Перечисление (ХР)',
     by_payment_title: 'По способам оплаты',
     total_label: 'ИТОГО',
-    vip_badge: 'Свой пациент · Бесплатно',
+    vip_badge: 'Бесплатно',
     choose_payment: 'Выберите способ оплаты',
     payment_hint: 'Как клиент оплатил этот заказ?',
     referral_label: 'Откуда пациент / доктор',
@@ -1072,7 +1072,7 @@ const texts = {
     product_name: 'Препарат',
     category: 'Категория',
     cat_all: 'Все категории',
-    cat_vip: 'Свой пациент',
+    cat_vip: 'Бесплатный',
     cat_doctor: 'От доктора',
     cat_marketolog: 'Маркетолог',
     cat_regular: 'Обычные',
@@ -1101,7 +1101,7 @@ const texts = {
     type_all: 'Все',
     type_online: 'Онлайн',
     type_offline: 'Офлайн',
-    own_patient: 'Свой пациент',
+    own_patient: 'Бесплатный',
     period_all: 'Всё время',
     night_mode: 'Ночной',
     day_mode: 'Дневной',
@@ -1178,7 +1178,7 @@ const texts = {
     saving_items: "Saqlanmoqda...",
     cancel_edit: "Bekor qilish",
     view_on_map: "Xaritada",
-    vip_free: "O'z bemori (bepul)",
+    vip_free: 'Bepul',
     sale_type: 'Sotuv turi',
     sale_regular: 'Oddiy',
     sale_marketolog: 'Marketolog (qarz)',
@@ -1195,7 +1195,7 @@ const texts = {
     card_transfer: "Pul o'tkazma (ХР)",
     by_payment_title: "To'lov turi bo'yicha",
     total_label: 'JAMI',
-    vip_badge: "O'z bemori · Bepul",
+    vip_badge: 'Bepul',
     choose_payment: "To'lov usulini tanlang",
     payment_hint: "Mijoz qanday to'ladi?",
     referral_label: 'Bemor qayerdan',
@@ -1216,7 +1216,7 @@ const texts = {
     product_name: 'Dori nomi',
     category: 'Toifa',
     cat_all: 'Barcha toifalar',
-    cat_vip: "O'z bemori",
+    cat_vip: 'Bepul',
     cat_doctor: 'Shifokordan',
     cat_marketolog: 'Marketolog',
     cat_regular: 'Oddiy',
@@ -1245,7 +1245,7 @@ const texts = {
     type_all: 'Hammasi',
     type_online: 'Onlayn',
     type_offline: 'Oflayn',
-    own_patient: "O'z bemori",
+    own_patient: 'Bepul',
     period_all: 'Butun davr',
     night_mode: 'Tungi',
     day_mode: 'Kunduzgi',
@@ -1687,6 +1687,9 @@ const offlineDiscountedTotal = computed(() => offlineTotal.value * (1 - offlineD
 const offlineCanSubmit = computed(() => {
   if (offlineItems.value.length === 0) return false
   if (saleType.value === 'marketolog' && !offlineMarketolog.value) return false
+  // Patient name is required for regular & free sales (marketolog sales pick a
+  // marketolog instead of typing a name).
+  if (saleType.value !== 'marketolog' && !offlineNote.value.trim()) return false
   if (saleType.value === 'regular' && offlinePaymentMethod.value === 'card' && !offlineCardType.value) return false
   return true
 })
@@ -1736,6 +1739,10 @@ function resetOfflineSale() {
 }
 
 async function submitOfflineSale() {
+  if (saleType.value !== 'marketolog' && !offlineNote.value.trim()) {
+    alert(lang.value === 'uz' ? 'Bemor ismini kiriting' : 'Введите имя пациента')
+    return
+  }
   if (!offlineCanSubmit.value) return
   offlineSubmitting.value = true
   offlineSuccess.value = false
@@ -1995,6 +2002,7 @@ function buildClientProductData() {
   const totals = { pieces: 0, discount: 0, gross: 0, net: 0 }
   for (const o of sold) {
     const client = clientName(o)
+    const type = o.is_vip ? 'Бесплатный' : (o.marketolog_id ? 'Маркетолог' : 'Простой')
     // merge duplicate products within the same order
     const prods = new Map()
     for (const item of boughtItems(o)) {
@@ -2012,7 +2020,7 @@ function buildClientProductData() {
       const discount = Math.round(p.gross - p.net)
       const pct = p.gross > 0 ? Math.round(discount / p.gross * 100) : 0
       rows.push({
-        created: o.created_at, client, product: pname, pieces: p.pieces, unit: p.unit,
+        created: o.created_at, client, type, product: pname, pieces: p.pieces, unit: p.unit,
         pct, discount, gross: Math.round(p.gross), net: Math.round(p.net),
       })
       totals.pieces += p.pieces
@@ -2037,15 +2045,15 @@ function exportClientProductExcel() {
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Дата создания', 'Клиент', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма без скидки (сум)', 'Сумма (со скидкой) (сум)'],
+    ['Дата создания', 'Клиент', 'Тип', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма без скидки (сум)', 'Сумма (со скидкой) (сум)'],
   ]
   for (const r of rows) {
-    aoa.push([fmtDateTime(r.created), r.client, r.product, r.pieces, r.unit, r.pct > 0 ? r.pct : '', r.discount, r.gross, r.net])
+    aoa.push([fmtDateTime(r.created), r.client, r.type, r.product, r.pieces, r.unit, r.pct > 0 ? r.pct : '', r.discount, r.gross, r.net])
   }
-  aoa.push(['ИТОГО', '', '', totals.pieces, '', '', totals.discount, totals.gross, totals.net])
+  aoa.push(['ИТОГО', '', '', '', totals.pieces, '', '', totals.discount, totals.gross, totals.net])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 20 }, { wch: 20 }, { wch: 22 }]
+  ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 13 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 20 }, { wch: 20 }, { wch: 22 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
   XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
