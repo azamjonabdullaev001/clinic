@@ -583,7 +583,7 @@
             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
           <div class="ml-auto">
-            <button @click="exportClientProductExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
+            <button @click="exportDoctorSalesExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
             </button>
@@ -1439,14 +1439,8 @@ async function searchByCode() {
 }
 
 async function updateStatus(order, status) {
+  if (status === 'cancelled' && !confirm(lang.value === 'uz' ? 'Buyurtmani bekor qilasizmi?' : 'Отменить заказ?')) return
   const payload = { status }
-  if (status === 'cancelled') {
-    const reason = prompt('Укажите причину отмены заказа:')
-    if (reason === null) return
-    const trimmed = reason.trim()
-    if (!trimmed) { alert('Причина обязательна'); return }
-    payload.cancellation_reason = trimmed
-  }
   try {
     const res = await api.put(`/pickup/orders/${order.id}/status`, payload)
     const idx = orders.value.findIndex(o => o.id === order.id)
@@ -1584,12 +1578,9 @@ function listEditAddItem(orderId) {
 }
 
 async function fullReturn(order) {
-  const r = prompt('Полный возврат — укажите причину:')
-  if (r === null) return
-  const reason = r.trim()
-  if (!reason) { alert('Причина возврата обязательна'); return }
+  if (!confirm(lang.value === 'uz' ? "To'liq qaytarishni tasdiqlaysizmi?" : 'Подтвердить полный возврат?')) return
   try {
-    const res = await api.post(`/pickup/orders/${order.id}/return`, { return_reason: reason })
+    const res = await api.post(`/pickup/orders/${order.id}/return`, { return_reason: '' })
     const idx = orders.value.findIndex(o => o.id === order.id)
     if (idx !== -1) orders.value[idx] = res.data
     loadStock()
@@ -1599,18 +1590,11 @@ async function fullReturn(order) {
 async function saveListEdit(order) {
   const state = listEdit.value[order.id]
   if (!state || state.items.length === 0) return
-  let returnReason = ''
-  if (order.status === 'delivered') {
-    const r = prompt('Причина изменения заказа:')
-    if (r === null) return
-    returnReason = r.trim()
-    if (!returnReason) { alert('Укажите причину изменения'); return }
-  }
   state.saving = true
   try {
     const res = await api.put(`/pickup/orders/${order.id}/items`, {
       items: state.items.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
-      return_reason: returnReason,
+      return_reason: '',
     })
     const idx = orders.value.findIndex(o => o.id === order.id)
     if (idx !== -1) orders.value[idx] = res.data
@@ -1988,75 +1972,77 @@ function fmtDateTime(d) {
   })
 }
 
-// Builds the client/product report rows for delivered sales in the period.
-// One row per order × product. Price per piece is the FIXED admin price (price_per_pill);
-// we expose gross (price × pieces), the discount amount, and the net (with discount).
-function buildClientProductData() {
+// Builds the per-doctor sales report for the period. Only orders referred by a
+// doctor are included (self-referral / no doctor excluded), grouped by doctor so the
+// admin can pay each doctor by how much was sold under their referral.
+function buildDoctorSalesData() {
   const { start, end } = analyticsRange()
   const sold = orders.value
     .filter(o => o.status === 'delivered' && !o.is_deleted &&
+      o.referred_by && o.referred_by.trim() && o.referred_by.trim() !== 'Самостоятельно' &&
       new Date(o.created_at) >= start && new Date(o.created_at) < end)
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 
-  const rows = []
-  const totals = { pieces: 0, discount: 0, gross: 0, net: 0 }
+  // doctor -> { rows: [{created, client, product, pieces, unit, sum}], pieces, sum }
+  const byDoctor = new Map()
   for (const o of sold) {
+    const doc = o.referred_by.trim()
     const client = clientName(o)
-    const type = o.is_vip ? 'Бесплатный' : (o.marketolog_id ? 'Маркетолог' : 'Простой')
+    let d = byDoctor.get(doc)
+    if (!d) { d = { rows: [], pieces: 0, sum: 0 }; byDoctor.set(doc, d) }
     // merge duplicate products within the same order
     const prods = new Map()
     for (const item of boughtItems(o)) {
       const pieces = pieceCount(item)
       const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
       const pname = item.product?.name || '—'
-      const p = prods.get(pname) || { pieces: 0, gross: 0, net: 0, unit }
+      const p = prods.get(pname) || { pieces: 0, sum: 0, unit }
       p.pieces += pieces
-      p.gross += unit * pieces
-      p.net += item.price
+      p.sum += item.price
       p.unit = unit
       prods.set(pname, p)
     }
     for (const [pname, p] of prods) {
-      const discount = Math.round(p.gross - p.net)
-      const pct = p.gross > 0 ? Math.round(discount / p.gross * 100) : 0
-      rows.push({
-        created: o.created_at, client, type, product: pname, pieces: p.pieces, unit: p.unit,
-        pct, discount, gross: Math.round(p.gross), net: Math.round(p.net),
-      })
-      totals.pieces += p.pieces
-      totals.discount += discount
-      totals.gross += Math.round(p.gross)
-      totals.net += Math.round(p.net)
+      d.rows.push({ created: o.created_at, client, product: pname, pieces: p.pieces, unit: p.unit, sum: Math.round(p.sum) })
+      d.pieces += p.pieces
+      d.sum += p.sum
     }
   }
-  return { rows, totals }
+  return byDoctor
 }
 
-// "Экспорт в Excel формате" — sales by client & product, one row per order line.
-// Columns: creation time (to the minute) first, then client/product, fixed unit price,
-// discount %, discount amount, gross (без скидки) and net (со скидкой).
-function exportClientProductExcel() {
-  const { rows, totals } = buildClientProductData()
-  if (!rows.length) { alert('Нет данных для экспорта'); return }
+// "Экспорт в Excel формате" — per-doctor sales report (doctor salary is based on how
+// much was sold under their referral): doctor, when, to whom, product, pieces, sum,
+// with a subtotal per doctor and a grand total.
+function exportDoctorSalesExcel() {
+  const byDoctor = buildDoctorSalesData()
+  if (!byDoctor.size) { alert('Нет данных по докторам за выбранный период'); return }
   const cashier = authStore.worker?.name || '—'
 
   const aoa = [
-    ['Анализ продаж по клиенту и товару'],
+    ['Анализ продаж по докторам'],
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Дата создания', 'Клиент', 'Тип', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма без скидки (сум)', 'Сумма (со скидкой) (сум)'],
+    ['Доктор', 'Дата создания', 'Кому (клиент)', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Сумма (сум)'],
   ]
-  for (const r of rows) {
-    aoa.push([fmtDateTime(r.created), r.client, r.type, r.product, r.pieces, r.unit, r.pct > 0 ? r.pct : '', r.discount, r.gross, r.net])
+  let gPieces = 0, gSum = 0
+  for (const [doc, d] of byDoctor) {
+    for (const r of d.rows) {
+      aoa.push([doc, fmtDateTime(r.created), r.client, r.product, r.pieces, r.unit, r.sum])
+    }
+    aoa.push([`Итого по доктору: ${doc}`, '', '', '', d.pieces, '', Math.round(d.sum)])
+    aoa.push([''])
+    gPieces += d.pieces
+    gSum += d.sum
   }
-  aoa.push(['ИТОГО', '', '', '', totals.pieces, '', '', totals.discount, totals.gross, totals.net])
+  aoa.push(['ВСЕГО', '', '', '', gPieces, '', Math.round(gSum)])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 13 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 20 }, { wch: 20 }, { wch: 22 }]
+  ws['!cols'] = [{ wch: 26 }, { wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 18 }]
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
-  XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
+  XLSX.utils.book_append_sheet(wb, ws, 'По докторам')
+  XLSX.writeFile(wb, `доктора_${cashier}_${periodSlug()}.xlsx`)
 }
 
 // Excel export of the payment-method breakdown for the period (button in that section).

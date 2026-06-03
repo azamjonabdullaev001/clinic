@@ -34,10 +34,6 @@ func ReturnOrderFull(c *gin.Context) {
 	}
 	c.ShouldBindJSON(&input)
 	reason := strings.TrimSpace(input.ReturnReason)
-	if reason == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите причину возврата"})
-		return
-	}
 
 	for _, it := range order.Items {
 		if it.Quantity <= 0 {
@@ -97,10 +93,6 @@ func UpdateOrderItems(c *gin.Context) {
 		return
 	}
 
-	if isReturn && strings.TrimSpace(input.ReturnReason) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите причину возврата"})
-		return
-	}
 
 	productCache := map[uint]models.Product{}
 	getProduct := func(tx *gorm.DB, id uint) (models.Product, bool) {
@@ -317,12 +309,7 @@ func UpdatePickupOrderStatus(c *gin.Context) {
 	}
 
 	if input.Status == "cancelled" {
-		reason := strings.TrimSpace(input.CancellationReason)
-		if reason == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите причину отмены"})
-			return
-		}
-		order.CancellationReason = reason
+		order.CancellationReason = strings.TrimSpace(input.CancellationReason)
 		if workerID, ok := c.Get("workerID"); ok {
 			wid := workerID.(uint)
 			order.WorkerID = &wid // keep cancelled order private to the worker who cancelled it
