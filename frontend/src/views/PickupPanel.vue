@@ -2047,8 +2047,8 @@ function exportClientProductExcel() {
 }
 
 // Per-doctor sales report for paying doctor salaries (based on referred sales).
-// Only doctor-referred orders, grouped by doctor. Lines are merged by patient+product
-// (no time). Each doctor carries its total pieces and total sum.
+// Only doctor-referred orders, grouped by doctor; product lines are merged per product
+// (patient name is not shown). Each doctor carries its total pieces and total sum.
 function buildDoctorSalesData() {
   const { start, end } = analyticsRange()
   const sold = orders.value
@@ -2056,23 +2056,21 @@ function buildDoctorSalesData() {
       o.referred_by && o.referred_by.trim() && o.referred_by.trim() !== 'Самостоятельно' &&
       new Date(o.created_at) >= start && new Date(o.created_at) < end)
 
-  // doctor -> { lines: Map(patient|product -> {patient, product, pieces, unit, sum}), pieces, sum }
+  // doctor -> { lines: Map(product -> {product, pieces, unit, sum}), pieces, sum }
   const byDoctor = new Map()
   for (const o of sold) {
     const doc = o.referred_by.trim()
-    const patient = clientName(o)
     let d = byDoctor.get(doc)
     if (!d) { d = { lines: new Map(), pieces: 0, sum: 0 }; byDoctor.set(doc, d) }
     for (const item of boughtItems(o)) {
       const pieces = pieceCount(item)
       const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
       const pname = item.product?.name || '—'
-      const key = patient + '|' + pname
-      const line = d.lines.get(key) || { patient, product: pname, pieces: 0, unit, sum: 0 }
+      const line = d.lines.get(pname) || { product: pname, pieces: 0, unit, sum: 0 }
       line.pieces += pieces
       line.unit = unit
       line.sum += item.price
-      d.lines.set(key, line)
+      d.lines.set(pname, line)
       d.pieces += pieces
       d.sum += item.price
     }
@@ -2080,32 +2078,34 @@ function buildDoctorSalesData() {
   return byDoctor
 }
 
-// New "Экспорт докторов" — grouped like the printed report: a doctor header row with its
-// totals, then one indented line per patient × product (qty, price, sum). No time column,
-// no discount columns.
+// New "Экспорт докторов": a doctor header row with its totals, then one line per product
+// (qty, price, sum). No buyer name, no time, no discount. Each doctor is separated by a
+// divider line so the blocks are easy to tell apart.
 function exportDoctorSalesExcel() {
   const byDoctor = buildDoctorSalesData()
   if (!byDoctor.size) { alert('Нет данных по докторам за выбранный период'); return }
   const cashier = authStore.worker?.name || '—'
 
+  const dash = '────────────'
+  const divider = [dash, dash, dash, dash, dash]
   const aoa = [
     ['Аналитика по докторам'],
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Доктор / Пациент', 'Препарат', 'Кол-во (шт)', 'Цена (сум)', 'Сумма (сум)'],
+    ['Доктор', 'Препарат', 'Кол-во (шт)', 'Цена (сум)', 'Сумма (сум)'],
   ]
   let gPieces = 0, gSum = 0
   for (const [doc, d] of byDoctor) {
-    // group header: doctor name + its totals (pieces, sum)
+    aoa.push(divider) // line dividing each doctor
     aoa.push([doc, '', d.pieces, '', Math.round(d.sum)])
     for (const line of d.lines.values()) {
-      aoa.push([`    ${line.patient}`, line.product, line.pieces, line.unit, Math.round(line.sum)])
+      aoa.push(['', line.product, line.pieces, line.unit, Math.round(line.sum)])
     }
-    aoa.push([''])
     gPieces += d.pieces
     gSum += d.sum
   }
+  aoa.push(divider)
   aoa.push(['ВСЕГО', '', gPieces, '', Math.round(gSum)])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
