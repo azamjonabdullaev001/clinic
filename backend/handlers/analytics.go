@@ -3,6 +3,7 @@ package handlers
 import (
 	"clinic-backend/database"
 	"clinic-backend/models"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// parsePaymentSplits decodes the order's stored JSON payment breakdown (empty when the
+// sale was paid via a single method).
+func parsePaymentSplits(raw string) []PaymentSplit {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var splits []PaymentSplit
+	if err := json.Unmarshal([]byte(raw), &splits); err != nil {
+		return nil
+	}
+	return splits
+}
 
 type AnalyticsPoint struct {
 	Label   string  `json:"label"`
@@ -703,23 +717,39 @@ func GetWorkerAnalytics(c *gin.Context) {
 			} else {
 				confirmedCount++
 			}
-			// Bucket by payment method (card sub-types broken out).
-			payKey := order.PaymentMethod
-			if payKey == "card" && order.CardType != "" {
-				payKey = order.CardType
+			// Bucket by payment method. Split payments distribute their amount across the
+			// methods used; single-method sales keep the legacy card-subtype breakout.
+			if splits := parsePaymentSplits(order.PaymentSplits); len(splits) > 0 {
+				for _, s := range splits {
+					if s.Amount == 0 || s.Method == "" {
+						continue
+					}
+					p, ok := byPayment[s.Method]
+					if !ok {
+						p = &catAgg{}
+						byPayment[s.Method] = p
+					}
+					p.Orders++
+					p.Revenue += s.Amount
+				}
+			} else {
+				payKey := order.PaymentMethod
+				if payKey == "card" && order.CardType != "" {
+					payKey = order.CardType
+				}
+				if payKey == "" {
+					payKey = "free"
+				}
+				p, ok := byPayment[payKey]
+				if !ok {
+					p = &catAgg{}
+					byPayment[payKey] = p
+				}
+				p.Orders++
+				p.Capsules += caps
+				p.Pieces += pcs
+				p.Revenue += revenue
 			}
-			if payKey == "" {
-				payKey = "free"
-			}
-			p, ok := byPayment[payKey]
-			if !ok {
-				p = &catAgg{}
-				byPayment[payKey] = p
-			}
-			p.Orders++
-			p.Capsules += caps
-			p.Pieces += pcs
-			p.Revenue += revenue
 		}
 		c := cats[cat]
 		c.Orders++

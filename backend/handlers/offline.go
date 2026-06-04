@@ -3,6 +3,7 @@ package handlers
 import (
 	"clinic-backend/database"
 	"clinic-backend/models"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,16 +41,34 @@ func validOfflinePayment(m string) bool {
 	return m == "cash" || m == "terminal" || m == "card"
 }
 
+// PaymentSplit is one method's share of a sale paid via several methods at once.
+type PaymentSplit struct {
+	Method string  `json:"method"` // cash, terminal, cassa1, click, transfer
+	Amount float64 `json:"amount"`
+}
+
 type OfflineSaleInput struct {
 	Items         []OfflineItemInput `json:"items" binding:"required,min=1"`
 	OfflineNote     string             `json:"offline_note"`
 	IsVIP           bool               `json:"is_vip"`
 	PaymentMethod   string             `json:"payment_method"`   // "cash", "terminal", "card"
 	CardType        string             `json:"card_type"`        // "cassa1", "click", "transfer"
+	PaymentSplits   []PaymentSplit     `json:"payment_splits"`   // when paid via several methods at once
 	DiscountPercent float64            `json:"discount_percent"` // 0..100 — cashier-typed discount on the whole sale
 	ReferredBy    string             `json:"referred_by"`    // doctor who referred the patient
 	SalesChannel  string             `json:"sales_channel"`  // marketplace for manager sales
 	MarketologID  *uint              `json:"marketolog_id"`  // marketolog the debt-sale is assigned to
+}
+
+// canonicalPayment maps a split method to the legacy payment_method/card_type pair so
+// single-method sales keep behaving exactly as before.
+func canonicalPayment(method string) (string, string) {
+	switch method {
+	case "cassa1", "click", "transfer":
+		return "card", method
+	default: // cash, terminal
+		return method, ""
+	}
 }
 
 func CreateOfflineSale(c *gin.Context) {
@@ -82,21 +101,40 @@ func CreateOfflineSale(c *gin.Context) {
 	// sales are free; otherwise the cashier picks cash/terminal/card.
 	paymentMethod := input.PaymentMethod
 	cardType := ""
+	paymentSplits := ""
 	if isDebt {
 		paymentMethod = "marketplace"
 	} else if input.IsVIP {
 		paymentMethod = ""
 	} else {
-		if paymentMethod == "" {
-			paymentMethod = "cash"
+		// Collect the non-zero split lines (an order may be paid via several methods).
+		var nonZero []PaymentSplit
+		for _, s := range input.PaymentSplits {
+			if s.Amount > 0 && s.Method != "" {
+				nonZero = append(nonZero, s)
+			}
 		}
-		if !validOfflinePayment(paymentMethod) {
-			tx.Rollback()
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный способ оплаты"})
-			return
-		}
-		if paymentMethod == "card" {
-			cardType = input.CardType
+		if len(nonZero) > 0 {
+			if len(nonZero) == 1 {
+				paymentMethod, cardType = canonicalPayment(nonZero[0].Method)
+			} else {
+				paymentMethod, cardType = "mixed", ""
+			}
+			if b, err := json.Marshal(nonZero); err == nil {
+				paymentSplits = string(b)
+			}
+		} else {
+			if paymentMethod == "" {
+				paymentMethod = "cash"
+			}
+			if !validOfflinePayment(paymentMethod) {
+				tx.Rollback()
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный способ оплаты"})
+				return
+			}
+			if paymentMethod == "card" {
+				cardType = input.CardType
+			}
 		}
 	}
 
@@ -132,6 +170,7 @@ func CreateOfflineSale(c *gin.Context) {
 		IsVIP:         input.IsVIP,
 		PaymentMethod:   paymentMethod,
 		CardType:        cardType,
+		PaymentSplits:   paymentSplits,
 		DiscountPercent: discount,
 		SalesChannel:    input.SalesChannel,
 		ReferredBy:    input.ReferredBy,

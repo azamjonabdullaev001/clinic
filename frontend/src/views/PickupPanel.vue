@@ -255,11 +255,39 @@
         <div class="pp-card rounded-xl shadow-sm p-6">
           <h2 class="text-base font-semibold pp-text mb-5">{{ txt.offline_sale }}</h2>
 
-          <div class="grid grid-cols-3 gap-4 mb-5">
-            <!-- Step 1: Product -->
+          <div class="grid grid-cols-2 gap-4 mb-5">
+            <!-- Top-left: Doctor -->
             <div>
               <div class="flex items-center gap-2 mb-3">
                 <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                <span class="text-sm font-semibold text-gray-700">{{ txt.referral_ph }}</span>
+              </div>
+              <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+              <datalist id="offline-doctors">
+                <option value="Самостоятельно"></option>
+                <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')"></option>
+              </datalist>
+            </div>
+
+            <!-- Top-right: Unit (default piece) -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                <span class="text-sm font-semibold text-gray-700">{{ txt.unit }}</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button v-for="u in [{v:'piece',l:txt.piece},{v:'pack',l:txt.pack}]" :key="u.v"
+                  @click="offlineUnit=u.v"
+                  :class="offlineUnit===u.v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                  class="border py-2.5 rounded-lg text-sm font-medium transition">{{ u.l }}</button>
+              </div>
+            </div>
+
+            <!-- Bottom-left: Product -->
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
                 <span class="text-sm font-semibold text-gray-700">{{ txt.select_product }}</span>
               </div>
               <div class="relative">
@@ -269,16 +297,15 @@
                 </select>
                 <svg class="w-4 h-4 text-gray-400 absolute right-2 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
               </div>
-              <!-- Search hint below select -->
               <div v-if="offlineProductId" class="mt-2 p-2 pp-inset rounded-lg">
                 <p class="text-xs text-gray-500">{{ txt.in_stock }}: <span class="font-semibold text-gray-700">{{ capsulesOf(offlineProductId) }} {{ txt.pack }} / {{ stockOf(offlineProductId) }} {{ txt.piece }}</span></p>
               </div>
             </div>
 
-            <!-- Step 2: Quantity -->
+            <!-- Bottom-right: Quantity -->
             <div>
               <div class="flex items-center gap-2 mb-3">
-                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
                 <span class="text-sm font-semibold text-gray-700">{{ txt.qty }}</span>
               </div>
               <div class="flex items-center gap-2 mb-3">
@@ -286,25 +313,10 @@
                 <input v-model.number="offlineQty" type="number" min="1" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-center text-base font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                 <button @click="offlineQty++" class="w-9 h-9 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg flex items-center justify-center transition">+</button>
               </div>
-              <p class="text-xs text-gray-500 mb-2">{{ txt.quick_select }}:</p>
               <div class="grid grid-cols-3 gap-1">
                 <button v-for="n in [1,2,5,10,20,50]" :key="n" @click="offlineQty=n"
                   :class="offlineQty===n ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
                   class="py-1 rounded text-xs font-medium transition">{{ n }}</button>
-              </div>
-            </div>
-
-            <!-- Step 3: Unit -->
-            <div>
-              <div class="flex items-center gap-2 mb-3">
-                <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
-                <span class="text-sm font-semibold text-gray-700">{{ txt.unit }}</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2">
-                <button v-for="u in [{v:'pack',l:txt.pack},{v:'piece',l:txt.piece}]" :key="u.v"
-                  @click="offlineUnit=u.v"
-                  :class="offlineUnit===u.v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                  class="border py-2 rounded-lg text-sm font-medium transition">{{ u.l }}</button>
               </div>
             </div>
           </div>
@@ -370,21 +382,6 @@
                 </select>
               </div>
               <div v-if="saleType==='regular'">
-                <label class="text-xs font-medium text-gray-500 mb-1.5 block">{{ txt.payment_method }}</label>
-                <div class="flex gap-2">
-                  <button v-for="pm in paymentMethods" :key="pm.value"
-                    @click="selectOfflinePayment(pm.value)"
-                    :class="offlinePaymentMethod===pm.value?'bg-emerald-600 text-white border-emerald-600':'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
-                    class="flex-1 py-2 rounded-lg text-sm font-medium border transition">{{ pm.label }}</button>
-                </div>
-                <!-- "Другое" opens a mini-panel; once a sub-option is chosen we show it here. -->
-                <div v-if="offlinePaymentMethod==='card' && offlineCardType" class="flex items-center gap-2 mt-2 text-sm">
-                  <span class="text-gray-500">{{ txt.pay_card }}:</span>
-                  <span class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-medium">{{ cardTypeLabel(offlineCardType) }}</span>
-                  <button @click="showOfflineCardPanel=true" class="text-xs text-indigo-500 hover:underline">{{ lang === 'uz' ? "O'zgartirish" : 'Изменить' }}</button>
-                </div>
-              </div>
-              <div v-if="saleType==='regular'">
                 <label class="text-xs font-medium text-gray-500 mb-1.5 block">Скидка, %</label>
                 <div class="flex items-center gap-3">
                   <input v-model.number="offlineDiscount" type="number" min="0" max="100" step="1"
@@ -396,15 +393,28 @@
                   </span>
                 </div>
               </div>
+              <!-- Payment split: enter how much was paid via each method (may be several). -->
+              <div v-if="saleType==='regular'">
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-medium text-gray-500">{{ txt.payment_method }}</label>
+                  <span class="text-xs font-medium" :class="offlinePaymentOk ? 'text-emerald-600' : 'text-rose-500'">
+                    {{ formatPrice(offlinePaymentEntered) }} / {{ formatPrice(offlineDiscountedTotal) }} {{ txt.sum }}
+                  </span>
+                </div>
+                <div class="space-y-2">
+                  <div v-for="m in offlinePayMethods" :key="m.key" class="flex items-center gap-2">
+                    <span class="w-32 text-sm text-gray-600 flex-shrink-0">{{ m.label }}</span>
+                    <input v-model.number="offlinePayments[m.key]" type="number" min="0" placeholder="0"
+                      class="flex-1 min-w-0 pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                    <button type="button" @click="setFullPayment(m.key)"
+                      class="px-2.5 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition flex-shrink-0">100%</button>
+                  </div>
+                </div>
+                <p v-if="!offlinePaymentOk" class="text-xs text-rose-500 mt-1">Сумма оплат должна равняться итогу к оплате</p>
+              </div>
             </div>
             <div v-if="saleType !== 'marketolog'" class="flex gap-3 flex-wrap">
               <input v-model="offlineNote" :placeholder="txt.buyer_name" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
-              <!-- A doctor can be picked for regular AND free sales (optional). -->
-              <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
-              <datalist id="offline-doctors">
-                <option value="Самостоятельно"></option>
-                <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')"></option>
-              </datalist>
             </div>
             <button @click="submitOfflineSale" :disabled="!offlineCanSubmit || offlineSubmitting" class="w-full bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700 transition font-bold disabled:opacity-40">
               {{ offlineSubmitting ? txt.saving : txt.record_sale }}
@@ -876,20 +886,6 @@
     </div>
   </div>
 
-  <!-- "Другое" sub-option mini-panel (offline sale form) -->
-  <div v-if="showOfflineCardPanel" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="showOfflineCardPanel=false">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5">
-      <h3 class="text-base font-bold text-gray-800 mb-3 text-center">{{ txt.pay_card }}</h3>
-      <div class="grid gap-2">
-        <button v-for="ct in cardTypes" :key="ct.value" @click="offlineCardType=ct.value; showOfflineCardPanel=false"
-          :class="offlineCardType===ct.value?'border-indigo-500 bg-indigo-50 text-indigo-700':'border-gray-200 text-gray-700 hover:bg-gray-50'"
-          class="w-full py-3 rounded-xl border-2 font-semibold transition">{{ ct.label }}</button>
-      </div>
-      <button @click="showOfflineCardPanel=false" class="w-full mt-3 py-2 text-sm text-gray-400 hover:text-gray-600 transition">{{ txt.cancel }}</button>
-    </div>
-  </div>
-
   <!-- Payment modal -->
   <div v-if="showPayModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="closePayModal">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
@@ -1333,10 +1329,21 @@ function boughtItems(order) {
   return (order.items || []).filter(i => i.quantity > 0)
 }
 
+const payMethodLabels = computed(() => {
+  const t = txt.value
+  return { cash: t.pay_cash, terminal: t.pay_terminal, cassa1: t.card_cassa1, click: t.card_click, transfer: t.card_transfer, card: t.pay_card, online: t.pay_online }
+})
+
 function paymentLabel(order) {
   if (order.is_vip) return txt.value.vip_badge
-  const t = txt.value
-  const m = { cash: t.pay_cash, terminal: t.pay_terminal, card: t.pay_card, online: t.pay_online }
+  // Split payment: list the methods used (e.g. "Наличные + Click").
+  if (order.payment_splits) {
+    try {
+      const splits = JSON.parse(order.payment_splits).filter(s => s.amount > 0)
+      if (splits.length) return splits.map(s => payMethodLabels.value[s.method] || s.method).join(' + ')
+    } catch (e) { /* ignore */ }
+  }
+  const m = payMethodLabels.value
   const base = m[order.payment_method] || ''
   if (order.payment_method === 'card' && order.card_type) {
     const sub = cardTypeLabel(order.card_type)
@@ -1622,7 +1629,6 @@ const offlineSuccess = ref(false)
 const saleType = ref('regular')
 const offlineMarketolog = ref(null)
 const marketologs = ref([])
-const offlinePaymentMethod = ref('cash')
 const offlineReferral = ref('')
 const offlineUnit = ref('piece')
 const allDoctors = ref([])
@@ -1651,20 +1657,17 @@ const cardTypes = computed(() => [
 ])
 function cardTypeLabel(v) { return cardTypes.value.find(c => c.value === v)?.label || '' }
 
-const offlineCardType = ref('')
-const showOfflineCardPanel = ref(false)
 const offlineDiscount = ref(0)
 
-// Picking a payment method in the offline form. "Другое" (card) opens a mini-panel
-// to choose the endpoint (Касса 1 / Click / Перечисление); others apply directly.
-function selectOfflinePayment(method) {
-  offlinePaymentMethod.value = method
-  if (method === 'card') {
-    showOfflineCardPanel.value = true
-  } else {
-    offlineCardType.value = ''
-  }
-}
+// Split payment: amount paid via each method (an order may use several at once).
+const offlinePayMethods = computed(() => [
+  { key: 'cash', label: txt.value.pay_cash },
+  { key: 'terminal', label: txt.value.pay_terminal },
+  { key: 'cassa1', label: txt.value.card_cassa1 },
+  { key: 'click', label: txt.value.card_click },
+  { key: 'transfer', label: txt.value.card_transfer },
+])
+const offlinePayments = ref({ cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 })
 
 const offlineTotal = computed(() => offlineItems.value.reduce((s, i) => s + i.price, 0))
 const offlineDiscountPct = computed(() => {
@@ -1673,11 +1676,25 @@ const offlineDiscountPct = computed(() => {
 })
 const offlineDiscountedTotal = computed(() => offlineTotal.value * (1 - offlineDiscountPct.value / 100))
 
+const offlinePaymentEntered = computed(() =>
+  Object.values(offlinePayments.value).reduce((s, v) => s + (Number(v) || 0), 0))
+// Entered payments must add up to the amount to pay (rounded to the sum).
+const offlinePaymentOk = computed(() =>
+  Math.round(offlinePaymentEntered.value) === Math.round(offlineDiscountedTotal.value))
+
+// "100%": this method covers the whole bill, the others reset to 0.
+function setFullPayment(key) {
+  for (const k of Object.keys(offlinePayments.value)) {
+    offlinePayments.value[k] = k === key ? Math.round(offlineDiscountedTotal.value) : 0
+  }
+}
+
 const offlineCanSubmit = computed(() => {
   if (offlineItems.value.length === 0) return false
   if (saleType.value === 'marketolog' && !offlineMarketolog.value) return false
   // Patient name is OPTIONAL — a walk-in patient may not disclose their name.
-  if (saleType.value === 'regular' && offlinePaymentMethod.value === 'card' && !offlineCardType.value) return false
+  // For a regular sale the payment amounts must reconcile with the bill.
+  if (saleType.value === 'regular' && !offlinePaymentOk.value) return false
   return true
 })
 
@@ -1717,9 +1734,7 @@ function resetOfflineSale() {
   offlineNote.value = ''
   saleType.value = 'regular'
   offlineMarketolog.value = null
-  offlinePaymentMethod.value = 'cash'
-  offlineCardType.value = ''
-  showOfflineCardPanel.value = false
+  offlinePayments.value = { cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 }
   offlineDiscount.value = 0
   offlineReferral.value = ''
   offlineUnit.value = 'piece'
@@ -1732,13 +1747,18 @@ async function submitOfflineSale() {
   try {
     const isVip = saleType.value === 'vip'
     const isMkt = saleType.value === 'marketolog'
+    // Build the payment split (non-zero amounts) for a regular sale.
+    const splits = (!isVip && !isMkt)
+      ? offlinePayMethods.value
+          .map(m => ({ method: m.key, amount: Number(offlinePayments.value[m.key]) || 0 }))
+          .filter(s => s.amount > 0)
+      : []
     await api.post('/pickup/offline-sale', {
       items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
       offline_note: offlineNote.value,
       is_vip: isVip,
       marketolog_id: isMkt ? offlineMarketolog.value : null,
-      payment_method: (isVip || isMkt) ? '' : offlinePaymentMethod.value,
-      card_type: (!isVip && !isMkt && offlinePaymentMethod.value === 'card') ? offlineCardType.value : '',
+      payment_splits: splits,
       discount_percent: (!isVip && !isMkt) ? Number(offlineDiscount.value) || 0 : 0,
       referred_by: saleType.value !== 'marketolog' ? offlineReferral.value.trim() : '',
     })
