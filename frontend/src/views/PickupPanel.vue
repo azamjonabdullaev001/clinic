@@ -398,7 +398,7 @@
               </div>
             </div>
             <div v-if="saleType !== 'marketolog'" class="flex gap-3 flex-wrap">
-              <input v-model="offlineNote" :placeholder="txt.buyer_name + ' *'" :class="!offlineNote.trim() ? 'ring-1 ring-rose-300' : ''" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+              <input v-model="offlineNote" :placeholder="txt.buyer_name" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               <!-- A doctor can be picked for regular AND free sales (optional). -->
               <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               <datalist id="offline-doctors">
@@ -625,13 +625,7 @@
 
           <!-- Category breakdown -->
           <div class="pp-card rounded-xl shadow-sm p-6">
-            <div class="flex items-center justify-between gap-3 mb-4">
-              <h3 class="font-semibold text-gray-800">{{ txt.by_category }}</h3>
-              <button @click="exportCategoryExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
-              </button>
-            </div>
+            <h3 class="font-semibold text-gray-800 mb-4">{{ txt.by_category }}</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -1630,7 +1624,7 @@ const offlineMarketolog = ref(null)
 const marketologs = ref([])
 const offlinePaymentMethod = ref('cash')
 const offlineReferral = ref('')
-const offlineUnit = ref('pack')
+const offlineUnit = ref('piece')
 const allDoctors = ref([])
 
 async function loadMarketologs() {
@@ -1682,9 +1676,7 @@ const offlineDiscountedTotal = computed(() => offlineTotal.value * (1 - offlineD
 const offlineCanSubmit = computed(() => {
   if (offlineItems.value.length === 0) return false
   if (saleType.value === 'marketolog' && !offlineMarketolog.value) return false
-  // Patient name is required for regular & free sales (marketolog sales pick a
-  // marketolog instead of typing a name).
-  if (saleType.value !== 'marketolog' && !offlineNote.value.trim()) return false
+  // Patient name is OPTIONAL — a walk-in patient may not disclose their name.
   if (saleType.value === 'regular' && offlinePaymentMethod.value === 'card' && !offlineCardType.value) return false
   return true
 })
@@ -1730,14 +1722,10 @@ function resetOfflineSale() {
   showOfflineCardPanel.value = false
   offlineDiscount.value = 0
   offlineReferral.value = ''
-  offlineUnit.value = 'pack'
+  offlineUnit.value = 'piece'
 }
 
 async function submitOfflineSale() {
-  if (saleType.value !== 'marketolog' && !offlineNote.value.trim()) {
-    alert(lang.value === 'uz' ? 'Bemor ismini kiriting' : 'Введите имя пациента')
-    return
-  }
   if (!offlineCanSubmit.value) return
   offlineSubmitting.value = true
   offlineSuccess.value = false
@@ -2060,79 +2048,6 @@ function exportClientProductExcel() {
   XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
 }
 
-// Category report: every delivered order bucketed into Простой / Бесплатный / Маркетолог,
-// listing the patient name (and optional doctor) per order, with per-category and grand totals.
-function buildCategoryData() {
-  const { start, end } = analyticsRange()
-  const sold = orders.value.filter(o => o.status === 'delivered' && !o.is_deleted &&
-    new Date(o.created_at) >= start && new Date(o.created_at) < end)
-  const order = ['Простой', 'Бесплатный', 'Маркетолог']
-  const cats = { 'Простой': mk(), 'Бесплатный': mk(), 'Маркетолог': mk() }
-  function mk() { return { rows: [], count: 0, pieces: 0, sum: 0 } }
-  for (const o of sold) {
-    const cat = o.is_vip ? 'Бесплатный' : (o.marketolog_id ? 'Маркетолог' : 'Простой')
-    let pieces = 0, sum = 0
-    for (const item of boughtItems(o)) { pieces += pieceCount(item); sum += item.price }
-    const doctor = (o.referred_by && o.referred_by.trim() && o.referred_by.trim() !== 'Самостоятельно') ? o.referred_by.trim() : ''
-    const c = cats[cat]
-    c.rows.push({ patient: clientName(o), doctor, pieces, sum: Math.round(sum) })
-    c.count++; c.pieces += pieces; c.sum += sum
-  }
-  return { order, cats }
-}
-
-// "Экспорт в Excel формате" on the «По категориям» block — bordered HTML .xls, grouped by
-// category, with the patient name + doctor for every order.
-function exportCategoryExcel() {
-  const { order, cats } = buildCategoryData()
-  const total = order.reduce((s, k) => s + cats[k].count, 0)
-  if (!total) { alert('Нет данных за выбранный период'); return }
-  const cashier = authStore.worker?.name || '—'
-  const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0))
-  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-
-  let gPieces = 0, gSum = 0, body = ''
-  for (const cat of order) {
-    const c = cats[cat]
-    if (!c.count) continue
-    body += `<tr>` +
-      `<td style="font-weight:bold;background:#dce6f7;">${esc(cat)} — ${c.count} заказ(ов)</td>` +
-      `<td style="background:#dce6f7;"></td>` +
-      `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(c.pieces)}</td>` +
-      `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(c.sum)}</td></tr>`
-    for (const r of c.rows) {
-      body += `<tr>` +
-        `<td>${esc(r.patient)}</td>` +
-        `<td>${esc(r.doctor)}</td>` +
-        `<td style="text-align:right;">${fmt(r.pieces)}</td>` +
-        `<td style="text-align:right;">${fmt(r.sum)}</td></tr>`
-    }
-    gPieces += c.pieces; gSum += c.sum
-  }
-
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>По категориям</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>` +
-    `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;">` +
-    `<tr><td colspan="4" style="border:none;font-weight:bold;font-size:15px;">Аналитика по категориям</td></tr>` +
-    `<tr><td colspan="4" style="border:none;">Кассир: ${esc(cashier)}</td></tr>` +
-    `<tr><td colspan="4" style="border:none;">Период: ${esc(periodLabel())}</td></tr>` +
-    `<tr><td colspan="4" style="border:none;"></td></tr>` +
-    `<tr style="background:#b9c9e6;font-weight:bold;text-align:center;">` +
-      `<td>Категория / Имя пациента</td><td>Доктор</td><td>Кол-во (шт)</td><td>Сумма (сум)</td></tr>` +
-    body +
-    `<tr style="background:#cfe3cf;font-weight:bold;"><td>ВСЕГО</td><td></td><td style="text-align:right;">${fmt(gPieces)}</td><td style="text-align:right;">${fmt(gSum)}</td></tr>` +
-    `</table></body></html>`
-
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `категории_${cashier}_${periodSlug()}.xls`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
 // Per-doctor sales report for paying doctor salaries (based on referred sales).
 // Only doctor-referred orders, grouped by doctor; product lines are merged per product
 // (patient name is not shown). Each doctor carries its total pieces and total sum.
@@ -2221,15 +2136,30 @@ function exportDoctorSalesExcel() {
 }
 
 // Excel export of the payment-method breakdown for the period (button in that section).
-// Cashier name on top, then a table: payment method / orders / amount paid.
+// Always lists ALL five payment methods; ones with no payments show 0 (not omitted).
 function exportPaymentMethodsExcel() {
-  const rows = paymentBreakdownRows.value
-  if (!rows.length) { alert('Нет данных для экспорта'); return }
+  const t = txt.value
+  const by = analyticsData.value?.by_payment || {}
+  const methods = [
+    { key: 'cash', label: t.pay_cash },
+    { key: 'terminal', label: t.pay_terminal },
+    { key: 'cassa1', label: t.card_cassa1 },
+    { key: 'click', label: t.card_click },
+    { key: 'transfer', label: t.card_transfer },
+  ]
   const cashier = authStore.worker?.name || '—'
+  let totalOrders = 0, totalRevenue = 0
+  const rows = methods.map(m => {
+    const orders = by[m.key]?.orders || 0
+    const revenue = by[m.key]?.revenue || 0
+    totalOrders += orders
+    totalRevenue += revenue
+    return [m.label, orders, Math.round(revenue)]
+  })
   const body = [
     ['Способ оплаты', 'Заказов', 'Сумма (сум)'],
-    ...rows.map(r => [r.label, r.orders, Math.round(r.revenue)]),
-    ['ИТОГО', paymentBreakdownTotalOrders.value, Math.round(paymentBreakdownTotalRevenue.value)],
+    ...rows,
+    ['ИТОГО', totalOrders, Math.round(totalRevenue)],
   ]
   const ws = XLSX.utils.aoa_to_sheet([
     [`Кассир: ${cashier}`],
