@@ -956,7 +956,6 @@ import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
 import { useStockSocket, displayStock, realtime } from '../stores/stock'
 import LineChart from '../components/LineChart.vue'
-import * as XLSX from 'xlsx'
 
 const authStore = useAuthStore()
 useStockSocket()
@@ -1336,11 +1335,12 @@ const payMethodLabels = computed(() => {
 
 function paymentLabel(order) {
   if (order.is_vip) return txt.value.vip_badge
-  // Split payment: list the methods used (e.g. "Наличные + Click").
+  // Split payment: show the amount paid via each method ("Наличные 1 000 000 · Касса 1 …").
   if (order.payment_splits) {
     try {
       const splits = JSON.parse(order.payment_splits).filter(s => s.amount > 0)
-      if (splits.length) return splits.map(s => payMethodLabels.value[s.method] || s.method).join(' + ')
+      if (splits.length === 1) return payMethodLabels.value[splits[0].method] || splits[0].method
+      if (splits.length) return splits.map(s => `${payMethodLabels.value[s.method] || s.method} ${formatPrice(s.amount)}`).join(' · ')
     } catch (e) { /* ignore */ }
   }
   const m = payMethodLabels.value
@@ -1865,72 +1865,87 @@ function buyerOf(order) {
     : ((order.user?.first_name || '') + ' ' + (order.user?.last_name || '')).trim() || '—'
 }
 
+// ===== Excel (.xls) export helpers =====
+function escXls(s) { return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+
+// Download one bordered HTML table as .xls. Print is set to fit the used cells to one
+// page width so printing shows ONLY the filled cells (no blank columns/sheets), zoomed up.
+function downloadXls(filename, sheetName, innerHtml) {
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8">` +
+    `<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${escXls(sheetName)}</x:Name>` +
+    `<x:WorksheetOptions><x:DisplayGridlines/><x:Print><x:ValidPrinterInfo/><x:FitWidth>1</x:FitWidth><x:FitHeight>0</x:FitHeight></x:Print><x:FitToPage/></x:WorksheetOptions>` +
+    `</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->` +
+    `<style>@page{size:landscape;margin:0.4cm}body{margin:0}table{border-collapse:collapse}td,th{white-space:nowrap}</style>` +
+    `</head><body>${innerHtml}</body></html>`
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+// Build & download a single-sheet .xls from an array-of-arrays — only the used cells.
+// The first `headerRows` rows are bold/shaded; numbers are right-aligned and kept numeric.
+function aoaToXls(filename, sheetName, aoa, headerRows = 1) {
+  const body = aoa.map((row, ri) => {
+    const head = ri < headerRows
+    const cells = row.map(v => typeof v === 'number'
+      ? `<td style="text-align:right;">${Math.round(v)}</td>`
+      : `<td>${escXls(v)}</td>`).join('')
+    return `<tr${head ? ' style="font-weight:bold;background:#e8eef7;"' : ''}>${cells}</tr>`
+  }).join('')
+  downloadXls(filename, sheetName, `<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;">${body}</table>`)
+}
+
+// Like aoaToXls but with title lines above the table (outside the bordered cells), a bold
+// column header and an optional bold footer (totals) row.
+function gridXls(filename, sheetName, titleLines, header, dataRows, footer) {
+  const cell = (v) => typeof v === 'number'
+    ? `<td style="text-align:right;">${Math.round(v)}</td>`
+    : `<td>${escXls(v)}</td>`
+  let html = titleLines.map((t, i) => `<div style="${i === 0 ? 'font-weight:bold;font-size:15px;' : ''}">${escXls(t)}</div>`).join('')
+  html += `<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;margin-top:6px;">`
+  html += `<tr style="font-weight:bold;background:#e8eef7;text-align:center;">${header.map(h => `<td>${escXls(h)}</td>`).join('')}</tr>`
+  html += dataRows.map(r => `<tr>${r.map(cell).join('')}</tr>`).join('')
+  if (footer) html += `<tr style="font-weight:bold;background:#cfe3cf;">${footer.map(cell).join('')}</tr>`
+  html += `</table>`
+  downloadXls(filename, sheetName, html)
+}
+
 function exportHistoryExcel() {
   const list = historyOrders.value
-  // Price per piece stays the FIXED admin price; the line sum reflects the discount;
-  // the discount % is shown per order (blank when none was written).
-  const rows = list.flatMap(order => boughtItems(order).map(item => {
-    const pieces = pieceCount(item)
-    const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
-    return {
-      'Дата': new Date(order.created_at).toLocaleString('ru-RU'),
-      'Код заказа': order.order_code,
-      'Покупатель': buyerOf(order),
-      'Тип': order.is_offline ? 'Офлайн' : 'Онлайн',
-      'Статус': statusLabel(order.status),
-      'Препарат': item.product?.name || '—',
-      'Единица': item.unit_type === 'piece' ? 'шт' : 'фл.',
-      'Кол-во': item.quantity,
-      'Кол-во (шт)': pieces,
-      'Цена за шт (сум)': unit,
-      'Скидка %': order.discount_percent > 0 ? order.discount_percent : '',
-      'Сумма (сум)': Math.round(item.price),
-      'Способ оплаты': paymentLabel(order) || '—',
-      'Рекомендовал': order.referred_by || '—',
+  const aoa = [[
+    'Дата', 'Код заказа', 'Покупатель', 'Тип', 'Статус', 'Препарат', 'Единица',
+    'Кол-во', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Сумма (сум)', 'Способ оплаты', 'Рекомендовал',
+  ]]
+  for (const order of list) {
+    for (const item of boughtItems(order)) {
+      const pieces = pieceCount(item)
+      const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
+      aoa.push([
+        new Date(order.created_at).toLocaleString('ru-RU'),
+        order.order_code,
+        buyerOf(order),
+        order.is_offline ? 'Офлайн' : 'Онлайн',
+        statusLabel(order.status),
+        item.product?.name || '—',
+        item.unit_type === 'piece' ? 'шт' : 'фл.',
+        item.quantity,
+        pieces,
+        unit,
+        order.discount_percent > 0 ? order.discount_percent : '',
+        Math.round(item.price),
+        paymentLabel(order) || '—',
+        order.referred_by || '—',
+      ])
     }
-  }))
-
-  if (rows.length === 0) {
-    alert('Нет данных для экспорта')
-    return
   }
-
-  const ws = XLSX.utils.json_to_sheet(rows)
-  ws['!cols'] = [
-    { wch: 18 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 12 },
-    { wch: 22 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 22 }, { wch: 14 },
-  ]
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'История заказов')
-
-  // Separate "Скидки" sheet — one row per order that actually had a discount.
-  const discRows = list
-    .filter(o => o.discount_percent > 0)
-    .map(o => {
-      let gross = 0, net = 0
-      for (const item of boughtItems(o)) {
-        const pieces = pieceCount(item)
-        const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
-        gross += unit * pieces
-        net += item.price
-      }
-      return {
-        'Дата': new Date(o.created_at).toLocaleString('ru-RU'),
-        'Код заказа': o.order_code,
-        'Покупатель': buyerOf(o),
-        'Скидка %': o.discount_percent,
-        'Сумма без скидки (сум)': Math.round(gross),
-        'Сумма скидки (сум)': Math.round(gross - net),
-        'К оплате (сум)': Math.round(net),
-      }
-    })
-  if (discRows.length) {
-    const wsDisc = XLSX.utils.json_to_sheet(discRows)
-    wsDisc['!cols'] = [{ wch: 18 }, { wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 20 }, { wch: 18 }, { wch: 16 }]
-    XLSX.utils.book_append_sheet(wb, wsDisc, 'Скидки')
-  }
-
-  XLSX.writeFile(wb, `история_заказов_${new Date().toISOString().slice(0,10)}.xlsx`)
+  if (aoa.length === 1) { alert('Нет данных для экспорта'); return }
+  aoaToXls(`история_заказов_${new Date().toISOString().slice(0, 10)}.xls`, 'История заказов', aoa)
 }
 
 // ===== Period helpers (shared by exports) =====
@@ -2041,31 +2056,20 @@ function exportClientProductExcel() {
   if (!rows.length) { alert('Нет данных для экспорта'); return }
   const cashier = authStore.worker?.name || '—'
 
-  const aoa = [
-    ['Анализ продаж по клиенту и товару'],
-    [`Кассир: ${cashier}`],
-    [`Период: ${periodLabel()}`],
-    [''],
-    ['Дата создания', 'Клиент', 'Тип', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма со скидкой (сум)', 'Итоговая сумма (сум)'],
-  ]
+  const header = ['Дата создания', 'Клиент', 'Тип', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма со скидкой (сум)', 'Итоговая сумма (сум)']
   // "Сумма со скидкой" is filled only when the order had a discount (else blank);
   // "Итоговая сумма" is always the real amount paid for the line.
   let tDiscountedNet = 0
-  for (const r of rows) {
+  const dataRows = rows.map(r => {
     const withDisc = r.pct > 0
-    aoa.push([
-      fmtDateTime(r.created), r.client, r.type, r.product, r.pieces, r.unit,
-      withDisc ? r.pct : '', withDisc ? r.discount : '', withDisc ? r.net : '', r.net,
-    ])
     if (withDisc) tDiscountedNet += r.net
-  }
-  aoa.push(['ИТОГО', '', '', '', totals.pieces, '', '', totals.discount, tDiscountedNet, totals.net])
-
-  const ws = XLSX.utils.aoa_to_sheet(aoa)
-  ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 13 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 20 }, { wch: 20 }, { wch: 22 }]
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
-  XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
+    return [fmtDateTime(r.created), r.client, r.type, r.product, r.pieces, r.unit,
+      withDisc ? r.pct : '', withDisc ? r.discount : '', withDisc ? r.net : '', r.net]
+  })
+  const footer = ['ИТОГО', '', '', '', totals.pieces, '', '', totals.discount, tDiscountedNet, totals.net]
+  gridXls(`клиенты_товары_${cashier}_${periodSlug()}.xls`, 'Клиенты и товары',
+    ['Анализ продаж по клиенту и товару', `Кассир: ${cashier}`, `Период: ${periodLabel()}`],
+    header, dataRows, footer)
 }
 
 // Per-doctor sales report for paying doctor salaries (based on referred sales).
@@ -2107,14 +2111,13 @@ function exportDoctorSalesExcel() {
   const byDoctor = buildDoctorSalesData()
   if (!byDoctor.size) { alert('Нет данных по докторам за выбранный период'); return }
   const cashier = authStore.worker?.name || '—'
-  const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0))
-  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const fmt = (n) => Math.round(n || 0)
 
   let gPieces = 0, gSum = 0
   let body = ''
   for (const [doc, d] of byDoctor) {
     body += `<tr>` +
-      `<td style="font-weight:bold;background:#dce6f7;">${esc(doc)}</td>` +
+      `<td style="font-weight:bold;background:#dce6f7;">${escXls(doc)}</td>` +
       `<td style="background:#dce6f7;"></td>` +
       `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(d.pieces)}</td>` +
       `<td style="background:#dce6f7;"></td>` +
@@ -2122,7 +2125,7 @@ function exportDoctorSalesExcel() {
     for (const line of d.lines.values()) {
       body += `<tr>` +
         `<td></td>` +
-        `<td>${esc(line.product)}</td>` +
+        `<td>${escXls(line.product)}</td>` +
         `<td style="text-align:right;">${fmt(line.pieces)}</td>` +
         `<td style="text-align:right;">${fmt(line.unit)}</td>` +
         `<td style="text-align:right;">${fmt(line.sum)}</td></tr>`
@@ -2131,28 +2134,18 @@ function exportDoctorSalesExcel() {
     gSum += d.sum
   }
 
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>По докторам</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>` +
-    `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;">` +
-    `<tr><td colspan="5" style="border:none;font-weight:bold;font-size:15px;">Аналитика по докторам</td></tr>` +
-    `<tr><td colspan="5" style="border:none;">Кассир: ${esc(cashier)}</td></tr>` +
-    `<tr><td colspan="5" style="border:none;">Период: ${esc(periodLabel())}</td></tr>` +
-    `<tr><td colspan="5" style="border:none;"></td></tr>` +
+  const inner =
+    `<div style="font-weight:bold;font-size:15px;">Аналитика по докторам</div>` +
+    `<div>Кассир: ${escXls(cashier)}</div>` +
+    `<div>Период: ${escXls(periodLabel())}</div>` +
+    `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;margin-top:6px;">` +
     `<tr style="background:#b9c9e6;font-weight:bold;text-align:center;">` +
       `<td>Доктор</td><td>Препарат</td><td>Кол-во (шт)</td><td>Цена (сум)</td><td>Сумма (сум)</td></tr>` +
     body +
     `<tr style="background:#cfe3cf;font-weight:bold;">` +
       `<td>ВСЕГО</td><td></td><td style="text-align:right;">${fmt(gPieces)}</td><td></td><td style="text-align:right;">${fmt(gSum)}</td></tr>` +
-    `</table></body></html>`
-
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `доктора_${cashier}_${periodSlug()}.xls`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+    `</table>`
+  downloadXls(`доктора_${cashier}_${periodSlug()}.xls`, 'По докторам', inner)
 }
 
 // Excel export of the payment-method breakdown for the period (button in that section).
@@ -2169,28 +2162,17 @@ function exportPaymentMethodsExcel() {
   ]
   const cashier = authStore.worker?.name || '—'
   let totalOrders = 0, totalRevenue = 0
-  const rows = methods.map(m => {
+  const dataRows = methods.map(m => {
     const orders = by[m.key]?.orders || 0
     const revenue = by[m.key]?.revenue || 0
     totalOrders += orders
     totalRevenue += revenue
     return [m.label, orders, Math.round(revenue)]
   })
-  const body = [
-    ['Способ оплаты', 'Заказов', 'Сумма (сум)'],
-    ...rows,
-    ['ИТОГО', totalOrders, Math.round(totalRevenue)],
-  ]
-  const ws = XLSX.utils.aoa_to_sheet([
-    [`Кассир: ${cashier}`],
-    [`Период: ${periodLabel()}`],
-    [''],
-    ...body,
-  ])
-  ws['!cols'] = [{ wch: 26 }, { wch: 12 }, { wch: 18 }]
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, 'По способам оплаты')
-  XLSX.writeFile(wb, `оплаты_${cashier}_${periodSlug()}.xlsx`)
+  gridXls(`оплаты_${cashier}_${periodSlug()}.xls`, 'По способам оплаты',
+    [`Кассир: ${cashier}`, `Период: ${periodLabel()}`],
+    ['Способ оплаты', 'Заказов', 'Сумма (сум)'], dataRows,
+    ['ИТОГО', totalOrders, Math.round(totalRevenue)])
 }
 
 watch(tab, (t) => {
