@@ -399,8 +399,8 @@
             </div>
             <div v-if="saleType !== 'marketolog'" class="flex gap-3 flex-wrap">
               <input v-model="offlineNote" :placeholder="txt.buyer_name + ' *'" :class="!offlineNote.trim() ? 'ring-1 ring-rose-300' : ''" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
-              <!-- A doctor can be picked only for a regular sale (free / own patients have no doctor). -->
-              <input v-if="saleType === 'regular'" v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+              <!-- A doctor can be picked for regular AND free sales (optional). -->
+              <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
               <datalist id="offline-doctors">
                 <option value="Самостоятельно"></option>
                 <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')"></option>
@@ -625,7 +625,13 @@
 
           <!-- Category breakdown -->
           <div class="pp-card rounded-xl shadow-sm p-6">
-            <h3 class="font-semibold text-gray-800 mb-4">{{ txt.by_category }}</h3>
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h3 class="font-semibold text-gray-800">{{ txt.by_category }}</h3>
+              <button @click="exportCategoryExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
@@ -1746,7 +1752,7 @@ async function submitOfflineSale() {
       payment_method: (isVip || isMkt) ? '' : offlinePaymentMethod.value,
       card_type: (!isVip && !isMkt && offlinePaymentMethod.value === 'card') ? offlineCardType.value : '',
       discount_percent: (!isVip && !isMkt) ? Number(offlineDiscount.value) || 0 : 0,
-      referred_by: saleType.value === 'regular' ? offlineReferral.value.trim() : '',
+      referred_by: saleType.value !== 'marketolog' ? offlineReferral.value.trim() : '',
     })
     offlineSuccess.value = true
     resetOfflineSale()
@@ -2052,6 +2058,79 @@ function exportClientProductExcel() {
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Клиенты и товары')
   XLSX.writeFile(wb, `клиенты_товары_${cashier}_${periodSlug()}.xlsx`)
+}
+
+// Category report: every delivered order bucketed into Простой / Бесплатный / Маркетолог,
+// listing the patient name (and optional doctor) per order, with per-category and grand totals.
+function buildCategoryData() {
+  const { start, end } = analyticsRange()
+  const sold = orders.value.filter(o => o.status === 'delivered' && !o.is_deleted &&
+    new Date(o.created_at) >= start && new Date(o.created_at) < end)
+  const order = ['Простой', 'Бесплатный', 'Маркетолог']
+  const cats = { 'Простой': mk(), 'Бесплатный': mk(), 'Маркетолог': mk() }
+  function mk() { return { rows: [], count: 0, pieces: 0, sum: 0 } }
+  for (const o of sold) {
+    const cat = o.is_vip ? 'Бесплатный' : (o.marketolog_id ? 'Маркетолог' : 'Простой')
+    let pieces = 0, sum = 0
+    for (const item of boughtItems(o)) { pieces += pieceCount(item); sum += item.price }
+    const doctor = (o.referred_by && o.referred_by.trim() && o.referred_by.trim() !== 'Самостоятельно') ? o.referred_by.trim() : ''
+    const c = cats[cat]
+    c.rows.push({ patient: clientName(o), doctor, pieces, sum: Math.round(sum) })
+    c.count++; c.pieces += pieces; c.sum += sum
+  }
+  return { order, cats }
+}
+
+// "Экспорт в Excel формате" on the «По категориям» block — bordered HTML .xls, grouped by
+// category, with the patient name + doctor for every order.
+function exportCategoryExcel() {
+  const { order, cats } = buildCategoryData()
+  const total = order.reduce((s, k) => s + cats[k].count, 0)
+  if (!total) { alert('Нет данных за выбранный период'); return }
+  const cashier = authStore.worker?.name || '—'
+  const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n || 0))
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  let gPieces = 0, gSum = 0, body = ''
+  for (const cat of order) {
+    const c = cats[cat]
+    if (!c.count) continue
+    body += `<tr>` +
+      `<td style="font-weight:bold;background:#dce6f7;">${esc(cat)} — ${c.count} заказ(ов)</td>` +
+      `<td style="background:#dce6f7;"></td>` +
+      `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(c.pieces)}</td>` +
+      `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(c.sum)}</td></tr>`
+    for (const r of c.rows) {
+      body += `<tr>` +
+        `<td>${esc(r.patient)}</td>` +
+        `<td>${esc(r.doctor)}</td>` +
+        `<td style="text-align:right;">${fmt(r.pieces)}</td>` +
+        `<td style="text-align:right;">${fmt(r.sum)}</td></tr>`
+    }
+    gPieces += c.pieces; gSum += c.sum
+  }
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>По категориям</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>` +
+    `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;">` +
+    `<tr><td colspan="4" style="border:none;font-weight:bold;font-size:15px;">Аналитика по категориям</td></tr>` +
+    `<tr><td colspan="4" style="border:none;">Кассир: ${esc(cashier)}</td></tr>` +
+    `<tr><td colspan="4" style="border:none;">Период: ${esc(periodLabel())}</td></tr>` +
+    `<tr><td colspan="4" style="border:none;"></td></tr>` +
+    `<tr style="background:#b9c9e6;font-weight:bold;text-align:center;">` +
+      `<td>Категория / Имя пациента</td><td>Доктор</td><td>Кол-во (шт)</td><td>Сумма (сум)</td></tr>` +
+    body +
+    `<tr style="background:#cfe3cf;font-weight:bold;"><td>ВСЕГО</td><td></td><td style="text-align:right;">${fmt(gPieces)}</td><td style="text-align:right;">${fmt(gSum)}</td></tr>` +
+    `</table></body></html>`
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `категории_${cashier}_${periodSlug()}.xls`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 // Per-doctor sales report for paying doctor salaries (based on referred sales).
