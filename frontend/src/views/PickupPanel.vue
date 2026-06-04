@@ -2164,7 +2164,9 @@ watch(tab, (t) => {
 
 watch(() => realtime.ordersVersion, () => {
   loadOrders()
-  if (tab.value === 'analytics') loadAnalytics()
+  // Keep analytics live: refresh whenever any order changes (edit/add/cancel/return),
+  // not only while the analytics tab is open, so it is never stale on reopen.
+  if (tab.value === 'analytics' || analyticsData.value) loadAnalytics()
   if (tab.value === 'stock' || tab.value === 'offline') loadStock()
 })
 

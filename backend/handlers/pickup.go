@@ -212,11 +212,27 @@ func UpdateOrderItems(c *gin.Context) {
 		order.ReturnReason = strings.TrimSpace(input.ReturnReason)
 		database.DB.Model(&models.Order{}).Where("id = ?", order.ID).
 			Updates(map[string]interface{}{"is_returned": true, "return_reason": order.ReturnReason})
-		for productID, prevPieces := range prevPiecesByProduct {
-			returned := prevPieces - newPiecesByProduct[productID]
-			if returned > 0 {
-				restockProduct(productID, returned)
+		// Reconcile warehouse stock for the NET change per product, in BOTH directions:
+		// removed/decreased pieces come back, added/increased pieces leave the warehouse.
+		// Iterate the union of previous and new products so newly added items are covered.
+		adjusted := map[uint]bool{}
+		reconcile := func(productID uint) {
+			if adjusted[productID] {
+				return
 			}
+			adjusted[productID] = true
+			delta := newPiecesByProduct[productID] - prevPiecesByProduct[productID]
+			if delta > 0 {
+				decrementProductStock(productID, delta) // added/increased → leaves stock
+			} else if delta < 0 {
+				restockProduct(productID, -delta) // removed/decreased → returns to stock
+			}
+		}
+		for productID := range prevPiecesByProduct {
+			reconcile(productID)
+		}
+		for productID := range newPiecesByProduct {
+			reconcile(productID)
 		}
 	}
 

@@ -126,3 +126,14 @@ func restockProduct(productID uint, qty int) {
 		UpdateColumn("stock_quantity", gorm.Expr("stock_quantity + ?", qty))
 	broadcastProductStock(productID)
 }
+
+// decrementProductStock removes pieces from the warehouse (clamped at 0) and broadcasts
+// the new level. Used when an edit ADDS or increases items on an already-delivered order.
+func decrementProductStock(productID uint, qty int) {
+	if qty <= 0 {
+		return
+	}
+	database.DB.Model(&models.Product{}).Where("id = ?", productID).
+		UpdateColumn("stock_quantity", gorm.Expr("GREATEST(stock_quantity - ?, 0)", qty))
+	broadcastProductStock(productID)
+}

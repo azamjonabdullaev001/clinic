@@ -2760,7 +2760,9 @@ watch(activeTab, async (tab) => {
 // Real-time: refresh orders and analytics as soon as any order changes.
 watch(() => realtime.ordersVersion, async () => {
   if (activeTab.value === 'orders') loadOrders()
-  if (activeTab.value === 'analytics') loadAnalytics()
+  // Refresh analytics on any order change (edit/add/cancel/return), even in the
+  // background, so it is always current in real time without a manual refresh.
+  if (activeTab.value === 'analytics' || analyticsData.value) loadAnalytics()
 })
 
 onMounted(() => {
