@@ -2082,7 +2082,7 @@ function buildDoctorSalesData() {
       o.referred_by && o.referred_by.trim() && o.referred_by.trim() !== 'Самостоятельно' &&
       new Date(o.created_at) >= start && new Date(o.created_at) < end)
 
-  // doctor -> { lines: Map(product -> {product, pieces, unit, sum}), pieces, sum }
+  // doctor -> { lines: Map(product -> {product, pieces, unit, gross, sum}), pieces, sum }
   const byDoctor = new Map()
   for (const o of sold) {
     const doc = o.referred_by.trim()
@@ -2092,9 +2092,10 @@ function buildDoctorSalesData() {
       const pieces = pieceCount(item)
       const unit = item.product?.price_per_pill || (pieces > 0 ? Math.round(item.price / pieces) : 0)
       const pname = item.product?.name || '—'
-      const line = d.lines.get(pname) || { product: pname, pieces: 0, unit, sum: 0 }
+      const line = d.lines.get(pname) || { product: pname, pieces: 0, unit, gross: 0, sum: 0 }
       line.pieces += pieces
       line.unit = unit
+      line.gross += unit * pieces // non-discounted value, to derive the effective discount %
       line.sum += item.price
       d.lines.set(pname, line)
       d.pieces += pieces
@@ -2104,9 +2105,9 @@ function buildDoctorSalesData() {
   return byDoctor
 }
 
-// New "Экспорт докторов" — rendered as a styled HTML table (.xls) so it looks like the
-// printed report: bordered cells, a bold shaded header row per doctor carrying its totals,
-// product lines underneath, and a grand total. No buyer name, no time, no discount.
+// New "Экспорт докторов" — styled HTML table (.xls): a bold shaded header row per doctor
+// with its totals, product lines underneath (qty, price, discount %, sum) and a grand
+// total. Discount % sits between price and sum and is blank when there was no discount.
 function exportDoctorSalesExcel() {
   const byDoctor = buildDoctorSalesData()
   if (!byDoctor.size) { alert('Нет данных по докторам за выбранный период'); return }
@@ -2121,13 +2122,16 @@ function exportDoctorSalesExcel() {
       `<td style="background:#dce6f7;"></td>` +
       `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(d.pieces)}</td>` +
       `<td style="background:#dce6f7;"></td>` +
+      `<td style="background:#dce6f7;"></td>` +
       `<td style="font-weight:bold;background:#dce6f7;text-align:right;">${fmt(d.sum)}</td></tr>`
     for (const line of d.lines.values()) {
+      const pct = line.gross > 0 ? Math.round((line.gross - line.sum) / line.gross * 100) : 0
       body += `<tr>` +
         `<td></td>` +
         `<td>${escXls(line.product)}</td>` +
         `<td style="text-align:right;">${fmt(line.pieces)}</td>` +
         `<td style="text-align:right;">${fmt(line.unit)}</td>` +
+        `<td style="text-align:right;">${pct > 0 ? pct + '%' : ''}</td>` +
         `<td style="text-align:right;">${fmt(line.sum)}</td></tr>`
     }
     gPieces += d.pieces
@@ -2140,10 +2144,10 @@ function exportDoctorSalesExcel() {
     `<div>Период: ${escXls(periodLabel())}</div>` +
     `<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px;margin-top:6px;">` +
     `<tr style="background:#b9c9e6;font-weight:bold;text-align:center;">` +
-      `<td>Доктор</td><td>Препарат</td><td>Кол-во (шт)</td><td>Цена (сум)</td><td>Сумма (сум)</td></tr>` +
+      `<td>Доктор</td><td>Препарат</td><td>Кол-во (шт)</td><td>Цена (сум)</td><td>Скидка %</td><td>Сумма (сум)</td></tr>` +
     body +
     `<tr style="background:#cfe3cf;font-weight:bold;">` +
-      `<td>ВСЕГО</td><td></td><td style="text-align:right;">${fmt(gPieces)}</td><td></td><td style="text-align:right;">${fmt(gSum)}</td></tr>` +
+      `<td>ВСЕГО</td><td></td><td style="text-align:right;">${fmt(gPieces)}</td><td></td><td></td><td style="text-align:right;">${fmt(gSum)}</td></tr>` +
     `</table>`
   downloadXls(`доктора_${cashier}_${periodSlug()}.xls`, 'По докторам', inner)
 }
