@@ -2032,12 +2032,20 @@ function exportClientProductExcel() {
     [`Кассир: ${cashier}`],
     [`Период: ${periodLabel()}`],
     [''],
-    ['Дата создания', 'Клиент', 'Тип', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма без скидки (сум)', 'Сумма (со скидкой) (сум)'],
+    ['Дата создания', 'Клиент', 'Тип', 'Препарат', 'Кол-во (шт)', 'Цена за шт (сум)', 'Скидка %', 'Скидочная сумма (сум)', 'Сумма со скидкой (сум)', 'Итоговая сумма (сум)'],
   ]
+  // "Сумма со скидкой" is filled only when the order had a discount (else blank);
+  // "Итоговая сумма" is always the real amount paid for the line.
+  let tDiscountedNet = 0
   for (const r of rows) {
-    aoa.push([fmtDateTime(r.created), r.client, r.type, r.product, r.pieces, r.unit, r.pct > 0 ? r.pct : '', r.discount, r.gross, r.net])
+    const withDisc = r.pct > 0
+    aoa.push([
+      fmtDateTime(r.created), r.client, r.type, r.product, r.pieces, r.unit,
+      withDisc ? r.pct : '', withDisc ? r.discount : '', withDisc ? r.net : '', r.net,
+    ])
+    if (withDisc) tDiscountedNet += r.net
   }
-  aoa.push(['ИТОГО', '', '', '', totals.pieces, '', '', totals.discount, totals.gross, totals.net])
+  aoa.push(['ИТОГО', '', '', '', totals.pieces, '', '', totals.discount, tDiscountedNet, totals.net])
 
   const ws = XLSX.utils.aoa_to_sheet(aoa)
   ws['!cols'] = [{ wch: 18 }, { wch: 24 }, { wch: 13 }, { wch: 24 }, { wch: 12 }, { wch: 15 }, { wch: 9 }, { wch: 20 }, { wch: 20 }, { wch: 22 }]
