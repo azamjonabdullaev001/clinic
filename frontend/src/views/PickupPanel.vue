@@ -552,8 +552,12 @@
 
         <!-- Product list -->
         <div class="pp-card rounded-xl shadow-sm overflow-hidden">
-          <div class="px-6 py-4 pp-border-b">
+          <div class="px-6 py-4 pp-border-b flex items-center justify-between gap-3">
             <h2 class="font-semibold pp-text">{{ txt.product_list }}</h2>
+            <button @click="openProdModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition text-sm font-medium flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              {{ lang === 'uz' ? 'Yangi dori' : 'Новый препарат' }}
+            </button>
           </div>
           <div class="pp-divide">
             <div v-for="s in filteredStock" :key="s.id" class="flex items-center justify-between px-6 py-4 pp-row-hover transition">
@@ -567,11 +571,19 @@
                   <p class="text-xs text-gray-500">{{ txt.pack }} · {{ txt.price }}: {{ formatPrice(s.product?.price_per_pack) }} {{ txt.sum }}</p>
                 </div>
               </div>
-              <div class="text-right">
-                <p class="text-sm font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700' : 'text-red-600'">
-                  {{ capsulesOf(s.product_id) }} {{ txt.pack }} / {{ stockOf(s.product_id) }} {{ txt.piece }}
-                </p>
-                <p class="text-xs text-gray-400 mt-0.5">{{ txt.remainder }}</p>
+              <div class="flex items-center gap-3">
+                <div class="text-right">
+                  <p class="text-sm font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700' : 'text-red-600'">
+                    {{ capsulesOf(s.product_id) }} {{ txt.pack }} / {{ stockOf(s.product_id) }} {{ txt.piece }}
+                  </p>
+                  <p class="text-xs text-gray-400 mt-0.5">{{ txt.remainder }}</p>
+                </div>
+                <button @click="openProdModal(s.product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" title="Редактировать">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button @click="deleteProd(s.product?.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
               </div>
             </div>
             <div v-if="filteredStock.length === 0" class="py-12 text-center text-gray-400 text-sm">{{ txt.stock_empty }}</div>
@@ -886,6 +898,56 @@
     </div>
   </div>
 
+  <!-- Product create/edit modal (pickup warehouse) -->
+  <div v-if="showProdModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="showProdModal=false">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">{{ prodEditing ? 'Изменить препарат' : 'Новый препарат' }}</h3>
+      <form @submit.prevent="saveProd" class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0">
+            <img v-if="prodImagePreview || prodForm.image_path" :src="prodImagePreview || prodForm.image_path" class="w-full h-full object-cover"/>
+            <svg v-else class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <button type="button" @click="$refs.prodImageInput.click()" class="text-sm text-teal-600 hover:underline">Загрузить фото</button>
+          <input ref="prodImageInput" type="file" accept="image/*" class="hidden" @change="onProdImage"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Название <span class="text-red-400">*</span></label>
+          <input v-model="prodForm.name" type="text" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">Описание</label>
+          <textarea v-model="prodForm.description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во в флаконе <span class="text-red-400">*</span></label>
+            <input v-model.number="prodForm.quantity_per_pack" type="number" min="1" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Цена за штуку <span class="text-red-400">*</span></label>
+            <input v-model.number="prodForm.price_per_pill" type="number" min="0" step="100" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+          </div>
+        </div>
+        <div v-if="!prodEditing">
+          <label class="block text-xs font-medium text-gray-500 mb-1">Начальный остаток (штук)</label>
+          <input v-model.number="prodForm.stock_quantity" type="number" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+          <p v-if="prodForm.stock_quantity > 0 && prodForm.quantity_per_pack > 0" class="text-xs text-gray-400 mt-1">= {{ Math.floor(prodForm.stock_quantity / prodForm.quantity_per_pack) }} флакон на складе</p>
+        </div>
+        <div v-if="prodForm.quantity_per_pack > 0 && prodForm.price_per_pill > 0" class="bg-teal-50 rounded-lg p-3 border border-teal-100 text-sm">
+          <span class="text-teal-600">Цена за флакон ({{ prodForm.quantity_per_pack }} шт):</span>
+          <span class="font-bold text-teal-700 ml-1">{{ formatPrice(prodForm.quantity_per_pack * prodForm.price_per_pill) }} {{ txt.sum }}</span>
+        </div>
+        <p v-if="prodError" class="text-sm text-red-500">{{ prodError }}</p>
+        <div class="flex gap-2 pt-1">
+          <button type="button" @click="showProdModal=false" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium">{{ txt.cancel }}</button>
+          <button type="submit" :disabled="prodSaving" class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">{{ prodSaving ? txt.saving : (prodEditing ? 'Сохранить' : 'Добавить') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Payment modal -->
   <div v-if="showPayModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="closePayModal">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
@@ -950,7 +1012,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
@@ -1856,6 +1918,73 @@ async function addStock() {
     stockUnit.value = 'pack'
     loadStock()
   } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { addingStock.value = false }
+}
+
+// ===== Product management from the warehouse (same as the admin panel) =====
+const showProdModal = ref(false)
+const prodEditing = ref(null)
+const prodForm = reactive({ name: '', description: '', quantity_per_pack: 60, price_per_pill: 6500, stock_quantity: 0, image_path: '' })
+const prodImageFile = ref(null)
+const prodImagePreview = ref(null)
+const prodSaving = ref(false)
+const prodError = ref('')
+
+function openProdModal(product = null) {
+  prodEditing.value = product
+  prodImageFile.value = null
+  prodImagePreview.value = null
+  prodError.value = ''
+  prodForm.name = product?.name || ''
+  prodForm.description = product?.description || ''
+  prodForm.quantity_per_pack = product?.quantity_per_pack || 60
+  prodForm.price_per_pill = product?.price_per_pill || 6500
+  prodForm.stock_quantity = 0
+  prodForm.image_path = product?.image_path || ''
+  showProdModal.value = true
+}
+
+function onProdImage(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  prodImageFile.value = file
+  prodImagePreview.value = URL.createObjectURL(file)
+  e.target.value = ''
+}
+
+async function saveProd() {
+  prodError.value = ''
+  prodSaving.value = true
+  try {
+    const payload = {
+      name: prodForm.name, description: prodForm.description,
+      quantity_per_pack: prodForm.quantity_per_pack, price_per_pill: prodForm.price_per_pill,
+      stock_quantity: prodForm.stock_quantity,
+    }
+    const saved = prodEditing.value
+      ? (await api.put(`/pickup/products/${prodEditing.value.id}`, payload)).data
+      : (await api.post('/pickup/products', payload)).data
+    if (prodImageFile.value && saved?.id) {
+      const fd = new FormData()
+      fd.append('image', prodImageFile.value)
+      await api.post(`/pickup/products/${saved.id}/image`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    }
+    showProdModal.value = false
+    await loadProducts()
+    await loadStock()
+  } catch (e) {
+    prodError.value = e.response?.data?.error || 'Ошибка'
+  } finally {
+    prodSaving.value = false
+  }
+}
+
+async function deleteProd(id) {
+  if (!id || !confirm('Удалить этот препарат?')) return
+  try {
+    await api.delete(`/pickup/products/${id}`)
+    await loadProducts()
+    await loadStock()
+  } catch (e) { alert(e.response?.data?.error || 'Ошибка при удалении') }
 }
 
 // ===== Excel Export =====

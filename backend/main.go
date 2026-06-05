@@ -136,6 +136,11 @@ func main() {
 			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)
 			pickup.POST("/stock", handlers.AddProductStock)
+			// Product management from the pickup warehouse (same as the admin panel).
+			pickup.POST("/products", handlers.CreateProduct)
+			pickup.PUT("/products/:id", handlers.UpdateProduct)
+			pickup.DELETE("/products/:id", handlers.DeleteProduct)
+			pickup.POST("/products/:id/image", handlers.UploadProductImage)
 			pickup.GET("/marketologs", handlers.GetMarketologs)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
