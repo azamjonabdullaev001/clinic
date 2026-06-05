@@ -2408,6 +2408,9 @@ watch(() => realtime.ordersVersion, () => {
   if (tab.value === 'stock' || tab.value === 'offline') loadStock()
 })
 
+// Product catalog changed anywhere → refresh products + stock in real time.
+watch(() => realtime.productsVersion, () => { loadProducts(); loadStock() })
+
 let stockPoll = null
 onMounted(() => {
   loadStock()

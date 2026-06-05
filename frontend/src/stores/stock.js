@@ -4,9 +4,10 @@ import { reactive } from 'vue'
 // Components read liveStock[productId] and fall back to their loaded value.
 export const liveStock = reactive({})
 
-// Real-time signals: `ordersVersion` bumps whenever any order changes anywhere,
-// so panels can watch it and refresh their lists/analytics without a page reload.
-export const realtime = reactive({ ordersVersion: 0 })
+// Real-time signals: `ordersVersion` bumps whenever any order changes anywhere and
+// `productsVersion` whenever the product catalog changes — panels watch these and refresh
+// their lists/analytics without a page reload.
+export const realtime = reactive({ ordersVersion: 0, productsVersion: 0 })
 
 let ws = null
 let started = false
@@ -24,6 +25,7 @@ function connect() {
       const m = JSON.parse(e.data)
       if (m && m.type === 'stock') liveStock[m.product_id] = m.quantity
       else if (m && m.type === 'orders') realtime.ordersVersion++
+      else if (m && m.type === 'products') realtime.productsVersion++
     } catch { /* ignore */ }
   }
   ws.onclose = () => { ws = null; setTimeout(connect, 4000) }

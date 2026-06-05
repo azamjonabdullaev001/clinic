@@ -2802,6 +2802,9 @@ watch(() => realtime.ordersVersion, async () => {
   if (activeTab.value === 'analytics' || analyticsData.value) loadAnalytics()
 })
 
+// Product catalog changed anywhere → refresh the products list in real time.
+watch(() => realtime.productsVersion, () => { loadProducts() })
+
 onMounted(() => {
   loadProducts()
   loadOrders()

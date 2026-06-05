@@ -394,7 +394,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
 import axios from 'axios'
 import Navbar from '../components/Navbar.vue'
 import CartDrawer from '../components/CartDrawer.vue'
@@ -403,10 +403,12 @@ import SimpleFooter from '../components/SimpleFooter.vue'
 import { useCartStore } from '../stores/cart'
 import { useLangStore } from '../stores/lang'
 import { api, useAuthStore } from '../stores/auth'
+import { useStockSocket, realtime } from '../stores/stock'
 
 const cartStore = useCartStore()
 const langStore = useLangStore()
 const authStore = useAuthStore()
+useStockSocket()
 const t = computed(() => langStore.t)
 
 const products = ref([])
@@ -546,12 +548,19 @@ function setupStats() {
   if (statsBarRef.value) statsObs.observe(statsBarRef.value)
 }
 
-onMounted(async () => {
+async function loadProducts() {
   try {
     const res = await axios.get('/api/products')
     products.value = res.data || []
   } catch (e) { console.error(e) }
   finally { loading.value = false }
+}
+
+// Catalog changes (admin/pickup add/edit/delete a product) appear live, no reload.
+watch(() => realtime.productsVersion, loadProducts)
+
+onMounted(async () => {
+  await loadProducts()
   loadNews()
   setTimeout(() => { setupScrollReveal(); setupStats() }, 120)
 })

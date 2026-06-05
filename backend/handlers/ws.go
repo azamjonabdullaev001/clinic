@@ -78,3 +78,9 @@ func broadcastProductStock(productID uint) {
 func BroadcastOrders() {
 	stockHub.broadcast(gin.H{"type": "orders"})
 }
+
+// BroadcastProducts signals every client that the product catalog changed (a product was
+// added / edited / deleted), so all panels refresh their product lists in real time.
+func BroadcastProducts() {
+	stockHub.broadcast(gin.H{"type": "products"})
+}

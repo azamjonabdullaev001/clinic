@@ -67,6 +67,7 @@ func CreateProduct(c *gin.Context) {
 	}
 
 	product.ComputePackPrice()
+	BroadcastProducts()
 	c.JSON(http.StatusCreated, product)
 }
 
@@ -97,6 +98,7 @@ func UpdateProduct(c *gin.Context) {
 	}
 
 	BroadcastStock(product.ID, product.StockQuantity)
+	BroadcastProducts()
 	product.ComputePackPrice()
 	c.JSON(http.StatusOK, product)
 }
@@ -117,6 +119,7 @@ func DeleteProduct(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении"})
 		return
 	}
+	BroadcastProducts()
 	c.JSON(http.StatusOK, gin.H{"message": "Препарат удален"})
 }
 
@@ -174,5 +177,6 @@ func UploadProductImage(c *gin.Context) {
 	}
 
 	product.ComputePackPrice()
+	BroadcastProducts()
 	c.JSON(http.StatusOK, product)
 }
