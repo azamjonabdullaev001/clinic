@@ -64,8 +64,10 @@ func CreateOrder(c *gin.Context) {
 
 	uid := userID.(uint)
 	order := models.Order{
-		UserID:          &uid,
-		Status:          "pending",
+		UserID: &uid,
+		// Online orders start as awaiting_payment: the customer pays via the QR and uploads
+		// a receipt, which moves the order to "pending" and reveals it at the pickup point.
+		Status:          "awaiting_payment",
 		Phone:           input.Phone,
 		OrderCode:       generateOrderCode(),
 		DeliveryAddress: deliveryAddress,

@@ -1269,6 +1269,24 @@
             </button>
           </form>
         </div>
+
+        <!-- Payment QR for online orders -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mt-5 max-w-2xl">
+          <h3 class="text-lg font-semibold text-gray-800 mb-1">QR-код для онлайн-оплаты</h3>
+          <p class="text-sm text-gray-500 mb-4">Показывается клиентам при оформлении онлайн-заказа для оплаты.</p>
+          <div class="flex items-center gap-5">
+            <div class="w-32 h-32 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+              <img v-if="paymentQrUrl" :src="paymentQrUrl" class="w-full h-full object-contain"/>
+              <span v-else class="text-xs text-gray-300">Нет QR</span>
+            </div>
+            <div>
+              <input ref="qrInput" type="file" accept="image/*" class="hidden" @change="uploadQR"/>
+              <button @click="$refs.qrInput.click()" :disabled="qrUploading" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">
+                {{ qrUploading ? 'Загрузка...' : (paymentQrUrl ? 'Заменить QR' : 'Загрузить QR') }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1745,6 +1763,22 @@ const supportLoading = ref(false)
 
 // Settings
 const settings = reactive({ phone: '', old_password: '', new_password: '' })
+const paymentQrUrl = ref('')
+const qrUploading = ref(false)
+async function loadPaymentQR() {
+  try { paymentQrUrl.value = (await api.get('/settings/payment-qr')).data?.url || '' } catch (e) { /* ignore */ }
+}
+async function uploadQR(e) {
+  const f = e.target.files[0]
+  if (!f) return
+  qrUploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('image', f)
+    const res = await api.post('/admin/payment-qr', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    paymentQrUrl.value = res.data?.url || ''
+  } catch (err) { alert('Ошибка загрузки QR') } finally { qrUploading.value = false; e.target.value = '' }
+}
 const settingsError = ref('')
 const settingsSuccess = ref('')
 
@@ -2772,5 +2806,6 @@ onMounted(() => {
   loadWorkers()
   loadFaqs()
   loadSupportThreads()
+  loadPaymentQR()
 })
 </script>

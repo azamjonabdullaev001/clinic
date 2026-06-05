@@ -50,6 +50,7 @@ func main() {
 			{
 				protected.GET("/profile", handlers.AdminProfile)
 				protected.PUT("/settings", handlers.UpdateAdminSettings)
+				protected.POST("/payment-qr", handlers.UploadPaymentQR)
 				protected.GET("/products", handlers.GetProducts)
 				protected.POST("/products", handlers.CreateProduct)
 				protected.PUT("/products/:id", handlers.UpdateProduct)
@@ -97,6 +98,8 @@ func main() {
 			products.POST("/:id/comments", middleware.UserAuth(), handlers.AddProductComment)
 		}
 
+		api.GET("/settings/payment-qr", handlers.GetPaymentQR)
+
 		api.GET("/faqs", handlers.GetFAQs)
 
 		api.GET("/news", handlers.GetNewsPosts)
@@ -112,6 +115,7 @@ func main() {
 		{
 			orders.POST("", handlers.CreateOrder)
 			orders.GET("", handlers.GetUserOrders)
+			orders.POST("/:id/receipt", handlers.UploadOrderReceipt)
 		}
 
 		support := api.Group("/support")

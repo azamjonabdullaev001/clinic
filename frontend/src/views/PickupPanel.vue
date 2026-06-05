@@ -182,6 +182,12 @@
                   <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
                 </div>
               </div>
+              <div v-if="order.receipt_path" class="mt-2 flex items-center gap-2">
+                <span class="text-xs text-emerald-600 font-medium">✓ Чек об оплате:</span>
+                <a :href="order.receipt_path" target="_blank" rel="noopener">
+                  <img :src="order.receipt_path" class="w-14 h-14 object-cover rounded-lg border border-emerald-200 hover:opacity-80 transition"/>
+                </a>
+              </div>
               <div class="mt-3 flex gap-2 flex-wrap">
                 <button v-if="order.status === 'pending'" @click="updateStatus(order, 'in_transit')" class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium">🚚 {{ txt.in_transit }}</button>
                 <button v-if="order.status === 'in_transit'" @click="updateStatus(order, 'delivered')" class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium">✓ {{ txt.deliver }}</button>

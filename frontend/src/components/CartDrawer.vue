@@ -390,27 +390,50 @@
 
     <!-- ===== ORDER SUCCESS MODAL ===== -->
     <div v-if="showOrderSuccess" class="fixed inset-0 z-[70] flex items-center justify-center">
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeOrderSuccess"></div>
-      <div class="relative bg-white rounded-3xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
-        <!-- Success icon -->
-        <div class="w-20 h-20 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
-          <svg class="w-10 h-10 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 class="text-2xl font-bold text-stone-900 mb-2">Заказ оформлен!</h3>
-        <p class="text-stone-500 mb-5 leading-relaxed text-sm">Мы свяжемся с вами в ближайшее время для подтверждения и доставки</p>
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="paymentStage==='done' && closeOrderSuccess()"></div>
+      <div class="relative bg-white rounded-3xl p-7 max-w-sm w-full mx-4 text-center shadow-2xl max-h-[92vh] overflow-y-auto">
 
-        <!-- Order code -->
-        <div class="bg-gradient-to-br from-brand-50 to-blue-50 border border-brand-100 rounded-2xl p-5 mb-6">
-          <p class="text-xs text-brand-500 font-semibold uppercase tracking-wider mb-2">Ваш код заказа</p>
-          <p class="text-5xl font-bold text-brand-700 tracking-[0.15em] mb-2">{{ orderSuccessCode }}</p>
-          <p class="text-xs text-stone-400">Сообщите этот код при получении заказа</p>
-        </div>
+        <!-- Stage 1: pay via QR + upload receipt -->
+        <template v-if="paymentStage === 'pay'">
+          <h3 class="text-xl font-bold text-stone-900 mb-1">Оплата заказа</h3>
+          <p class="text-stone-500 mb-4 text-sm">Отсканируйте QR-код и подтвердите оплату</p>
+          <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center">
+            <img v-if="paymentQrUrl" :src="paymentQrUrl" class="w-48 h-48 object-contain"/>
+            <div v-else class="w-48 h-48 flex items-center justify-center text-stone-300 text-sm text-center px-3">QR-код не настроен — обратитесь в аптеку</div>
+          </div>
+          <p class="text-xs text-stone-400 mb-4">Код заказа: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
 
-        <button @click="closeOrderSuccess" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold">
-          Отлично, понял!
-        </button>
+          <div class="mb-4 text-left">
+            <label class="text-sm font-medium text-stone-700 mb-2 block">Загрузите фото чека <span class="text-red-400">*</span></label>
+            <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200"/></div>
+            <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition">
+              {{ receiptFile ? 'Изменить фото чека' : '📷 Выбрать фото чека' }}
+            </button>
+            <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect"/>
+          </div>
+          <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
+          <button @click="confirmOrderPayment" :disabled="!receiptFile || confirmingOrder" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40">
+            {{ confirmingOrder ? 'Подтверждение...' : 'Подтвердить заказ' }}
+          </button>
+          <button @click="closeOrderSuccess" class="w-full mt-2 py-2 text-sm text-stone-400 hover:text-stone-600 transition">Оплачу позже</button>
+        </template>
+
+        <!-- Stage 2: thank you -->
+        <template v-else>
+          <div class="w-20 h-20 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg class="w-10 h-10 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-stone-900 mb-2">Спасибо, что выбрали нас!</h3>
+          <p class="text-stone-500 mb-5 leading-relaxed text-sm">Ваш заказ принят и отправлен в пункт выдачи на подтверждение. Мы свяжемся с вами в ближайшее время.</p>
+          <div class="bg-gradient-to-br from-brand-50 to-blue-50 border border-brand-100 rounded-2xl p-5 mb-6">
+            <p class="text-xs text-brand-500 font-semibold uppercase tracking-wider mb-2">Ваш код заказа</p>
+            <p class="text-5xl font-bold text-brand-700 tracking-[0.15em] mb-2">{{ orderSuccessCode }}</p>
+            <p class="text-xs text-stone-400">Сообщите этот код при получении заказа</p>
+          </div>
+          <button @click="closeOrderSuccess" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold">Отлично!</button>
+        </template>
       </div>
     </div>
   </Teleport>
@@ -510,6 +533,39 @@ const locationConfirmed = ref(false)
 // Order success
 const showOrderSuccess = ref(false)
 const orderSuccessCode = ref('')
+
+// Online payment (QR + receipt) flow
+const paymentStage = ref('pay')      // 'pay' -> 'done'
+const paymentQrUrl = ref('')
+const currentOrderId = ref(null)
+const receiptFile = ref(null)
+const receiptPreview = ref(null)
+const confirmingOrder = ref(false)
+const paymentError = ref('')
+
+function onReceiptSelect(e) {
+  const f = e.target.files[0]
+  if (!f) return
+  receiptFile.value = f
+  receiptPreview.value = URL.createObjectURL(f)
+  e.target.value = ''
+}
+
+async function confirmOrderPayment() {
+  if (!receiptFile.value || !currentOrderId.value) return
+  paymentError.value = ''
+  confirmingOrder.value = true
+  try {
+    const fd = new FormData()
+    fd.append('receipt', receiptFile.value)
+    await api.post(`/orders/${currentOrderId.value}/receipt`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    paymentStage.value = 'done'
+  } catch (e) {
+    paymentError.value = e.response?.data?.error || 'Ошибка при отправке чека'
+  } finally {
+    confirmingOrder.value = false
+  }
+}
 
 const checkoutForm = ref({
   address: '',
@@ -715,6 +771,10 @@ function openCheckout() {
 function closeOrderSuccess() {
   showOrderSuccess.value = false
   orderSuccessCode.value = ''
+  currentOrderId.value = null
+  receiptFile.value = null
+  receiptPreview.value = null
+  paymentStage.value = 'pay'
   switchTab('orders')
   loadOrders()
 }
@@ -757,7 +817,13 @@ async function submitOrder() {
     cartStore.clear()
     showCheckout.value = false
     destroyMap()
+    currentOrderId.value = res.data?.id || null
     orderSuccessCode.value = res.data?.order_code || ''
+    receiptFile.value = null
+    receiptPreview.value = null
+    paymentError.value = ''
+    paymentStage.value = 'pay'
+    try { paymentQrUrl.value = (await api.get('/settings/payment-qr')).data?.url || '' } catch (e) { paymentQrUrl.value = '' }
     showOrderSuccess.value = true
   } catch (e) {
     checkoutError.value = e.response?.data?.error || 'Ошибка при оформлении заказа'

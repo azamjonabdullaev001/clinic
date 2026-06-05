@@ -145,7 +145,14 @@ type Order struct {
 	DeletedByRole      string   `json:"deleted_by_role"`
 	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
 	ArchiveReason      string   `json:"archive_reason"`
+	ReceiptPath        string   `json:"receipt_path"` // uploaded payment receipt photo for online QR payments
 	CreatedAt       time.Time   `json:"created_at"`
+}
+
+// Setting is a simple key/value store (e.g. the payment QR image path).
+type Setting struct {
+	Key   string `gorm:"primaryKey" json:"key"`
+	Value string `gorm:"type:text" json:"value"`
 }
 
 // WorkerStock is the personal inventory of a worker (pickup point or manager).
