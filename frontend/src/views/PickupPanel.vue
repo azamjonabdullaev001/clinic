@@ -268,12 +268,12 @@
                 <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
                 <span class="text-sm font-semibold text-gray-700">{{ txt.referral_ph }}</span>
               </div>
-              <input v-model="offlineReferral" list="offline-doctors" :placeholder="txt.referral_ph"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-              <datalist id="offline-doctors">
-                <option value="Самостоятельно"></option>
-                <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')"></option>
-              </datalist>
+              <!-- Quick-pick dropdown so the cashier doesn't have to type; optional. -->
+              <select v-model="offlineReferral"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">{{ lang === 'uz' ? 'Doktorsiz' : 'Без доктора' }}</option>
+                <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')">{{ d.name }}{{ d.specialty ? ' (' + d.specialty + ')' : '' }}</option>
+              </select>
             </div>
 
             <!-- Top-right: Unit (default piece) -->
