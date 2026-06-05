@@ -65,6 +65,7 @@ func Migrate() {
 		&models.Doctor{},
 		&models.WorkerStock{},
 		&models.ProductComment{},
+		&models.MarketologPayment{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)

@@ -142,6 +142,8 @@ func main() {
 			pickup.DELETE("/products/:id", handlers.DeleteProduct)
 			pickup.POST("/products/:id/image", handlers.UploadProductImage)
 			pickup.GET("/marketologs", handlers.GetMarketologs)
+			pickup.GET("/marketologs/:id/debt", handlers.GetMarketologDebt)
+			pickup.POST("/marketologs/:id/payment", handlers.AddMarketologPayment)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)

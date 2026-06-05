@@ -735,6 +735,55 @@
             </div>
           </div>
         </template>
+
+        <!-- Marketolog debt & repayment (all-time, transfer only) -->
+        <div class="pp-card rounded-xl shadow-sm p-6">
+          <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h3 class="font-semibold text-gray-800">{{ lang === 'uz' ? 'Marketolog qarzi' : 'Долг маркетолога' }}</h3>
+            <select v-model="mktDebtId" @change="loadMktDebt" class="pp-input rounded-lg px-3 py-2 text-sm min-w-[200px]">
+              <option value="">{{ lang === 'uz' ? 'Marketologni tanlang' : 'Выберите маркетолога' }}</option>
+              <option v-for="m in marketologs" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </div>
+          <div v-if="mktDebt">
+            <div class="grid grid-cols-3 gap-3 mb-4">
+              <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Долг</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(mktDebt.debt) }} {{ txt.sum }}</p></div>
+              <div class="bg-emerald-50 rounded-xl p-4"><p class="text-xs text-emerald-600 mb-1">Оплачено</p><p class="text-lg font-bold text-emerald-700">{{ formatPrice(mktDebt.paid) }} {{ txt.sum }}</p></div>
+              <div class="bg-rose-50 rounded-xl p-4"><p class="text-xs text-rose-600 mb-1">Остаток долга</p><p class="text-lg font-bold text-rose-700">{{ formatPrice(mktDebt.remaining) }} {{ txt.sum }}</p></div>
+            </div>
+            <div v-if="mktDebt.products && mktDebt.products.length" class="overflow-x-auto rounded-xl border border-purple-100 mb-4">
+              <table class="w-full text-sm">
+                <thead class="bg-purple-50"><tr>
+                  <th class="text-left px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.product }}</th>
+                  <th class="text-right px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.pack }}</th>
+                  <th class="text-right px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.piece }}</th>
+                  <th class="text-right px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.sum }}</th>
+                </tr></thead>
+                <tbody class="divide-y divide-purple-50">
+                  <tr v-for="(p, i) in mktDebt.products" :key="i">
+                    <td class="px-3 py-2 text-gray-800">{{ p.product_name }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">{{ p.capsules }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600">{{ p.pieces }}</td>
+                    <td class="px-3 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="flex items-end gap-3 flex-wrap">
+              <div>
+                <label class="text-xs text-gray-500 mb-1 block">{{ lang === 'uz' ? "To'lov (Perechislenie XR)" : 'Оплата (Перечисление ХР)' }}</label>
+                <input v-model.number="mktPayAmount" type="number" min="0" placeholder="0" class="pp-input rounded-lg px-3 py-2 text-sm w-48"/>
+              </div>
+              <button @click="payMktDebt" :disabled="!mktPayAmount || mktPaying" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-40">
+                {{ mktPaying ? txt.saving : (lang === 'uz' ? "To'lash" : 'Оплатить долг') }}
+              </button>
+            </div>
+            <p v-if="mktDebt.payments && mktDebt.payments.length" class="text-xs text-gray-400 mt-2">
+              Последняя оплата: {{ formatPrice(mktDebt.payments[0].amount) }} {{ txt.sum }} · {{ new Date(mktDebt.payments[0].created_at).toLocaleDateString('ru-RU') }}
+            </p>
+          </div>
+          <div v-else class="text-center text-gray-400 text-sm py-6">{{ lang === 'uz' ? 'Marketologni tanlang' : 'Выберите маркетолога' }}</div>
+        </div>
       </div>
 
       <!-- ===== HISTORY TAB ===== -->
@@ -1697,6 +1746,27 @@ const allDoctors = ref([])
 
 async function loadMarketologs() {
   try { marketologs.value = (await api.get('/pickup/marketologs')).data || [] } catch (e) { console.error(e) }
+}
+
+// ===== Marketolog debt & repayment =====
+const mktDebtId = ref('')
+const mktDebt = ref(null)
+const mktPayAmount = ref(null)
+const mktPaying = ref(false)
+
+async function loadMktDebt() {
+  if (!mktDebtId.value) { mktDebt.value = null; return }
+  try { mktDebt.value = (await api.get(`/pickup/marketologs/${mktDebtId.value}/debt`)).data } catch (e) { console.error(e) }
+}
+
+async function payMktDebt() {
+  if (!mktDebtId.value || !mktPayAmount.value || mktPayAmount.value <= 0) return
+  mktPaying.value = true
+  try {
+    await api.post(`/pickup/marketologs/${mktDebtId.value}/payment`, { amount: Number(mktPayAmount.value) })
+    mktPayAmount.value = null
+    await loadMktDebt()
+  } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { mktPaying.value = false }
 }
 
 function qppOf(productId) {

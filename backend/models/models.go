@@ -168,6 +168,16 @@ type ProductComment struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+// MarketologPayment records money a marketolog paid back against their debt (transfer/ХР).
+type MarketologPayment struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	MarketologID uint      `gorm:"index;not null" json:"marketolog_id"`
+	Amount       float64   `gorm:"not null" json:"amount"`
+	WorkerID     *uint     `json:"worker_id"`
+	Note         string    `json:"note"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
 type OrderItem struct {
 	ID               uint    `gorm:"primaryKey" json:"id"`
 	OrderID          uint    `gorm:"not null" json:"order_id"`
