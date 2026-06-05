@@ -5,10 +5,15 @@ import axios from 'axios'
 // Create axios instance OUTSIDE of Pinia store to avoid reactive proxy wrapping
 const api = axios.create({ baseURL: '/api' })
 
+// Staff sessions (admin / worker / doctor) are kept in sessionStorage so they are NOT
+// cached across browser sessions — closing the tab logs them out and they must sign in
+// again (security). Regular landing-page customers stay in localStorage (persistent).
+const staff = sessionStorage
+
 api.interceptors.request.use(config => {
-  const adminToken = localStorage.getItem('adminToken') || ''
-  const workerToken = localStorage.getItem('workerToken') || ''
-  const doctorToken = localStorage.getItem('doctorToken') || ''
+  const adminToken = staff.getItem('adminToken') || ''
+  const workerToken = staff.getItem('workerToken') || ''
+  const doctorToken = staff.getItem('doctorToken') || ''
   const userToken = localStorage.getItem('userToken') || ''
   if (config.url?.startsWith('/admin') && adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`
@@ -27,12 +32,12 @@ export { api }
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('userToken') || '')
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-  const adminToken = ref(localStorage.getItem('adminToken') || '')
-  const admin = ref(JSON.parse(localStorage.getItem('admin') || 'null'))
-  const workerToken = ref(localStorage.getItem('workerToken') || '')
-  const worker = ref(JSON.parse(localStorage.getItem('worker') || 'null'))
-  const doctorToken = ref(localStorage.getItem('doctorToken') || '')
-  const doctor = ref(JSON.parse(localStorage.getItem('doctor') || 'null'))
+  const adminToken = ref(staff.getItem('adminToken') || '')
+  const admin = ref(JSON.parse(staff.getItem('admin') || 'null'))
+  const workerToken = ref(staff.getItem('workerToken') || '')
+  const worker = ref(JSON.parse(staff.getItem('worker') || 'null'))
+  const doctorToken = ref(staff.getItem('doctorToken') || '')
+  const doctor = ref(JSON.parse(staff.getItem('doctor') || 'null'))
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => !!adminToken.value)
@@ -69,18 +74,18 @@ export const useAuthStore = defineStore('auth', () => {
     if (res.data.role === 'worker') {
       workerToken.value = res.data.token
       worker.value = res.data.worker
-      localStorage.setItem('workerToken', res.data.token)
-      localStorage.setItem('worker', JSON.stringify(res.data.worker))
+      staff.setItem('workerToken', res.data.token)
+      staff.setItem('worker', JSON.stringify(res.data.worker))
     } else if (res.data.role === 'doctor') {
       doctorToken.value = res.data.token
       doctor.value = res.data.doctor
-      localStorage.setItem('doctorToken', res.data.token)
-      localStorage.setItem('doctor', JSON.stringify(res.data.doctor))
+      staff.setItem('doctorToken', res.data.token)
+      staff.setItem('doctor', JSON.stringify(res.data.doctor))
     } else {
       adminToken.value = res.data.token
       admin.value = res.data.admin
-      localStorage.setItem('adminToken', res.data.token)
-      localStorage.setItem('admin', JSON.stringify(res.data.admin))
+      staff.setItem('adminToken', res.data.token)
+      staff.setItem('admin', JSON.stringify(res.data.admin))
     }
     return res.data
   }
@@ -95,22 +100,22 @@ export const useAuthStore = defineStore('auth', () => {
   function adminLogout() {
     adminToken.value = ''
     admin.value = null
-    localStorage.removeItem('adminToken')
-    localStorage.removeItem('admin')
+    staff.removeItem('adminToken')
+    staff.removeItem('admin')
   }
 
   function workerLogout() {
     workerToken.value = ''
     worker.value = null
-    localStorage.removeItem('workerToken')
-    localStorage.removeItem('worker')
+    staff.removeItem('workerToken')
+    staff.removeItem('worker')
   }
 
   function doctorLogout() {
     doctorToken.value = ''
     doctor.value = null
-    localStorage.removeItem('doctorToken')
-    localStorage.removeItem('doctor')
+    staff.removeItem('doctorToken')
+    staff.removeItem('doctor')
   }
 
   return {
