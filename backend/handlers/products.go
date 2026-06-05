@@ -16,7 +16,9 @@ type ProductInput struct {
 	Name            string  `json:"name" binding:"required"`
 	Description     string  `json:"description"`
 	Category        string  `json:"category"`
-	QuantityPerPack int     `json:"quantity_per_pack" binding:"required,min=1"`
+	// QuantityPerPack is OPTIONAL: 0 means the product has no флакон and is sold only by
+	// the piece (ointments / mixtures / liquids), priced at price_per_pill per unit.
+	QuantityPerPack int     `json:"quantity_per_pack" binding:"omitempty,min=1"`
 	PricePerPill    float64 `json:"price_per_pill" binding:"required,min=0"`
 	StockQuantity   int     `json:"stock_quantity"`
 }

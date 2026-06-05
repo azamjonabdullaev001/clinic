@@ -284,10 +284,12 @@
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <button v-for="u in [{v:'piece',l:txt.piece},{v:'pack',l:txt.pack}]" :key="u.v"
+                  v-show="!(u.v === 'pack' && offlineIsPieceOnly)"
                   @click="offlineUnit=u.v"
                   :class="offlineUnit===u.v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
                   class="border py-2.5 rounded-lg text-sm font-medium transition">{{ u.l }}</button>
               </div>
+              <p v-if="offlineIsPieceOnly" class="text-xs text-gray-400 mt-1">Только поштучно</p>
             </div>
 
             <!-- Bottom-left: Product -->
@@ -304,7 +306,7 @@
                 <svg class="w-4 h-4 text-gray-400 absolute right-2 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
               </div>
               <div v-if="offlineProductId" class="mt-2 p-2 pp-inset rounded-lg">
-                <p class="text-xs text-gray-500">{{ txt.in_stock }}: <span class="font-semibold text-gray-700">{{ capsulesOf(offlineProductId) }} {{ txt.pack }} / {{ stockOf(offlineProductId) }} {{ txt.piece }}</span></p>
+                <p class="text-xs text-gray-500">{{ txt.in_stock }}: <span class="font-semibold text-gray-700"><template v-if="!offlineIsPieceOnly">{{ capsulesOf(offlineProductId) }} {{ txt.pack }} / </template>{{ stockOf(offlineProductId) }} {{ txt.piece }}</span></p>
               </div>
             </div>
 
@@ -977,14 +979,15 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во в флаконе <span class="text-red-400">*</span></label>
-            <input v-model.number="prodForm.quantity_per_pack" type="number" min="1" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во в флаконе</label>
+            <input v-model.number="prodForm.quantity_per_pack" type="number" min="0" placeholder="нет (поштучно)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-500 mb-1">Цена за штуку <span class="text-red-400">*</span></label>
             <input v-model.number="prodForm.price_per_pill" type="number" min="0" step="100" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
           </div>
         </div>
+        <p class="text-xs text-gray-400">Оставьте «Кол-во в флаконе» пустым, если товар продаётся только поштучно (мазь, смесь, жидкость).</p>
         <div v-if="!prodEditing">
           <label class="block text-xs font-medium text-gray-500 mb-1">Начальный остаток (штук)</label>
           <input v-model.number="prodForm.stock_quantity" type="number" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
@@ -1781,6 +1784,13 @@ function qppOf(productId) {
 }
 function capsulesOf(productId) { return Math.floor(stockOf(productId) / qppOf(productId)) }
 
+// Piece-only products (ointments / mixtures / liquids) have no флакон — sold by the piece.
+const offlineIsPieceOnly = computed(() => {
+  const p = allProducts.value.find(x => x.id === offlineProductId.value)
+  return !!p && (p.quantity_per_pack || 0) <= 0
+})
+watch(offlineProductId, () => { if (offlineIsPieceOnly.value) offlineUnit.value = 'piece' })
+
 const paymentMethods = computed(() => [
   { value: 'cash', label: txt.value.pay_cash },
   { value: 'terminal', label: txt.value.pay_terminal },
@@ -2012,7 +2022,7 @@ function openProdModal(product = null) {
   prodError.value = ''
   prodForm.name = product?.name || ''
   prodForm.description = product?.description || ''
-  prodForm.quantity_per_pack = product?.quantity_per_pack || 60
+  prodForm.quantity_per_pack = product ? (product.quantity_per_pack || 0) : 60
   prodForm.price_per_pill = product?.price_per_pill || 6500
   prodForm.stock_quantity = 0
   prodForm.image_path = product?.image_path || ''
@@ -2033,7 +2043,7 @@ async function saveProd() {
   try {
     const payload = {
       name: prodForm.name, description: prodForm.description,
-      quantity_per_pack: prodForm.quantity_per_pack, price_per_pill: prodForm.price_per_pill,
+      quantity_per_pack: Number(prodForm.quantity_per_pack) || 0, price_per_pill: prodForm.price_per_pill,
       stock_quantity: prodForm.stock_quantity,
     }
     const saved = prodEditing.value

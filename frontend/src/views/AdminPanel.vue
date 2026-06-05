@@ -1335,8 +1335,8 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в флаконе <span class="text-red-400">*</span></label>
-              <input v-model.number="productForm.quantity_per_pack" type="number" min="1" required
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в флаконе</label>
+              <input v-model.number="productForm.quantity_per_pack" type="number" min="0" placeholder="нет (поштучно)"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
             <div>
@@ -1345,6 +1345,7 @@
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
           </div>
+          <p class="text-xs text-gray-400 -mt-1">Оставьте «Кол-во в флаконе» пустым, если товар продаётся только поштучно (мазь, смесь, жидкость).</p>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (штук)</label>
@@ -2237,12 +2238,14 @@ async function saveProduct() {
   productError.value = ''
   savingProduct.value = true
   try {
+    // Empty "Кол-во в флаконе" → 0 = piece-only product (no флакон).
+    const payload = { ...productForm, quantity_per_pack: Number(productForm.quantity_per_pack) || 0 }
     let savedProduct
     if (editingProduct.value) {
-      const res = await api.put(`/admin/products/${editingProduct.value.id}`, productForm)
+      const res = await api.put(`/admin/products/${editingProduct.value.id}`, payload)
       savedProduct = res.data
     } else {
-      const res = await api.post('/admin/products', productForm)
+      const res = await api.post('/admin/products', payload)
       savedProduct = res.data
     }
     // Upload image if selected
