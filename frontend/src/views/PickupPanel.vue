@@ -272,7 +272,12 @@
               <select v-model="offlineReferral"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">{{ lang === 'uz' ? 'Doktorsiz' : 'Без доктора' }}</option>
-                <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')">{{ d.name }}{{ d.specialty ? ' (' + d.specialty + ')' : '' }}</option>
+                <optgroup :label="lang === 'uz' ? 'Bepul dasturlar' : 'Бесплатные программы'">
+                  <option v-for="fp in freePrograms" :key="fp" :value="fp">{{ fp }}</option>
+                </optgroup>
+                <optgroup :label="lang === 'uz' ? 'Doktorlar' : 'Доктора'">
+                  <option v-for="d in allDoctors" :key="d.id" :value="d.name + (d.specialty?' ('+d.specialty+')':'')">{{ d.name }}{{ d.specialty ? ' (' + d.specialty + ')' : '' }}</option>
+                </optgroup>
               </select>
             </div>
 
@@ -433,8 +438,14 @@
                 </div>
               </div>
             </div>
-            <div v-if="saleType !== 'marketolog'" class="flex gap-3 flex-wrap">
-              <input v-model="offlineNote" :placeholder="txt.buyer_name" class="flex-1 min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+            <div v-if="saleType !== 'marketolog'" class="space-y-2">
+              <!-- Free sale: one-tap pick of the three free programs (no typing needed). -->
+              <div v-if="saleType === 'vip'" class="flex gap-2 flex-wrap">
+                <button v-for="fp in freePrograms" :key="fp" type="button" @click="offlineNote = fp"
+                  :class="offlineNote === fp ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
+                  class="px-3 py-2 rounded-lg text-sm font-medium border transition">{{ fp }}</button>
+              </div>
+              <input v-model="offlineNote" :placeholder="txt.buyer_name" class="w-full min-w-[180px] pp-input rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
             </div>
             <button @click="submitOfflineSale" :disabled="!offlineCanSubmit || offlineSubmitting" class="w-full bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700 transition font-bold disabled:opacity-40">
               {{ offlineSubmitting ? txt.saving : txt.record_sale }}
@@ -1756,6 +1767,8 @@ const offlineProductId = ref('')
 const offlineQty = ref(1)
 const offlineItems = ref([])
 const offlineNote = ref('')
+// Predefined free-medicine programs (not doctors) — picked instead of typing a name.
+const freePrograms = ['Тоза ҳаво', 'Исботли тиббиёт', 'Соғлом турмуш']
 const offlineSubmitting = ref(false)
 const offlineSuccess = ref(false)
 const saleType = ref('regular')
