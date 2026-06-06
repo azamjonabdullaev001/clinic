@@ -1869,11 +1869,13 @@ const offlineFinalCollected = computed(() =>
 const offlinePaymentDiscountTotal = computed(() =>
   Math.round(offlinePaymentEntered.value - offlineFinalCollected.value))
 
-// "100%": this method covers the whole bill, the others reset to 0.
+// "100%": fill THIS method with the remaining unallocated amount (bill − what's already
+// entered in the other methods), keeping the amounts already typed elsewhere.
 function setFullPayment(key) {
-  for (const k of Object.keys(offlinePayments.value)) {
-    offlinePayments.value[k] = k === key ? Math.round(offlineDiscountedTotal.value) : 0
-  }
+  const others = offlinePayMethods.value.reduce((s, m) =>
+    m.key === key ? s : s + (Number(offlinePayments.value[m.key]) || 0), 0)
+  const remaining = Math.round(offlineDiscountedTotal.value) - Math.round(others)
+  offlinePayments.value[key] = remaining > 0 ? remaining : 0
 }
 
 const offlineCanSubmit = computed(() => {
