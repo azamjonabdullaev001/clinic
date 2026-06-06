@@ -414,14 +414,23 @@
                 </div>
                 <div class="space-y-2">
                   <div v-for="m in offlinePayMethods" :key="m.key" class="flex items-center gap-2">
-                    <span class="w-32 text-sm text-gray-600 flex-shrink-0">{{ m.label }}</span>
+                    <span class="w-24 text-sm text-gray-600 flex-shrink-0">{{ m.label }}</span>
                     <input v-model.number="offlinePayments[m.key]" type="number" min="0" placeholder="0"
-                      class="flex-1 min-w-0 pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                      class="flex-1 min-w-0 pp-input rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                      <input v-model.number="offlinePayDiscounts[m.key]" type="number" min="0" max="100" placeholder="0"
+                        class="w-14 pp-input rounded-lg px-1.5 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                      <span class="text-xs text-gray-400">%</span>
+                    </div>
                     <button type="button" @click="setFullPayment(m.key)"
-                      class="px-2.5 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition flex-shrink-0">100%</button>
+                      class="px-2 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition flex-shrink-0">100%</button>
                   </div>
                 </div>
                 <p v-if="!offlinePaymentOk" class="text-xs text-rose-500 mt-1">Сумма оплат должна равняться итогу к оплате</p>
+                <div v-else-if="offlinePaymentDiscountTotal > 0" class="flex items-center justify-between mt-1.5 text-sm">
+                  <span class="text-gray-500">Скидка по способам: <span class="text-rose-600 font-medium">−{{ formatPrice(offlinePaymentDiscountTotal) }}</span></span>
+                  <span class="font-bold text-emerald-700">К оплате: {{ formatPrice(offlineFinalCollected) }} {{ txt.sum }}</span>
+                </div>
               </div>
             </div>
             <div v-if="saleType !== 'marketolog'" class="flex gap-3 flex-wrap">
@@ -1819,6 +1828,9 @@ const offlinePayMethods = computed(() => [
   { key: 'transfer', label: txt.value.card_transfer },
 ])
 const offlinePayments = ref({ cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 })
+// Per-method discount %, applied only to that method's amount (a real discount that lowers
+// the final collected total, e.g. cash 500 000 −10% → 450 000).
+const offlinePayDiscounts = ref({ cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 })
 
 const offlineTotal = computed(() => offlineItems.value.reduce((s, i) => s + i.price, 0))
 const offlineDiscountPct = computed(() => {
@@ -1827,11 +1839,22 @@ const offlineDiscountPct = computed(() => {
 })
 const offlineDiscountedTotal = computed(() => offlineTotal.value * (1 - offlineDiscountPct.value / 100))
 
+// Net collected via one method = its amount minus its own discount.
+function payNet(key) {
+  const amount = Number(offlinePayments.value[key]) || 0
+  const disc = Math.min(100, Math.max(0, Number(offlinePayDiscounts.value[key]) || 0))
+  return amount * (1 - disc / 100)
+}
 const offlinePaymentEntered = computed(() =>
   Object.values(offlinePayments.value).reduce((s, v) => s + (Number(v) || 0), 0))
-// Entered payments must add up to the amount to pay (rounded to the sum).
+// The gross amounts (before per-method discounts) must split the bill exactly.
 const offlinePaymentOk = computed(() =>
   Math.round(offlinePaymentEntered.value) === Math.round(offlineDiscountedTotal.value))
+// Final amount actually collected after per-method discounts, and the total discounted.
+const offlineFinalCollected = computed(() =>
+  offlinePayMethods.value.reduce((s, m) => s + payNet(m.key), 0))
+const offlinePaymentDiscountTotal = computed(() =>
+  Math.round(offlinePaymentEntered.value - offlineFinalCollected.value))
 
 // "100%": this method covers the whole bill, the others reset to 0.
 function setFullPayment(key) {
@@ -1906,6 +1929,7 @@ function resetOfflineSale() {
   saleType.value = 'regular'
   offlineMarketolog.value = null
   offlinePayments.value = { cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 }
+  offlinePayDiscounts.value = { cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 }
   offlineDiscount.value = 0
   offlineReferral.value = ''
   offlineUnit.value = 'piece'
@@ -1918,19 +1942,24 @@ async function submitOfflineSale() {
   try {
     const isVip = saleType.value === 'vip'
     const isMkt = saleType.value === 'marketolog'
-    // Build the payment split (non-zero amounts) for a regular sale.
+    // Payment split: store the NET collected per method (after that method's own discount).
     const splits = (!isVip && !isMkt)
       ? offlinePayMethods.value
-          .map(m => ({ method: m.key, amount: Number(offlinePayments.value[m.key]) || 0 }))
+          .map(m => ({ method: m.key, amount: Math.round(payNet(m.key)) }))
           .filter(s => s.amount > 0)
       : []
+    // The order's effective discount combines the main discount and the per-method ones so
+    // item prices and revenue reflect what was actually collected.
+    const gross = offlineTotal.value
+    const collected = offlineFinalCollected.value
+    const effectiveDiscount = (!isVip && !isMkt && gross > 0) ? (1 - collected / gross) * 100 : 0
     await api.post('/pickup/offline-sale', {
       items: offlineItems.value.map(i => ({ product_id: i.product_id, quantity: i.quantity, unit_type: i.unit_type })),
       offline_note: offlineNote.value,
       is_vip: isVip,
       marketolog_id: isMkt ? offlineMarketolog.value : null,
       payment_splits: splits,
-      discount_percent: (!isVip && !isMkt) ? Number(offlineDiscount.value) || 0 : 0,
+      discount_percent: effectiveDiscount,
       referred_by: saleType.value !== 'marketolog' ? offlineReferral.value.trim() : '',
     })
     offlineSuccess.value = true
