@@ -303,12 +303,19 @@
                 <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
                 <span class="text-sm font-semibold text-gray-700">{{ txt.select_product }}</span>
               </div>
+              <!-- Searchable product picker: the cashier can type to filter, then pick. -->
               <div class="relative">
-                <select v-model="offlineProductId" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none pr-8">
-                  <option value="">{{ txt.select_product }}</option>
-                  <option v-for="p in allProducts" :key="p.id" :value="p.id">{{ p.name }}</option>
-                </select>
-                <svg class="w-4 h-4 text-gray-400 absolute right-2 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                <input v-model="offlineProductSearch" @focus="offlineProductOpen = true" @input="offlineProductOpen = true; offlineProductId = ''"
+                  @blur="closeProductListSoon" :placeholder="txt.select_product"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"/>
+                <svg class="w-4 h-4 text-gray-400 absolute right-2 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <div v-if="offlineProductOpen && offlineProductMatches.length" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                  <button v-for="p in offlineProductMatches" :key="p.id" type="button" @mousedown.prevent="pickOfflineProduct(p)"
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between gap-2">
+                    <span class="text-gray-800">{{ p.name }}</span>
+                    <span class="text-gray-400 text-xs flex-shrink-0">{{ stockOf(p.id) }} {{ txt.piece }}</span>
+                  </button>
+                </div>
               </div>
               <div v-if="offlineProductId" class="mt-2 p-2 pp-inset rounded-lg">
                 <p class="text-xs text-gray-500">{{ txt.in_stock }}: <span class="font-semibold text-gray-700"><template v-if="!offlineIsPieceOnly">{{ capsulesOf(offlineProductId) }} {{ txt.pack }} / </template>{{ stockOf(offlineProductId) }} {{ txt.piece }}</span></p>
@@ -1764,6 +1771,19 @@ async function saveListEdit(order) {
 // ===== Direct Offline Sale =====
 const allProducts = ref([])
 const offlineProductId = ref('')
+const offlineProductSearch = ref('')
+const offlineProductOpen = ref(false)
+const offlineProductMatches = computed(() => {
+  const q = offlineProductSearch.value.trim().toLowerCase()
+  const list = q ? allProducts.value.filter(p => (p.name || '').toLowerCase().includes(q)) : allProducts.value
+  return list.slice(0, 50)
+})
+function pickOfflineProduct(p) {
+  offlineProductId.value = p.id
+  offlineProductSearch.value = p.name
+  offlineProductOpen.value = false
+}
+function closeProductListSoon() { setTimeout(() => { offlineProductOpen.value = false }, 150) }
 const offlineQty = ref(1)
 const offlineItems = ref([])
 const offlineNote = ref('')
@@ -1915,6 +1935,7 @@ function addOfflineItem() {
   const price = (unit === 'piece' ? product.price_per_pill : product.price_per_pack) * offlineQty.value
   offlineItems.value.push({ product_id: product.id, name: product.name, quantity: offlineQty.value, unit_type: unit, price })
   offlineProductId.value = ''
+  offlineProductSearch.value = ''
   offlineQty.value = 1
 }
 
@@ -1948,6 +1969,8 @@ function resetOfflineSale() {
   offlineDiscount.value = 0
   offlineReferral.value = ''
   offlineUnit.value = 'piece'
+  offlineProductId.value = ''
+  offlineProductSearch.value = ''
 }
 
 async function submitOfflineSale() {
