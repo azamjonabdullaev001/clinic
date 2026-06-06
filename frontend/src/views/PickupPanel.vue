@@ -303,14 +303,17 @@
                 <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
                 <span class="text-sm font-semibold text-gray-700">{{ txt.select_product }}</span>
               </div>
-              <!-- Searchable product picker: the cashier can type to filter, then pick. -->
+              <!-- Combo: browse the full catalog via the arrow, or type to search, then pick. -->
               <div class="relative">
                 <input v-model="offlineProductSearch" @focus="offlineProductOpen = true" @input="offlineProductOpen = true; offlineProductId = ''"
                   @blur="closeProductListSoon" :placeholder="txt.select_product"
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"/>
-                <svg class="w-4 h-4 text-gray-400 absolute right-2 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"/>
+                <button type="button" @mousedown.prevent="offlineProductOpen = !offlineProductOpen" class="absolute right-1 top-1 p-1.5 text-gray-400 hover:text-gray-600" title="Каталог">
+                  <svg class="w-4 h-4 transition-transform" :class="offlineProductOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                </button>
                 <div v-if="offlineProductOpen && offlineProductMatches.length" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
                   <button v-for="p in offlineProductMatches" :key="p.id" type="button" @mousedown.prevent="pickOfflineProduct(p)"
+                    :class="offlineProductId === p.id ? 'bg-blue-50' : ''"
                     class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between gap-2">
                     <span class="text-gray-800">{{ p.name }}</span>
                     <span class="text-gray-400 text-xs flex-shrink-0">{{ stockOf(p.id) }} {{ txt.piece }}</span>
