@@ -353,17 +353,20 @@
 
           <!-- Cart items -->
           <div v-if="offlineItems.length" class="pp-border-box rounded-xl overflow-hidden mb-4">
-            <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-3 pp-cart-row border-b last:border-0">
-              <div>
+            <div v-for="(item, idx) in offlineItems" :key="idx" class="flex items-center justify-between px-4 py-3 pp-cart-row border-b last:border-0 gap-2">
+              <div class="min-w-0 flex-1">
                 <span class="font-medium pp-text text-sm">{{ item.name }}</span>
-                <span class="text-gray-500 text-sm ml-2">× {{ item.quantity }} {{ item.unit_type === 'piece' ? txt.piece : txt.pack }}</span>
+                <span class="text-gray-400 text-xs ml-1">({{ item.unit_type === 'piece' ? txt.piece : txt.pack }})</span>
               </div>
-              <div class="flex items-center gap-3">
-                <span class="font-semibold text-gray-700 text-sm">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
-                <button @click="offlineItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button @click="setOfflineItemQty(idx, item.quantity - 1)" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold flex items-center justify-center">−</button>
+                <input :value="item.quantity" @change="e => setOfflineItemQty(idx, Number(e.target.value))" type="number" min="1" class="w-14 text-center border border-gray-300 rounded-lg px-1 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"/>
+                <button @click="setOfflineItemQty(idx, item.quantity + 1)" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold flex items-center justify-center">+</button>
               </div>
+              <span class="font-semibold text-gray-700 text-sm w-24 text-right flex-shrink-0">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
+              <button @click="offlineItems.splice(idx, 1)" class="text-red-400 hover:text-red-600 transition flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
             </div>
             <div class="flex items-center justify-between px-4 py-2 bg-white border-t">
               <span class="text-sm font-semibold text-gray-700">{{ txt.total }}:</span>
@@ -1875,6 +1878,26 @@ function addOfflineItem() {
   offlineItems.value.push({ product_id: product.id, name: product.name, quantity: offlineQty.value, unit_type: unit, price })
   offlineProductId.value = ''
   offlineQty.value = 1
+}
+
+// Edit a cart line's quantity before the sale is recorded (recomputes its price, with a
+// stock check across all lines of the same product).
+function setOfflineItemQty(idx, qty) {
+  const item = offlineItems.value[idx]
+  if (!item) return
+  qty = Math.max(1, Math.floor(Number(qty) || 1))
+  const product = allProducts.value.find(p => p.id === item.product_id)
+  if (!product) return
+  const qpp = qppOf(item.product_id)
+  const piecesNeeded = item.unit_type === 'piece' ? qty : qty * qpp
+  const otherPieces = offlineItems.value.reduce((s, it, i) =>
+    (i === idx || it.product_id !== item.product_id) ? s : s + (it.unit_type === 'piece' ? it.quantity : it.quantity * qpp), 0)
+  if (otherPieces + piecesNeeded > stockOf(item.product_id)) {
+    alert(`${item.name}: недостаточно на складе`)
+    return
+  }
+  item.quantity = qty
+  item.price = (item.unit_type === 'piece' ? product.price_per_pill : product.price_per_pack) * qty
 }
 
 function resetOfflineSale() {
