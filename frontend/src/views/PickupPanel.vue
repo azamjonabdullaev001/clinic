@@ -314,7 +314,7 @@
                 <div v-if="offlineProductOpen && offlineProductMatches.length" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
                   <button v-for="p in offlineProductMatches" :key="p.id" type="button" @mousedown.prevent="pickOfflineProduct(p)"
                     :class="offlineProductId === p.id ? 'bg-blue-50' : ''"
-                    class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex justify-between gap-2">
+                    class="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-gray-800 flex justify-between gap-2">
                     <span class="text-gray-800">{{ p.name }}</span>
                     <span class="text-gray-400 text-xs flex-shrink-0">{{ stockOf(p.id) }} {{ txt.piece }}</span>
                   </button>
@@ -1423,7 +1423,7 @@ const tab = ref('online')
 
 const historyType = ref('all')
 const historyStatus = ref('all')
-const historyPeriod = ref('all')
+const historyPeriod = ref('daily')
 const historyDate = ref('')
 
 const statusFilters = computed(() => [
@@ -1839,6 +1839,13 @@ const offlineIsPieceOnly = computed(() => {
 })
 watch(offlineProductId, () => { if (offlineIsPieceOnly.value) offlineUnit.value = 'piece' })
 
+// Reset history period to 'daily' when leaving history tab or navigating back to it
+const lastTab = ref(tab.value)
+watch(tab, (newTab, oldTab) => {
+  if (newTab === 'history') historyPeriod.value = 'daily'
+  lastTab.value = newTab
+})
+
 const paymentMethods = computed(() => [
   { value: 'cash', label: txt.value.pay_cash },
   { value: 'terminal', label: txt.value.pay_terminal },
@@ -2007,6 +2014,7 @@ async function submitOfflineSale() {
     resetOfflineSale()
     loadOrders()
     loadStock()
+    loadAnalytics() // Real-time analytics update
   } catch (e) { alert(e.response?.data?.error || 'Ошибка при записи') }
   finally { offlineSubmitting.value = false }
 }
@@ -2497,7 +2505,7 @@ watch(() => realtime.ordersVersion, () => {
   loadOrders()
   // Keep analytics live: refresh whenever any order changes (edit/add/cancel/return),
   // not only while the analytics tab is open, so it is never stale on reopen.
-  if (tab.value === 'analytics' || analyticsData.value) loadAnalytics()
+  if (analyticsData.value) loadAnalytics()
   if (tab.value === 'stock' || tab.value === 'offline') loadStock()
 })
 
