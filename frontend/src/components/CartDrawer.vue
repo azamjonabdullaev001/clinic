@@ -192,6 +192,10 @@
                     <p class="font-medium text-stone-600 text-sm truncate line-through">{{ item.product?.name }}</p>
                     <p class="font-semibold text-stone-400 text-sm flex-shrink-0 line-through">{{ formatPrice(item.price) }} {{ t.currency }}</p>
                   </div>
+                  <div v-if="order.cancellation_reason" class="mt-3 pt-3 border-t border-red-200">
+                    <p class="text-xs font-semibold text-red-600">{{ t.cancellation_reason }}:</p>
+                    <p class="text-xs text-red-500 mt-1">{{ order.cancellation_reason }}</p>
+                  </div>
                 </div>
               </div>
             </template>
@@ -208,7 +212,7 @@
 
         <!-- Modal Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-3xl z-10">
-          <h3 class="text-lg font-bold text-stone-900">Оформление заказа</h3>
+          <h3 class="text-lg font-bold text-stone-900">{{ t.checkout_title }}</h3>
           <button @click="showCheckout = false" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
             <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -221,7 +225,7 @@
           <!-- Location section -->
           <div>
             <label class="block text-sm font-semibold text-stone-700 mb-2">
-              Адрес доставки <span class="text-red-400">*</span>
+              {{ t.checkout_delivery_address }} <span class="text-red-400">*</span>
             </label>
 
             <!-- Confirmed location banner -->
@@ -270,7 +274,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
-                {{ showMap ? 'Скрыть карту' : 'Выбрать точку на карте' }}
+                {{ showMap ? t.checkout_hide_map : t.checkout_select_on_map }}
               </button>
 
               <!-- Leaflet Map -->
@@ -286,7 +290,7 @@
                 class="w-full flex items-center justify-center gap-2 bg-brand-600 text-white py-2.5 rounded-xl font-semibold hover:bg-brand-700 transition-all mb-2 text-sm"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                Подтвердить локацию
+                {{ t.checkout_confirm_location }}
               </button>
 
               <p v-if="locationError" class="text-xs text-red-500 mt-1">{{ locationError }}</p>
@@ -305,13 +309,13 @@
           <!-- Referral section (REQUIRED) -->
           <div>
             <label class="block text-sm font-semibold text-stone-700 mb-2">
-              Откуда вы узнали о нас? <span class="text-red-400">*</span>
+              {{ t.checkout_referral }} <span class="text-red-400">*</span>
             </label>
             <div class="relative">
               <input
                 v-model="referralInput"
                 type="text"
-                placeholder="Имя доктора, 'Самостоятельно' или 'Из рекламы'"
+                :placeholder="t.checkout_referral_placeholder"
                 class="w-full border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all text-stone-900 text-sm"
                 :class="referralError ? 'border-red-400 bg-red-50/30' : 'border-stone-200'"
                 @input="onReferralInput"
@@ -353,7 +357,7 @@
               </div>
             </div>
             <p v-if="referralError" class="text-xs text-red-500 mt-1">{{ referralError }}</p>
-            <p v-else class="text-xs text-stone-400 mt-1">Укажите, кто порекомендовал наши препараты</p>
+            <p v-else class="text-xs text-stone-400 mt-1">{{ t.checkout_referral_placeholder }}</p>
           </div>
 
           <!-- Error -->
@@ -363,7 +367,7 @@
 
           <!-- Order summary -->
           <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100">
-            <p class="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Ваш заказ</p>
+            <p class="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">{{ t.checkout_order_summary }}</p>
             <div class="space-y-1.5">
               <div v-for="item in cartStore.items" :key="item.product_id" class="flex justify-between text-sm">
                 <span class="text-stone-600 truncate mr-2">{{ item.name }} × {{ item.quantity }}</span>
@@ -382,7 +386,7 @@
             :disabled="checkoutLoading"
             class="w-full btn-primary py-4 text-base rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ checkoutLoading ? 'Оформление...' : 'Подтвердить заказ' }}
+            {{ checkoutLoading ? t.checkout_confirming : t.checkout_confirm_button }}
           </button>
         </div>
       </div>
@@ -395,27 +399,27 @@
 
         <!-- Stage 1: pay via QR + upload receipt -->
         <template v-if="paymentStage === 'pay'">
-          <h3 class="text-xl font-bold text-stone-900 mb-1">Оплата заказа</h3>
-          <p class="text-stone-500 mb-4 text-sm">Отсканируйте QR-код и подтвердите оплату</p>
+          <h3 class="text-xl font-bold text-stone-900 mb-1">{{ t.payment_title }}</h3>
+          <p class="text-stone-500 mb-4 text-sm">{{ t.payment_subtitle }}</p>
           <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center">
             <img v-if="paymentQrUrl" :src="paymentQrUrl" class="w-48 h-48 object-contain"/>
-            <div v-else class="w-48 h-48 flex items-center justify-center text-stone-300 text-sm text-center px-3">QR-код не настроен — обратитесь в аптеку</div>
+            <div v-else class="w-48 h-48 flex items-center justify-center text-stone-300 text-sm text-center px-3">{{ t.payment_qr_not_configured }}</div>
           </div>
-          <p class="text-xs text-stone-400 mb-4">Код заказа: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
+          <p class="text-xs text-stone-400 mb-4">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
 
           <div class="mb-4 text-left">
-            <label class="text-sm font-medium text-stone-700 mb-2 block">Загрузите фото чека <span class="text-red-400">*</span></label>
+            <label class="text-sm font-medium text-stone-700 mb-2 block">{{ t.payment_upload_receipt }} <span class="text-red-400">*</span></label>
             <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200"/></div>
             <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition">
-              {{ receiptFile ? 'Изменить фото чека' : '📷 Выбрать фото чека' }}
+              {{ receiptFile ? t.payment_change_receipt : t.payment_select_receipt }}
             </button>
             <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect"/>
           </div>
           <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
           <button @click="confirmOrderPayment" :disabled="!receiptFile || confirmingOrder" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40">
-            {{ confirmingOrder ? 'Подтверждение...' : 'Подтвердить заказ' }}
+            {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
           </button>
-          <button @click="closeOrderSuccess" class="w-full mt-2 py-2 text-sm text-stone-400 hover:text-stone-600 transition">Оплачу позже</button>
+          <button @click="closeOrderSuccess" class="w-full mt-2 py-2 text-sm text-stone-400 hover:text-stone-600 transition">{{ t.payment_later }}</button>
         </template>
 
         <!-- Stage 2: thank you -->
@@ -425,14 +429,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-stone-900 mb-2">Спасибо, что выбрали нас!</h3>
-          <p class="text-stone-500 mb-5 leading-relaxed text-sm">Ваш заказ принят и отправлен в пункт выдачи на подтверждение. Мы свяжемся с вами в ближайшее время.</p>
+          <h3 class="text-2xl font-bold text-stone-900 mb-2">{{ t.order_success_title }}</h3>
+          <p class="text-stone-500 mb-5 leading-relaxed text-sm">{{ t.order_success_message }}</p>
           <div class="bg-gradient-to-br from-brand-50 to-blue-50 border border-brand-100 rounded-2xl p-5 mb-6">
-            <p class="text-xs text-brand-500 font-semibold uppercase tracking-wider mb-2">Ваш код заказа</p>
+            <p class="text-xs text-brand-500 font-semibold uppercase tracking-wider mb-2">{{ t.order_success_code_label }}</p>
             <p class="text-5xl font-bold text-brand-700 tracking-[0.15em] mb-2">{{ orderSuccessCode }}</p>
-            <p class="text-xs text-stone-400">Сообщите этот код при получении заказа</p>
+            <p class="text-xs text-stone-400">{{ t.order_success_code_note }}</p>
           </div>
-          <button @click="closeOrderSuccess" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold">Отлично!</button>
+          <button @click="closeOrderSuccess" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold">{{ t.order_success_button }}</button>
         </template>
       </div>
     </div>
@@ -494,6 +498,7 @@ function orderTotal(order) {
 
 function statusLabel(status) {
   const map = {
+    awaiting_payment: t.value.status_awaiting_payment,
     pending: t.value.status_pending,
     in_transit: t.value.status_in_transit,
     delivered: t.value.status_delivered,
@@ -504,6 +509,7 @@ function statusLabel(status) {
 
 function statusClass(status) {
   const map = {
+    awaiting_payment: 'bg-orange-100 text-orange-700',
     pending: 'bg-yellow-100 text-yellow-700',
     in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',
