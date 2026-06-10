@@ -62,35 +62,3 @@ func UploadPaymentQR(c *gin.Context) {
 	setSetting("payment_qr", url)
 	c.JSON(http.StatusOK, gin.H{"url": url})
 }
-
-// UploadOrderReceipt attaches the customer's payment-receipt photo to their order and moves
-// it from "awaiting_payment" to "pending" so it shows up at the pickup point for confirmation.
-func UploadOrderReceipt(c *gin.Context) {
-	id := c.Param("id")
-	userID, _ := c.Get("userID")
-
-	var order models.Order
-	if err := database.DB.First(&order, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
-		return
-	}
-	if order.UserID == nil || *order.UserID != userID.(uint) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Это не ваш заказ"})
-		return
-	}
-
-	url, ok := saveUploadedImage(c, "receipt")
-	if !ok {
-		return
-	}
-	order.ReceiptPath = url
-	if order.Status == "awaiting_payment" {
-		order.Status = "pending"
-	}
-	if err := database.DB.Save(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении"})
-		return
-	}
-	BroadcastOrders()
-	c.JSON(http.StatusOK, order)
-}
