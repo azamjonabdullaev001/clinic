@@ -48,17 +48,19 @@ func setSetting(key, value string) {
 	database.DB.Save(&models.Setting{Key: key, Value: value})
 }
 
-// GetPaymentQR returns the URL of the pharmacy's payment QR image (public).
-func GetPaymentQR(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"url": getSetting("payment_qr")})
+// GetQRPayment returns the URL of the pharmacy's payment QR code image (public).
+// Setting name: QRpayment
+func GetQRPayment(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"url": getSetting("QRpayment")})
 }
 
-// UploadPaymentQR sets the single static payment QR image (admin).
-func UploadPaymentQR(c *gin.Context) {
+// UploadQRPayment sets the single static payment QR code image (admin).
+// Setting name: QRpayment
+func UploadQRPayment(c *gin.Context) {
 	url, ok := saveUploadedImage(c, "image")
 	if !ok {
 		return
 	}
-	setSetting("payment_qr", url)
+	setSetting("QRpayment", url)
 	c.JSON(http.StatusOK, gin.H{"url": url})
 }
