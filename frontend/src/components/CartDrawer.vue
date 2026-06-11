@@ -24,7 +24,7 @@
             :class="activeTab === 'cart' ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : 'text-stone-400 hover:text-stone-600'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.[...]
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.263-12m7.5 0a2.25 2.25 0 00-1.359-2.081m0 0C9.75 3.75 9 3 8.25 3H5.25m0 0A2.25 2.25 0 003 5.25m0 0v10.5A2.25 2.25 0 005.25 18h13.5A2.25 2.25 0 0021 15.75V5.25m-21 0h21m0 0V3.75" />
             </svg>
             {{ t.cart_title }}
             <span v-if="cartStore.totalItems > 0" class="bg-brand-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -38,7 +38,7 @@
             :class="activeTab === 'orders' ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : 'text-stone-400 hover:text-stone-600'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 [...]
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v12a2 2 0 01-2 2h-2.5" />
             </svg>
             {{ t.orders_title }}
           </button>
@@ -50,7 +50,7 @@
           <div v-if="cartStore.items.length === 0" class="flex-1 flex flex-col items-center justify-center px-8">
             <div class="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mb-5">
               <svg class="w-9 h-9 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l[...]
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.263-12m7.5 0a2.25 2.25 0 00-1.359-2.081m0 0C9.75 3.75 9 3 8.25 3H5.25m0 0A2.25 2.25 0 003 5.25m0 0v10.5A2.25 2.25 0 005.25 18h13.5A2.25 2.25 0 0021 15.75V5.25m-21 0h21m0 0V3.75" />
               </svg>
             </div>
             <p class="text-stone-800 text-lg font-medium mb-1">{{ t.cart_empty }}</p>
@@ -66,7 +66,7 @@
             >
               <div class="flex gap-3">
                 <div class="w-14 h-14 bg-stone-200 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
-                  <img v-if="item.image_path" :src="item.image_path" class="w-full h-full object-cover" />
+                  <img v-if="item.image_path" :src="item.image_path" class="w-full h-full object-cover" alt="Product" />
                   <svg v-else class="w-6 h-6 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
@@ -90,9 +90,13 @@
               <div class="flex items-center justify-between mt-3 pt-3 border-t border-stone-200/60">
                 <span class="text-xs font-medium text-stone-400">{{ item.quantity_per_pack }} {{ t.unit_piece }} / {{ t.unit_pack }}</span>
                 <div class="flex items-center gap-2">
-                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity - 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center [...]
+                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity - 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center justify-center transition-colors disabled:opacity-50" :disabled="item.quantity <= 1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" /></svg>
+                  </button>
                   <span class="text-sm font-bold w-6 text-center text-stone-900">{{ item.quantity }}</span>
-                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity + 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center [...]
+                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity + 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center justify-center transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  </button>
                 </div>
               </div>
 
@@ -123,7 +127,7 @@
           <div v-else-if="orders.length === 0" class="flex-1 flex flex-col items-center justify-center px-8 text-center">
             <div class="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mb-5">
               <svg class="w-9 h-9 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 0[...]
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v12a2 2 0 01-2 2h-2.5" />
               </svg>
             </div>
             <p class="text-stone-800 text-lg font-medium">{{ t.orders_empty }}</p>
@@ -149,7 +153,7 @@
                 <div v-for="item in order.items" :key="item.id" class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2 min-w-0">
                     <div class="w-9 h-9 rounded-lg bg-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                      <img v-if="item.product?.image_path" :src="item.product.image_path" class="w-full h-full object-cover" />
+                      <img v-if="item.product?.image_path" :src="item.product.image_path" class="w-full h-full object-cover" alt="Product" />
                       <svg v-else class="w-4 h-4 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                       </svg>
@@ -166,6 +170,20 @@
               <div class="px-4 py-2.5 border-t border-stone-100 flex justify-between items-center">
                 <span class="text-xs text-stone-400">{{ t.cart_total }}</span>
                 <span class="font-bold text-brand-700">{{ formatPrice(orderTotal(order)) }} {{ t.currency }}</span>
+              </div>
+
+              <!-- Delivery location -->
+              <div v-if="order.latitude && order.longitude" class="px-4 py-3 border-t border-stone-100 bg-blue-50">
+                <button 
+                  @click="openOrderMap(order)" 
+                  class="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors w-full"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  📍 Посмотреть точку доставки на карте
+                </button>
               </div>
             </div>
 
@@ -205,6 +223,34 @@
       </div>
     </div>
 
+    <!-- ===== ORDER MAP MODAL ===== -->
+    <div v-if="showOrderMap" class="fixed inset-0 z-[75] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeOrderMap"></div>
+      <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
+          <div>
+            <h3 class="text-lg font-bold text-stone-900">Доставка заказа</h3>
+            <p class="text-xs text-stone-400 mt-0.5">{{ selectedOrderForMap?.order_code }}</p>
+          </div>
+          <button @click="closeOrderMap" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
+            <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <!-- Map -->
+        <div id="order-map-container" style="height: 400px; width: 100%;"></div>
+        <!-- Info -->
+        <div class="px-6 py-4 border-t border-stone-100 bg-stone-50">
+          <p class="text-xs font-semibold text-stone-600 mb-2">КООРДИНАТЫ ДОСТАВКИ</p>
+          <p class="text-sm text-stone-700">
+            📍 {{ selectedOrderForMap?.latitude?.toFixed(5) }}, {{ selectedOrderForMap?.longitude?.toFixed(5) }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== CHECKOUT MODAL ===== -->
     <div v-if="showCheckout" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showCheckout = false"></div>
@@ -230,12 +276,12 @@
 
             <!-- Confirmed location banner -->
             <div v-if="locationConfirmed" class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-3">
-              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 1[...]
+              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold text-green-700 mb-0.5">Локация подтверждена</p>
                 <p class="text-xs text-green-600 truncate">{{ checkoutForm.address || `${checkoutForm.lat.toFixed(5)}, ${checkoutForm.lng.toFixed(5)}` }}</p>
               </div>
-              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">Изменить</b[...]
+              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">Изменить</button>
             </div>
 
             <template v-else>
@@ -260,7 +306,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
                   <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357[...]
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2m0 0V3.75" />
                   </svg>
                 </button>
               </div>
@@ -272,7 +318,7 @@
                 class="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors mb-2"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618[...]
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 7" />
                 </svg>
                 {{ showMap ? t.checkout_hide_map : t.checkout_select_on_map }}
               </button>
@@ -289,18 +335,18 @@
                 @click="confirmLocation"
                 class="w-full flex items-center justify-center gap-2 bg-brand-600 text-white py-2.5 rounded-xl font-semibold hover:bg-brand-700 transition-all mb-2 text-sm"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                 {{ t.checkout_confirm_location }}
               </button>
 
               <p v-if="locationError" class="text-xs text-red-500 mt-1">{{ locationError }}</p>
               <p v-else-if="checkoutForm.lat && checkoutForm.lng && !showMap" class="text-xs text-green-600 mt-1 flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                 Координаты: {{ checkoutForm.lat.toFixed(5) }}, {{ checkoutForm.lng.toFixed(5) }}
               </p>
               <p v-else-if="!showMap" class="text-xs text-stone-400 mt-1">
                 Введите адрес вручную, нажмите
-                <svg class="inline w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 1[...]
+                <svg class="inline w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 для автоопределения или выберите точку на карте
               </p>
             </template>
@@ -334,7 +380,7 @@
                   @mousedown.prevent="selectReferral(opt)"
                   class="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-brand-50 hover:text-brand-700 transition-colors flex items-center gap-2"
                 >
-                  <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round"[...]
+                  <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   {{ opt }}
                 </button>
                 <div v-if="filteredDoctors.length > 0 && quickOptions.length > 0" class="border-t border-stone-100"></div>
@@ -346,7 +392,7 @@
                   class="w-full text-left px-4 py-2.5 hover:bg-brand-50 transition-colors flex items-center gap-3"
                 >
                   <div class="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 [...]
+                    <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   </div>
                   <div class="min-w-0">
                     <p class="text-sm font-semibold text-stone-800">{{ doc.name }}</p>
@@ -412,7 +458,7 @@
               <div class="w-8 h-8 border-3 border-brand-300 border-t-brand-600 rounded-full animate-spin"></div>
               <p class="text-xs text-stone-400">Загрузка QR...</p>
             </div>
-            <img v-else-if="paymentQrUrl" :src="paymentQrUrl" :alt="t.payment_title" class="w-48 h-48 object-contain" @error="handleQRLoadError"/>
+            <img v-else-if="paymentQrUrl" :src="paymentQrUrl" :alt="t.payment_title" class="w-48 h-48 object-contain" @error="handleQRLoadError" />
             <div v-else class="w-48 h-48 flex items-center justify-center text-stone-300 text-sm text-center px-3">{{ t.payment_qr_not_configured }}</div>
           </div>
           
@@ -420,11 +466,11 @@
 
           <div class="mb-4 text-left">
             <label class="text-sm font-medium text-stone-700 mb-2 block">{{ t.payment_upload_receipt }} <span class="text-red-400">*</span></label>
-            <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200" alt="Receipt preview"/></div>
-            <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transitio[...]
+            <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200" alt="Receipt preview" /></div>
+            <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition-colors">
               {{ receiptFile ? t.payment_change_receipt : t.payment_select_receipt }}
             </button>
-            <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect"/>
+            <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect" />
             <p v-if="receiptError" class="text-xs text-red-500 mt-2">{{ receiptError }}</p>
           </div>
           
@@ -438,8 +484,6 @@
           >
             {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
           </button>
-          
-          <!-- NO "Pay Later" button - it's removed per requirements -->
         </template>
 
         <!-- Stage 2: thank you -->
@@ -560,6 +604,64 @@ const locationConfirmed = ref(false)
 const showOrderSuccess = ref(false)
 const orderSuccessCode = ref('')
 
+// Order Map
+const showOrderMap = ref(false)
+const selectedOrderForMap = ref(null)
+let orderMapInstance = null
+let orderMapMarker = null
+
+async function openOrderMap(order) {
+  selectedOrderForMap.value = order
+  showOrderMap.value = true
+  await nextTick()
+  await initOrderMap()
+}
+
+function closeOrderMap() {
+  showOrderMap.value = false
+  selectedOrderForMap.value = null
+  if (orderMapInstance) {
+    orderMapInstance.remove()
+    orderMapInstance = null
+    orderMapMarker = null
+  }
+}
+
+async function initOrderMap() {
+  if (!selectedOrderForMap.value) return
+  const L = await import('leaflet')
+  await import('leaflet/dist/leaflet.css')
+
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  })
+
+  const mapEl = document.getElementById('order-map-container')
+  if (!mapEl) return
+
+  const lat = selectedOrderForMap.value.latitude || 40.9983
+  const lng = selectedOrderForMap.value.longitude || 71.6726
+
+  orderMapInstance = L.map('order-map-container').setView([lat, lng], 15)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(orderMapInstance)
+
+  orderMapMarker = L.marker([lat, lng], {
+    icon: L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    })
+  }).addTo(orderMapInstance).bindPopup(`<b>Точка доставки</b><br>Заказ: ${selectedOrderForMap.value.order_code}`)
+}
+
 // Online payment (QR + receipt) flow
 const paymentStage = ref('pay')      // 'pay' -> 'done'
 const paymentQrUrl = ref('')
@@ -577,7 +679,6 @@ function onReceiptSelect(e) {
   const f = e.target.files[0]
   if (!f) return
   
-  // Check if file is an image
   const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   if (!validTypes.includes(f.type)) {
     receiptError.value = 'Пожалуйста, загрузите только изображение'
@@ -587,7 +688,6 @@ function onReceiptSelect(e) {
     return
   }
   
-  // Check file size (max 10MB)
   if (f.size > 10 * 1024 * 1024) {
     receiptError.value = 'Размер файла не должен превышать 10 МБ'
     receiptFile.value = null
@@ -714,7 +814,6 @@ async function initMap() {
   const L = await import('leaflet')
   await import('leaflet/dist/leaflet.css')
 
-  // Fix default icon paths
   delete L.Icon.Default.prototype._getIconUrl
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -748,7 +847,6 @@ async function initMap() {
       leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
     }
 
-    // Reverse geocode
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
@@ -809,7 +907,6 @@ async function detectGPS() {
           checkoutForm.value.address = parts.join(', ') || data.display_name
         }
       } catch { /* ignore */ }
-      // Update map if open
       if (showMap.value && leafletMap) {
         const L = await import('leaflet')
         leafletMap.setView([latitude, longitude], 15)
@@ -906,7 +1003,6 @@ async function submitOrder() {
     paymentError.value = ''
     paymentStage.value = 'pay'
     
-    // Load QR code
     await loadPaymentQR()
     
     showOrderSuccess.value = true
@@ -919,6 +1015,9 @@ async function submitOrder() {
 
 onUnmounted(() => {
   destroyMap()
+  if (orderMapInstance) {
+    orderMapInstance.remove()
+  }
 })
 
 function showOrders() {
