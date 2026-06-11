@@ -159,6 +159,64 @@ func GetUserOrders(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 
+// GetPickupOrders returns only orders that should be visible to pickup points:
+// - pending, in_transit, delivered (online orders WITH receipts)
+// - Do NOT return awaiting_payment orders (they haven't paid yet)
+func GetPickupOrders(c *gin.Context) {
+	limit := 100
+	offset := 0
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", "100")); err == nil && l > 0 && l <= 500 {
+		limit = l
+	}
+	if o, err := strconv.Atoi(c.DefaultQuery("offset", "0")); err == nil && o >= 0 {
+		offset = o
+	}
+
+	db := database.DB.Where("archived = ?", false)
+	
+	// Only show orders that have receipt_path (payment confirmed) or offline orders
+	db = db.Where("receipt_path IS NOT NULL OR status IN ('pending', 'in_transit', 'delivered', 'cancelled')")
+
+	if s := c.Query("status"); s != "" {
+		switch s {
+		case "edited":
+			db = db.Where("is_edited = ? OR is_returned = ?", true, true)
+		case "deleted":
+			db = db.Where("is_deleted = ?", true)
+		default:
+			db = db.Where("status = ?", s)
+		}
+	}
+	if df := c.Query("date_from"); df != "" {
+		db = db.Where("created_at >= ?", df)
+	}
+	if dt := c.Query("date_to"); dt != "" {
+		db = db.Where("created_at < ?", dt)
+	}
+
+	var total int64
+	db.Model(&models.Order{}).Count(&total)
+
+	var orders []models.Order
+	db.Preload("Items.Product").Preload("User").
+		Order("created_at desc").
+		Limit(limit).Offset(offset).
+		Find(&orders)
+
+	for i := range orders {
+		for j := range orders[i].Items {
+			orders[i].Items[j].Product.ComputePackPrice()
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"orders": orders,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
 func GetOrders(c *gin.Context) {
 	limit := 100
 	offset := 0
@@ -368,7 +426,8 @@ func sendTelegramNotification(order models.Order) {
 }
 
 // UploadOrderReceipt handles payment receipt upload for online orders
-// Moves order status from "awaiting_payment" to "pending" so it appears at pickup points
+// CRITICAL: Only moves order from "awaiting_payment" to "pending" after receipt upload
+// This makes the order VISIBLE to pickup points ONLY after payment proof
 func UploadOrderReceipt(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	orderID := c.Param("id")
@@ -432,7 +491,8 @@ func UploadOrderReceipt(c *gin.Context) {
 		return
 	}
 
-	// Update order: save receipt path and change status to "pending"
+	// CRITICAL: Update order: save receipt path and change status to "pending"
+	// This makes it visible to pickup points for the first time
 	if err := database.DB.Model(&order).Updates(map[string]interface{}{
 		"receipt_path": filepath,
 		"status":       "pending",
@@ -445,7 +505,7 @@ func UploadOrderReceipt(c *gin.Context) {
 	BroadcastOrders()
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Чек успешно загружен",
+		"message":      "Чек успешно загружен",
 		"receipt_path": filepath,
 	})
 }
