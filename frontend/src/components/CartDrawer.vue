@@ -24,7 +24,7 @@
             :class="activeTab === 'cart' ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : 'text-stone-400 hover:text-stone-600'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.[...]
             </svg>
             {{ t.cart_title }}
             <span v-if="cartStore.totalItems > 0" class="bg-brand-600 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -38,7 +38,7 @@
             :class="activeTab === 'orders' ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : 'text-stone-400 hover:text-stone-600'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 [...]
             </svg>
             {{ t.orders_title }}
           </button>
@@ -50,7 +50,7 @@
           <div v-if="cartStore.items.length === 0" class="flex-1 flex flex-col items-center justify-center px-8">
             <div class="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mb-5">
               <svg class="w-9 h-9 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l[...]
               </svg>
             </div>
             <p class="text-stone-800 text-lg font-medium mb-1">{{ t.cart_empty }}</p>
@@ -90,9 +90,9 @@
               <div class="flex items-center justify-between mt-3 pt-3 border-t border-stone-200/60">
                 <span class="text-xs font-medium text-stone-400">{{ item.quantity_per_pack }} {{ t.unit_piece }} / {{ t.unit_pack }}</span>
                 <div class="flex items-center gap-2">
-                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity - 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center justify-center text-sm font-medium transition-colors text-stone-600">−</button>
+                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity - 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center [...]
                   <span class="text-sm font-bold w-6 text-center text-stone-900">{{ item.quantity }}</span>
-                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity + 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center justify-center text-sm font-medium transition-colors text-stone-600">+</button>
+                  <button @click="cartStore.updateQuantity(item.product_id, item.quantity + 1)" class="w-8 h-8 rounded-lg bg-white border border-stone-200 hover:border-stone-300 flex items-center [...]
                 </div>
               </div>
 
@@ -123,7 +123,7 @@
           <div v-else-if="orders.length === 0" class="flex-1 flex flex-col items-center justify-center px-8 text-center">
             <div class="w-20 h-20 bg-stone-50 rounded-2xl flex items-center justify-center mb-5">
               <svg class="w-9 h-9 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 0[...]
               </svg>
             </div>
             <p class="text-stone-800 text-lg font-medium">{{ t.orders_empty }}</p>
@@ -230,12 +230,12 @@
 
             <!-- Confirmed location banner -->
             <div v-if="locationConfirmed" class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-3">
-              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 1[...]
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold text-green-700 mb-0.5">Локация подтверждена</p>
                 <p class="text-xs text-green-600 truncate">{{ checkoutForm.address || `${checkoutForm.lat.toFixed(5)}, ${checkoutForm.lng.toFixed(5)}` }}</p>
               </div>
-              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">Изменить</button>
+              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">Изменить</b[...]
             </div>
 
             <template v-else>
@@ -260,7 +260,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
                   </svg>
                   <svg v-else class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357[...]
                   </svg>
                 </button>
               </div>
@@ -272,7 +272,7 @@
                 class="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-800 font-medium transition-colors mb-2"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618[...]
                 </svg>
                 {{ showMap ? t.checkout_hide_map : t.checkout_select_on_map }}
               </button>
@@ -300,7 +300,7 @@
               </p>
               <p v-else-if="!showMap" class="text-xs text-stone-400 mt-1">
                 Введите адрес вручную, нажмите
-                <svg class="inline w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                <svg class="inline w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 1[...]
                 для автоопределения или выберите точку на карте
               </p>
             </template>
@@ -334,7 +334,7 @@
                   @mousedown.prevent="selectReferral(opt)"
                   class="w-full text-left px-4 py-2.5 text-sm text-stone-600 hover:bg-brand-50 hover:text-brand-700 transition-colors flex items-center gap-2"
                 >
-                  <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round"[...]
                   {{ opt }}
                 </button>
                 <div v-if="filteredDoctors.length > 0 && quickOptions.length > 0" class="border-t border-stone-100"></div>
@@ -346,7 +346,7 @@
                   class="w-full text-left px-4 py-2.5 hover:bg-brand-50 transition-colors flex items-center gap-3"
                 >
                   <div class="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    <svg class="w-3.5 h-3.5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 [...]
                   </div>
                   <div class="min-w-0">
                     <p class="text-sm font-semibold text-stone-800">{{ doc.name }}</p>
@@ -401,25 +401,45 @@
         <template v-if="paymentStage === 'pay'">
           <h3 class="text-xl font-bold text-stone-900 mb-1">{{ t.payment_title }}</h3>
           <p class="text-stone-500 mb-4 text-sm">{{ t.payment_subtitle }}</p>
-          <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center">
-            <img v-if="paymentQrUrl" :src="paymentQrUrl" class="w-48 h-48 object-contain"/>
+          
+          <!-- QR Code Display -->
+          <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center min-h-56">
+            <div v-if="qrLoadingError" class="text-center w-full">
+              <div class="text-red-500 text-sm mb-3">{{ qrLoadingError }}</div>
+              <button @click="retryLoadQR" class="text-brand-600 hover:text-brand-700 text-sm font-medium">Попробовать ещё раз</button>
+            </div>
+            <div v-else-if="qrLoading" class="flex flex-col items-center justify-center gap-2">
+              <div class="w-8 h-8 border-3 border-brand-300 border-t-brand-600 rounded-full animate-spin"></div>
+              <p class="text-xs text-stone-400">Загрузка QR...</p>
+            </div>
+            <img v-else-if="paymentQrUrl" :src="paymentQrUrl" :alt="t.payment_title" class="w-48 h-48 object-contain" @error="handleQRLoadError"/>
             <div v-else class="w-48 h-48 flex items-center justify-center text-stone-300 text-sm text-center px-3">{{ t.payment_qr_not_configured }}</div>
           </div>
+          
           <p class="text-xs text-stone-400 mb-4">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
 
           <div class="mb-4 text-left">
             <label class="text-sm font-medium text-stone-700 mb-2 block">{{ t.payment_upload_receipt }} <span class="text-red-400">*</span></label>
-            <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200"/></div>
-            <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition">
+            <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200" alt="Receipt preview"/></div>
+            <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transitio[...]
               {{ receiptFile ? t.payment_change_receipt : t.payment_select_receipt }}
             </button>
             <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect"/>
+            <p v-if="receiptError" class="text-xs text-red-500 mt-2">{{ receiptError }}</p>
           </div>
+          
           <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
-          <button @click="confirmOrderPayment" :disabled="!receiptFile || confirmingOrder" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40">
+          
+          <!-- Confirm Payment Button (ONLY way to proceed) -->
+          <button 
+            @click="confirmOrderPayment" 
+            :disabled="!receiptFile || confirmingOrder || !paymentQrUrl" 
+            class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
           </button>
-          <button @click="closeOrderSuccess" class="w-full mt-2 py-2 text-sm text-stone-400 hover:text-stone-600 transition">{{ t.payment_later }}</button>
+          
+          <!-- NO "Pay Later" button - it's removed per requirements -->
         </template>
 
         <!-- Stage 2: thank you -->
@@ -543,18 +563,72 @@ const orderSuccessCode = ref('')
 // Online payment (QR + receipt) flow
 const paymentStage = ref('pay')      // 'pay' -> 'done'
 const paymentQrUrl = ref('')
+const qrLoading = ref(false)
+const qrLoadingError = ref('')
 const currentOrderId = ref(null)
 const receiptFile = ref(null)
 const receiptPreview = ref(null)
+const receiptError = ref('')
 const confirmingOrder = ref(false)
 const paymentError = ref('')
 
+// Validate receipt file
 function onReceiptSelect(e) {
   const f = e.target.files[0]
   if (!f) return
+  
+  // Check if file is an image
+  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  if (!validTypes.includes(f.type)) {
+    receiptError.value = 'Пожалуйста, загрузите только изображение'
+    receiptFile.value = null
+    receiptPreview.value = null
+    e.target.value = ''
+    return
+  }
+  
+  // Check file size (max 10MB)
+  if (f.size > 10 * 1024 * 1024) {
+    receiptError.value = 'Размер файла не должен превышать 10 МБ'
+    receiptFile.value = null
+    receiptPreview.value = null
+    e.target.value = ''
+    return
+  }
+  
+  receiptError.value = ''
   receiptFile.value = f
   receiptPreview.value = URL.createObjectURL(f)
   e.target.value = ''
+}
+
+// Load QR with error handling
+async function loadPaymentQR() {
+  qrLoading.value = true
+  qrLoadingError.value = ''
+  try {
+    const res = await api.get('/settings/payment-qr')
+    if (res.data?.url) {
+      paymentQrUrl.value = res.data.url
+      qrLoadingError.value = ''
+    } else {
+      qrLoadingError.value = t.value.payment_qr_not_configured
+    }
+  } catch (e) {
+    qrLoadingError.value = 'Не удалось загрузить QR-код. Проверьте соединение.'
+    paymentQrUrl.value = ''
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+function handleQRLoadError() {
+  qrLoadingError.value = 'Ошибка загрузки изображения QR-кода'
+  paymentQrUrl.value = ''
+}
+
+function retryLoadQR() {
+  loadPaymentQR()
 }
 
 async function confirmOrderPayment() {
@@ -780,6 +854,7 @@ function closeOrderSuccess() {
   currentOrderId.value = null
   receiptFile.value = null
   receiptPreview.value = null
+  receiptError.value = ''
   paymentStage.value = 'pay'
   switchTab('orders')
   loadOrders()
@@ -827,9 +902,13 @@ async function submitOrder() {
     orderSuccessCode.value = res.data?.order_code || ''
     receiptFile.value = null
     receiptPreview.value = null
+    receiptError.value = ''
     paymentError.value = ''
     paymentStage.value = 'pay'
-    try { paymentQrUrl.value = (await api.get('/settings/payment-qr')).data?.url || '' } catch (e) { paymentQrUrl.value = '' }
+    
+    // Load QR code
+    await loadPaymentQR()
+    
     showOrderSuccess.value = true
   } catch (e) {
     checkoutError.value = e.response?.data?.error || 'Ошибка при оформлении заказа'
