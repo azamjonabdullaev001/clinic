@@ -175,10 +175,10 @@
                   <img
                     v-if="!ordersTabQrFailed"
                     src="/images/QRpayment.jpg"
-                    class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1"
+                    class="w-40 h-40 object-contain rounded-xl border border-amber-200 bg-white p-1"
                     @error="ordersTabQrFailed = true"
                   />
-                  <div v-else class="w-36 h-36 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
+                  <div v-else class="w-40 h-40 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
                     <svg class="w-8 h-8 text-amber-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
                     <p class="text-xs text-amber-500">{{ t.payment_qr_not_configured }}</p>
                     <button @click="ordersTabQrFailed = false" class="text-xs text-amber-600 font-medium mt-1 underline">{{ t.qr_retry }}</button>
@@ -472,15 +472,15 @@
           <p class="text-stone-500 mb-4 text-sm">{{ t.payment_subtitle }}</p>
           
           <!-- QR Code Display (static file) -->
-          <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center min-h-56">
+          <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center min-h-60">
             <img
               v-if="!successQrFailed"
               src="/images/QRpayment.jpg"
               :alt="t.payment_title"
-              class="w-48 h-48 object-contain"
+              class="w-52 h-52 object-contain"
               @error="successQrFailed = true"
             />
-            <div v-else class="w-48 h-48 flex flex-col items-center justify-center text-center px-3 gap-2">
+            <div v-else class="w-52 h-52 flex flex-col items-center justify-center text-center px-3 gap-2">
               <p class="text-stone-400 text-sm">{{ t.payment_qr_not_configured }}</p>
               <button @click="successQrFailed = false" class="text-brand-600 hover:text-brand-700 text-sm font-medium">{{ t.qr_retry }}</button>
             </div>

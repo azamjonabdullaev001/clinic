@@ -196,6 +196,9 @@
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                   {{ txt.write }}
                 </button>
+                <button v-if="order.latitude && order.longitude" @click="openDeliveryMap(order)" class="bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition text-sm font-medium">
+                  {{ txt.delivery_map_btn }}
+                </button>
               </div>
             </div>
           </div>
@@ -1100,6 +1103,38 @@
       </div>
     </div>
   </div>
+
+  <!-- ===== DELIVERY MAP MODAL ===== -->
+  <Teleport to="body">
+    <div v-if="showDeliveryMap" class="fixed inset-0 z-[200] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeDeliveryMap"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col" style="max-height:90vh">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white flex-shrink-0">
+          <div>
+            <h3 class="text-base font-bold text-gray-900">{{ txt.delivery_map_title }}</h3>
+            <p class="text-xs text-gray-500 mt-0.5">{{ deliveryMapOrder?.order_code }} — {{ deliveryMapOrder?.user?.first_name }} {{ deliveryMapOrder?.user?.last_name }}</p>
+          </div>
+          <button @click="closeDeliveryMap" class="p-2 hover:bg-gray-100 rounded-xl transition">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <!-- Map -->
+        <div id="pickup-delivery-map" style="height:420px;width:100%;flex-shrink:0"></div>
+        <!-- Footer info -->
+        <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0"></span>
+            <span class="text-gray-600 font-medium">{{ txt.delivery_from }}</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-orange-500 flex-shrink-0"></span>
+            <span class="text-gray-600 font-medium">{{ txt.delivery_to }}: {{ deliveryMapOrder?.delivery_address }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -1262,6 +1297,10 @@ const texts = {
     quick_select: 'Быстрый выбор',
     dynamics: 'Динамика за день',
     export_excel: 'Экспорт Excel',
+    delivery_map_btn: '🗺 Карта доставки',
+    delivery_map_title: 'Маршрут доставки',
+    delivery_from: 'Пункт выдачи',
+    delivery_to: 'Адрес покупателя',
   },
   uz: {
     title: 'Berish punkti',
@@ -1406,6 +1445,10 @@ const texts = {
     quick_select: 'Tezkor tanlov',
     dynamics: 'Kunlik dinamika',
     export_excel: 'Excel eksport',
+    delivery_map_btn: '🗺 Yetkazib berish xaritasi',
+    delivery_map_title: 'Yetkazib berish marshuti',
+    delivery_from: 'Berish nuqtasi',
+    delivery_to: 'Xaridor manzili',
   }
 }
 
@@ -1416,6 +1459,92 @@ const tabTitle = computed(() => {
   const m = { online: t.nav_online, offline: t.nav_offline, stock: t.nav_stock, analytics: t.nav_analytics, history: t.history_title }
   return m[tab.value] || t.title
 })
+
+// ===== Delivery map =====
+const PICKUP_LAT = 40.7760385
+const PICKUP_LNG = 72.3784014
+
+const showDeliveryMap = ref(false)
+const deliveryMapOrder = ref(null)
+let deliveryMapInstance = null
+
+async function openDeliveryMap(order) {
+  deliveryMapOrder.value = order
+  showDeliveryMap.value = true
+  await nextTick()
+  await initDeliveryMap()
+}
+
+function closeDeliveryMap() {
+  showDeliveryMap.value = false
+  deliveryMapOrder.value = null
+  if (deliveryMapInstance) {
+    deliveryMapInstance.remove()
+    deliveryMapInstance = null
+  }
+}
+
+async function initDeliveryMap() {
+  const order = deliveryMapOrder.value
+  if (!order) return
+  const L = await import('leaflet')
+  await import('leaflet/dist/leaflet.css')
+
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  })
+
+  const mapEl = document.getElementById('pickup-delivery-map')
+  if (!mapEl) return
+
+  const customerLat = order.latitude
+  const customerLng = order.longitude
+
+  const midLat = (PICKUP_LAT + customerLat) / 2
+  const midLng = (PICKUP_LNG + customerLng) / 2
+
+  deliveryMapInstance = L.map('pickup-delivery-map').setView([midLat, midLng], 13)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(deliveryMapInstance)
+
+  // Pickup point marker (blue)
+  const pickupIcon = L.divIcon({
+    html: '<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
+    className: '',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  })
+  L.marker([PICKUP_LAT, PICKUP_LNG], { icon: pickupIcon })
+    .addTo(deliveryMapInstance)
+    .bindPopup(`<b>${txt.value.delivery_from}</b>`)
+
+  // Customer marker (orange)
+  const customerIcon = L.divIcon({
+    html: '<div style="background:#f97316;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #f97316"></div>',
+    className: '',
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  })
+  L.marker([customerLat, customerLng], { icon: customerIcon })
+    .addTo(deliveryMapInstance)
+    .bindPopup(`<b>${txt.value.delivery_to}</b><br>${order.delivery_address || ''}`)
+
+  // Straight line (cors line) between the two points
+  L.polyline(
+    [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
+    { color: '#2563eb', weight: 3, opacity: 0.8, dashArray: '8 5' }
+  ).addTo(deliveryMapInstance)
+
+  // Fit map to show both markers with padding
+  deliveryMapInstance.fitBounds(
+    [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
+    { padding: [40, 40] }
+  )
+}
 
 // ===== Orders & sections =====
 const orders = ref([])
