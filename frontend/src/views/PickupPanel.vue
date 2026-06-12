@@ -23,7 +23,8 @@
             {k:'offline',   l:txt.nav_offline,   icon:'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'},
             {k:'stock',     l:txt.nav_stock,     icon:'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'},
             {k:'analytics', l:txt.nav_analytics, icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
-            {k:'history',   l:txt.nav_history,   icon:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}
+            {k:'history',   l:txt.nav_history,   icon:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'},
+            {k:'bts',       l:txt.nav_bts,       icon:'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'}
           ]"
           :key="s.k"
           @click="tab = s.k"
@@ -1172,6 +1173,91 @@
     </div>
   </div>
 
+  <!-- ===== BTS TAB ===== -->
+  <div v-show="tab === 'bts'" class="flex-1 p-6 space-y-5">
+    <div class="pp-card rounded-xl shadow-sm p-6">
+      <h2 class="text-base font-semibold pp-text mb-1">{{ txt.bts_title }}</h2>
+      <p class="text-sm text-gray-500 mb-5">{{ txt.bts_desc }}</p>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Form -->
+        <div class="space-y-3">
+          <h3 class="text-sm font-semibold pp-text">{{ btsEditingId ? txt.bts_save : txt.bts_add }}</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.bts_name }} *</label>
+              <input v-model="btsForm.name" :placeholder="lang==='uz'?'BTS — Qo\'rg\'ontepa':'БТС — Кургантепа'" class="w-full pp-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.bts_city }} *</label>
+              <input v-model="btsForm.city" :placeholder="lang==='uz'?'Qo\'rg\'ontepa':'Кургантепа'" class="w-full pp-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.bts_region }}</label>
+            <input v-model="btsForm.region" :placeholder="lang==='uz'?'Andijon viloyati':'Андижанская область'" class="w-full pp-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.bts_address }}</label>
+            <div class="flex gap-2">
+              <input v-model="btsForm.address" :placeholder="lang==='uz'?'Navoi ko\'chasi 12':'ул. Навои 12'" class="flex-1 pp-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+              <button @click="geocodeBtsAddress" :disabled="btsGeocodingAddress || !btsForm.address" class="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap">
+                {{ btsGeocodingAddress ? txt.bts_finding : txt.bts_find }}
+              </button>
+            </div>
+            <p v-if="btsFormError" class="text-red-500 text-xs mt-1">{{ btsFormError }}</p>
+            <p v-else class="text-xs text-gray-400 mt-1">{{ lang==='uz' ? 'Manzilni yozing → «Topish» tugmasini bosing → koordinatalar avtomatik to\'ldiriladi' : 'Введите адрес → нажмите «Найти» → координаты заполнятся автоматически' }}</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.bts_lat }} *</label>
+              <input v-model="btsForm.lat" type="number" step="0.000001" placeholder="40.7123" class="w-full pp-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 mb-1 block">{{ txt.bts_lng }} *</label>
+              <input v-model="btsForm.lng" type="number" step="0.000001" placeholder="72.4567" class="w-full pp-input border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button @click="saveBtsBranch" :disabled="btsSaving" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50">
+              {{ btsSaving ? txt.bts_saving : (btsEditingId ? txt.bts_save : txt.bts_add) }}
+            </button>
+            <button v-if="btsEditingId" @click="resetBtsForm" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 pp-input border rounded-lg transition">{{ txt.bts_cancel }}</button>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div>
+          <h3 class="text-sm font-semibold pp-text mb-3">{{ txt.bts_count }} ({{ btsBranches.length }})</h3>
+          <div v-if="btsBranches.length === 0" class="flex flex-col items-center justify-center py-10 text-gray-400">
+            <svg class="w-10 h-10 text-gray-200 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="text-sm">{{ txt.bts_empty }}</p>
+          </div>
+          <div v-else class="space-y-2 max-h-80 overflow-y-auto pr-1">
+            <div
+              v-for="b in btsBranches" :key="b.id"
+              class="border rounded-xl px-4 py-3 flex items-start justify-between gap-3 transition cursor-pointer"
+              :class="btsEditingId === b.id ? 'border-blue-400 bg-blue-50' : 'pp-card pp-border hover:border-blue-200'"
+              @click="startEditBts(b)"
+            >
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold pp-text text-sm">{{ b.name }}</p>
+                <p class="text-xs text-gray-400">{{ b.city }}<span v-if="b.region"> · {{ b.region }}</span></p>
+                <p v-if="b.address" class="text-xs text-gray-400 truncate">{{ b.address }}</p>
+                <p class="text-xs font-mono text-blue-500 mt-0.5">{{ b.lat }}, {{ b.lng }}</p>
+              </div>
+              <button @click.stop="deleteBtsBranch(b.id)" class="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ===== DELIVERY MAP MODAL ===== -->
   <Teleport to="body">
     <div v-if="showDeliveryMap" class="fixed inset-0 z-[200] flex items-center justify-center">
@@ -1346,6 +1432,24 @@ const texts = {
     nav_analytics: 'Аналитика',
     nav_history: 'История',
     nav_stock: 'Склад',
+    nav_bts: 'БТС пункты',
+    bts_title: 'Пункты выдачи БТС Карго',
+    bts_desc: 'Добавьте точные адреса пунктов БТС. Адрес → нажмите «Найти» → координаты заполнятся автоматически.',
+    bts_name: 'Название',
+    bts_city: 'Город / район',
+    bts_region: 'Область',
+    bts_address: 'Точный адрес',
+    bts_find: 'Найти',
+    bts_finding: '...',
+    bts_lat: 'Широта',
+    bts_lng: 'Долгота',
+    bts_add: 'Добавить',
+    bts_save: 'Сохранить',
+    bts_saving: 'Сохранение...',
+    bts_cancel: 'Отмена',
+    bts_empty: 'Пункты не добавлены',
+    bts_count: 'Настроенные пункты',
+    bts_geo_error: 'Адрес не найден — уточните или введите координаты вручную',
     stock_in: 'Приход товара',
     my_stock: 'Мой склад',
     stock_qty: 'Кол-во',
@@ -1496,6 +1600,24 @@ const texts = {
     nav_analytics: 'Tahlil',
     nav_history: 'Tarix',
     nav_stock: 'Ombor',
+    nav_bts: 'BTS nuqtalar',
+    bts_title: 'BTS Kargo berish nuqtalari',
+    bts_desc: 'BTS nuqtalarining aniq manzillarini kiriting. Manzil → «Topish» tugmasini bosing → koordinatalar avtomatik to\'ldiriladi.',
+    bts_name: 'Nomi',
+    bts_city: 'Shahar / tuman',
+    bts_region: 'Viloyat',
+    bts_address: 'Aniq manzil',
+    bts_find: 'Topish',
+    bts_finding: '...',
+    bts_lat: 'Kenglik',
+    bts_lng: 'Uzunlik',
+    bts_add: 'Qo\'shish',
+    bts_save: 'Saqlash',
+    bts_saving: 'Saqlanmoqda...',
+    bts_cancel: 'Bekor',
+    bts_empty: 'Nuqtalar qo\'shilmagan',
+    bts_count: 'Sozlangan nuqtalar',
+    bts_geo_error: 'Manzil topilmadi — aniqlashtiring yoki koordinatalarni qo\'lda kiriting',
     stock_in: 'Tovar kirimi',
     my_stock: 'Mening omborim',
     stock_qty: 'Soni',
@@ -1536,7 +1658,7 @@ const txt = computed(() => { watchLang(); return texts[lang.value] || texts.ru }
 
 const tabTitle = computed(() => {
   const t = txt.value
-  const m = { online: t.nav_online, offline: t.nav_offline, stock: t.nav_stock, analytics: t.nav_analytics, history: t.history_title }
+  const m = { online: t.nav_online, offline: t.nav_offline, stock: t.nav_stock, analytics: t.nav_analytics, history: t.history_title, bts: t.bts_title }
   return m[tab.value] || t.title
 })
 
@@ -2836,14 +2958,80 @@ watch(() => realtime.ordersVersion, () => {
 watch(() => realtime.productsVersion, () => { loadProducts(); loadStock() })
 
 let stockPoll = null
-// ===== BTS branches from API =====
+// ===== BTS branches =====
 const btsBranches = ref([])
+const btsForm = reactive({ name: '', city: '', region: '', address: '', lat: '', lng: '' })
+const btsFormError = ref('')
+const btsSaving = ref(false)
+const btsEditingId = ref(null)
+const btsGeocodingAddress = ref(false)
 
 async function loadBtsBranches() {
   try {
-    const res = await api.get('/bts-branches')
+    const res = await api.get('/pickup/bts-branches')
     btsBranches.value = res.data || []
   } catch { /* non-critical */ }
+}
+
+function startEditBts(branch) {
+  btsEditingId.value = branch.id
+  Object.assign(btsForm, { name: branch.name, city: branch.city, region: branch.region || '', address: branch.address || '', lat: branch.lat, lng: branch.lng })
+  btsFormError.value = ''
+}
+
+function resetBtsForm() {
+  btsEditingId.value = null
+  Object.assign(btsForm, { name: '', city: '', region: '', address: '', lat: '', lng: '' })
+  btsFormError.value = ''
+}
+
+async function geocodeBtsAddress() {
+  if (!btsForm.address) return
+  btsGeocodingAddress.value = true
+  btsFormError.value = ''
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsForm.address)}&limit=1`
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    const data = await res.json()
+    if (data?.[0]) {
+      btsForm.lat = parseFloat(data[0].lat).toFixed(6)
+      btsForm.lng = parseFloat(data[0].lon).toFixed(6)
+    } else {
+      btsFormError.value = txt.value.bts_geo_error
+    }
+  } catch {
+    btsFormError.value = txt.value.bts_geo_error
+  } finally {
+    btsGeocodingAddress.value = false
+  }
+}
+
+async function saveBtsBranch() {
+  btsFormError.value = ''
+  if (!btsForm.name || !btsForm.city) { btsFormError.value = lang.value === 'uz' ? 'Nomi va shaharni to\'ldiring' : 'Заполните название и город'; return }
+  if (!btsForm.lat || !btsForm.lng) { btsFormError.value = lang.value === 'uz' ? 'Koordinatalar kerak' : 'Нужны координаты'; return }
+  btsSaving.value = true
+  try {
+    const payload = { ...btsForm, lat: parseFloat(btsForm.lat), lng: parseFloat(btsForm.lng), is_active: true }
+    if (btsEditingId.value) {
+      await api.put(`/pickup/bts-branches/${btsEditingId.value}`, payload)
+    } else {
+      await api.post('/pickup/bts-branches', payload)
+    }
+    await loadBtsBranches()
+    resetBtsForm()
+  } catch (err) {
+    btsFormError.value = err.response?.data?.error || (lang.value === 'uz' ? 'Xatolik' : 'Ошибка')
+  } finally {
+    btsSaving.value = false
+  }
+}
+
+async function deleteBtsBranch(id) {
+  if (!confirm(lang.value === 'uz' ? 'Bu BTS nuqtasini o\'chirish?' : 'Удалить этот пункт БТС?')) return
+  await api.delete(`/pickup/bts-branches/${id}`)
+  await loadBtsBranches()
+  if (btsEditingId.value === id) resetBtsForm()
 }
 
 onMounted(() => {

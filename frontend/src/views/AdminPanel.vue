@@ -1230,8 +1230,8 @@
         </div>
       </div>
 
-      <!-- ===== BTS BRANCHES TAB ===== -->
-      <div v-if="activeTab === 'bts'">
+      <!-- BTS branches are managed in PickupPanel → БТС пункты tab -->
+      <div v-if="false">
         <h2 class="text-2xl font-bold text-gray-800 mb-2">Пункты выдачи БТС Карго</h2>
         <p class="text-sm text-gray-500 mb-6">Добавьте точные адреса и координаты пунктов БТС. Работники выбирают из этого списка при оформлении отправки. Покупатели видят точный маршрут.</p>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1724,7 +1724,6 @@ const tabs = [
   { id: 'faq', label: 'FAQ' },
   { id: 'news', label: 'Новости' },
   { id: 'support', label: 'Поддержка' },
-  { id: 'bts', label: 'БТС пункты' },
   { id: 'settings', label: 'Настройки' },
 ]
 
