@@ -230,6 +230,15 @@ import { detectBtsBranch } from '../config/btsBranches'
 const CLINIC_LAT = 40.7760385
 const CLINIC_LNG = 72.3784014
 
+// BTS branches loaded from API
+const btsBranches = ref([])
+async function loadBtsBranches() {
+  try {
+    const res = await api.get('/bts-branches')
+    btsBranches.value = res.data || []
+  } catch { /* non-critical */ }
+}
+
 const ordersStore = useOrdersStore()
 const langStore = useLangStore()
 const t = computed(() => langStore.t)
@@ -258,6 +267,7 @@ async function loadOrders() {
 watch(() => ordersStore.isOpen, (val) => {
   if (val) {
     loadOrders()
+    loadBtsBranches()
     qrImgFailed.value = false
   }
 })
@@ -269,7 +279,18 @@ const btsMapLoading = ref(false)
 let btsMapInstance = null
 
 function btsBranchFor(order) {
-  return detectBtsBranch(order.delivery_address)
+  // Prefer exact branch saved on order (has verified coordinates)
+  if (order.bts_branch_lat && order.bts_branch_lng) {
+    return {
+      name: order.bts_pickup_point || 'БТС пункт выдачи',
+      address: '',
+      lat: order.bts_branch_lat,
+      lng: order.bts_branch_lng,
+      city: '',
+    }
+  }
+  // Fall back to API-configured branch matched by delivery address
+  return detectBtsBranch(order.delivery_address, btsBranches.value)
 }
 
 async function openBtsMap(order) {

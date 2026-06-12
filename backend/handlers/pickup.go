@@ -443,11 +443,13 @@ func DeletePickupOrder(c *gin.Context) {
 func UpdateBtsInfo(c *gin.Context) {
 	id := c.Param("id")
 	var body struct {
-		TrackingNumber string `json:"tracking_number"`
-		PickupPoint    string `json:"pickup_point"`
+		TrackingNumber string  `json:"tracking_number"`
+		PickupPoint    string  `json:"pickup_point"`
+		BranchLat      float64 `json:"branch_lat"`
+		BranchLng      float64 `json:"branch_lng"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || (body.TrackingNumber == "" && body.PickupPoint == "") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите трек-номер или пункт выдачи"})
+	if err := c.ShouldBindJSON(&body); err != nil || body.TrackingNumber == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите трек-номер"})
 		return
 	}
 
@@ -457,12 +459,11 @@ func UpdateBtsInfo(c *gin.Context) {
 		return
 	}
 
-	updates := map[string]interface{}{}
-	if body.TrackingNumber != "" {
-		updates["bts_tracking_number"] = body.TrackingNumber
-	}
-	if body.PickupPoint != "" {
-		updates["bts_pickup_point"] = body.PickupPoint
+	updates := map[string]interface{}{
+		"bts_tracking_number": body.TrackingNumber,
+		"bts_pickup_point":    body.PickupPoint,
+		"bts_branch_lat":      body.BranchLat,
+		"bts_branch_lng":      body.BranchLng,
 	}
 	database.DB.Model(&order).Updates(updates)
 	BroadcastOrders()

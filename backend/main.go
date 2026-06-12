@@ -87,6 +87,10 @@ func main() {
 				protected.GET("/doctors/:id/stats", handlers.GetDoctorStats)
 				protected.GET("/marketologs", handlers.GetMarketologs)
 				protected.GET("/marketologs/:id/stats", handlers.GetMarketologStatsAdmin)
+				protected.GET("/bts-branches", handlers.GetBtsBranches)
+				protected.POST("/bts-branches", handlers.CreateBtsBranch)
+				protected.PUT("/bts-branches/:id", handlers.UpdateBtsBranch)
+				protected.DELETE("/bts-branches/:id", handlers.DeleteBtsBranch)
 			}
 		}
 
@@ -99,6 +103,7 @@ func main() {
 		}
 
 		api.GET("/settings/payment-qr", handlers.GetPaymentQR)
+		api.GET("/bts-branches", handlers.GetBtsBranches)
 
 		api.GET("/faqs", handlers.GetFAQs)
 

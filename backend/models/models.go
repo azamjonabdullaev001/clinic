@@ -148,8 +148,22 @@ type Order struct {
 	ReceiptPath        string   `json:"receipt_path"` // uploaded payment receipt photo for online QR payments
 	HiddenByUser       bool     `gorm:"default:false;index" json:"hidden_by_user"` // user hid this order from their own history
 	BtsTrackingNumber  string   `json:"bts_tracking_number"` // BTS cargo waybill number
-	BtsPickupPoint     string   `json:"bts_pickup_point"`    // BTS pickup point address shown to customer
+	BtsPickupPoint     string   `json:"bts_pickup_point"`    // BTS pickup point name+address (shown to customer)
+	BtsBranchLat       float64  `json:"bts_branch_lat"`      // exact BTS branch lat for OSRM routing
+	BtsBranchLng       float64  `json:"bts_branch_lng"`      // exact BTS branch lng for OSRM routing
 	CreatedAt       time.Time   `json:"created_at"`
+}
+
+// BtsBranch is a BTS Cargo pickup point configured by admin with verified coordinates.
+type BtsBranch struct {
+	ID       uint    `gorm:"primaryKey" json:"id"`
+	Name     string  `gorm:"not null" json:"name"`     // "БТС — Кургантепа"
+	City     string  `gorm:"not null;index" json:"city"` // "Кургантепа"
+	Region   string  `json:"region"`                   // "Андижанская область"
+	Address  string  `json:"address"`                  // full street address
+	Lat      float64 `json:"lat"`
+	Lng      float64 `json:"lng"`
+	IsActive bool    `gorm:"default:true" json:"is_active"`
 }
 
 // Setting is a simple key/value store (e.g. the payment QR image path).

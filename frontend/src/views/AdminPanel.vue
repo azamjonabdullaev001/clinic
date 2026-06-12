@@ -1230,6 +1230,92 @@
         </div>
       </div>
 
+      <!-- ===== BTS BRANCHES TAB ===== -->
+      <div v-if="activeTab === 'bts'">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Пункты выдачи БТС Карго</h2>
+        <p class="text-sm text-gray-500 mb-6">Добавьте точные адреса и координаты пунктов БТС. Работники выбирают из этого списка при оформлении отправки. Покупатели видят точный маршрут.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          <!-- Form -->
+          <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="font-semibold text-gray-700 mb-4">{{ btsEditingId ? 'Редактировать пункт' : 'Добавить пункт' }}</h3>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-medium text-gray-600 mb-1 block">Название *</label>
+                  <input v-model="btsForm.name" placeholder="БТС — Кургантепа" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-600 mb-1 block">Город / район *</label>
+                  <input v-model="btsForm.city" placeholder="Кургантепа" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-600 mb-1 block">Область / регион</label>
+                <input v-model="btsForm.region" placeholder="Андижанская область" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-600 mb-1 block">Точный адрес</label>
+                <div class="flex gap-2">
+                  <input v-model="btsForm.address" placeholder="ул. Навои 12, Кургантепа" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+                  <button @click="geocodeBtsAddress" :disabled="btsGeocodingAddress || !btsForm.address" class="bg-teal-600 text-white px-3 py-2 rounded-lg text-xs hover:bg-teal-700 transition disabled:opacity-50 whitespace-nowrap">
+                    {{ btsGeocodingAddress ? '...' : 'Найти' }}
+                  </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">Нажмите «Найти» — координаты заполнятся автоматически. Или скопируйте из Google/Яндекс Карт.</p>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-xs font-medium text-gray-600 mb-1 block">Широта (lat) *</label>
+                  <input v-model="btsForm.lat" type="number" step="0.000001" placeholder="40.7123" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-600 mb-1 block">Долгота (lng) *</label>
+                  <input v-model="btsForm.lng" type="number" step="0.000001" placeholder="72.4567" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"/>
+                </div>
+              </div>
+              <p v-if="btsFormError" class="text-red-500 text-xs">{{ btsFormError }}</p>
+              <div class="flex gap-2 pt-1">
+                <button @click="saveBtsBranch" :disabled="btsSaving" class="bg-teal-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-teal-700 transition disabled:opacity-50 font-medium">
+                  {{ btsSaving ? 'Сохранение...' : (btsEditingId ? 'Сохранить' : 'Добавить') }}
+                </button>
+                <button v-if="btsEditingId" @click="resetBtsForm" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition">Отмена</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- List -->
+          <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+              <h3 class="font-semibold text-gray-700">Настроенные пункты ({{ btsBranches.length }})</h3>
+            </div>
+            <div v-if="btsBranches.length === 0" class="flex flex-col items-center justify-center py-12 text-gray-400 text-sm">
+              <svg class="w-10 h-10 text-gray-200 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Пункты не добавлены
+            </div>
+            <div v-else class="divide-y divide-gray-50 max-h-96 overflow-y-auto">
+              <div v-for="b in btsBranches" :key="b.id" class="px-5 py-3 flex items-start justify-between gap-3 hover:bg-gray-50 transition" :class="btsEditingId === b.id ? 'bg-teal-50' : ''">
+                <div class="min-w-0 flex-1">
+                  <p class="font-semibold text-gray-800 text-sm">{{ b.name }}</p>
+                  <p class="text-xs text-gray-500">{{ b.city }}<span v-if="b.region"> · {{ b.region }}</span></p>
+                  <p v-if="b.address" class="text-xs text-gray-400 truncate">{{ b.address }}</p>
+                  <p class="text-xs font-mono text-teal-600 mt-0.5">{{ b.lat }}, {{ b.lng }}</p>
+                </div>
+                <div class="flex gap-1.5 flex-shrink-0">
+                  <button @click="startEditBts(b)" class="p-1.5 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  </button>
+                  <button @click="deleteBtsBranch(b.id)" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <div v-if="activeTab === 'settings'">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Настройки</h2>
         <div class="bg-white rounded-xl shadow-sm p-6 max-w-lg">
@@ -1638,6 +1724,7 @@ const tabs = [
   { id: 'faq', label: 'FAQ' },
   { id: 'news', label: 'Новости' },
   { id: 'support', label: 'Поддержка' },
+  { id: 'bts', label: 'БТС пункты' },
   { id: 'settings', label: 'Настройки' },
 ]
 
@@ -2813,5 +2900,81 @@ onMounted(() => {
   loadFaqs()
   loadSupportThreads()
   loadPaymentQR()
+  loadBtsBranches()
 })
+
+// ===== BTS Branches =====
+const btsBranches = ref([])
+const btsForm = reactive({ name: '', city: '', region: '', address: '', lat: '', lng: '', is_active: true })
+const btsFormError = ref('')
+const btsSaving = ref(false)
+const btsEditingId = ref(null)
+const btsGeocodingAddress = ref(false)
+
+async function loadBtsBranches() {
+  try {
+    const res = await api.get('/admin/bts-branches')
+    btsBranches.value = res.data || []
+  } catch { /* ignore */ }
+}
+
+function startEditBts(branch) {
+  btsEditingId.value = branch.id
+  Object.assign(btsForm, { name: branch.name, city: branch.city, region: branch.region || '', address: branch.address || '', lat: branch.lat, lng: branch.lng, is_active: branch.is_active })
+  btsFormError.value = ''
+}
+
+function resetBtsForm() {
+  btsEditingId.value = null
+  Object.assign(btsForm, { name: '', city: '', region: '', address: '', lat: '', lng: '', is_active: true })
+  btsFormError.value = ''
+}
+
+async function geocodeBtsAddress() {
+  if (!btsForm.address) return
+  btsGeocodingAddress.value = true
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsForm.address)}&limit=1`
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    const data = await res.json()
+    if (data?.[0]) {
+      btsForm.lat = parseFloat(data[0].lat).toFixed(6)
+      btsForm.lng = parseFloat(data[0].lon).toFixed(6)
+    } else {
+      btsFormError.value = 'Адрес не найден — попробуйте уточнить или введите координаты вручную'
+    }
+  } catch {
+    btsFormError.value = 'Ошибка геокодирования'
+  } finally {
+    btsGeocodingAddress.value = false
+  }
+}
+
+async function saveBtsBranch() {
+  btsFormError.value = ''
+  if (!btsForm.name || !btsForm.city) { btsFormError.value = 'Заполните название и город'; return }
+  if (!btsForm.lat || !btsForm.lng) { btsFormError.value = 'Нужны координаты — найдите адрес или введите вручную'; return }
+  btsSaving.value = true
+  try {
+    const payload = { ...btsForm, lat: parseFloat(btsForm.lat), lng: parseFloat(btsForm.lng) }
+    if (btsEditingId.value) {
+      await api.put(`/admin/bts-branches/${btsEditingId.value}`, payload)
+    } else {
+      await api.post('/admin/bts-branches', payload)
+    }
+    await loadBtsBranches()
+    resetBtsForm()
+  } catch (err) {
+    btsFormError.value = err.response?.data?.error || 'Ошибка'
+  } finally {
+    btsSaving.value = false
+  }
+}
+
+async function deleteBtsBranch(id) {
+  if (!confirm('Удалить этот пункт БТС?')) return
+  await api.delete(`/admin/bts-branches/${id}`)
+  await loadBtsBranches()
+  if (btsEditingId.value === id) resetBtsForm()
+}
 </script>

@@ -217,25 +217,39 @@
                     />
                   </div>
                   <div>
-                    <label class="text-xs text-blue-700 font-medium mb-1 block">
-                      Пункт выдачи
-                      <span v-if="btsEdit[order.id].autoDetected" class="text-green-600 ml-1">✓ определён автоматически</span>
+                    <label class="text-xs text-blue-700 font-medium mb-1 flex items-center justify-between">
+                      <span>Пункт выдачи БТС
+                        <span v-if="btsEdit[order.id].autoDetected" class="text-green-600 ml-1">✓ авто</span>
+                      </span>
                     </label>
-                    <input
-                      v-model="btsEdit[order.id].pickupPoint"
-                      type="text"
-                      placeholder="Определяется по адресу заказа…"
-                      class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
-                      :class="btsEdit[order.id].autoDetected ? 'border-green-300 bg-green-50' : 'border-blue-200'"
-                    />
-                    <p v-if="btsEdit[order.id].autoDetected" class="text-xs text-green-600 mt-1">
-                      Город определён по адресу: «{{ order.delivery_address }}»
-                    </p>
-                    <p v-else-if="btsEdit[order.id].trackingNumber && !btsEdit[order.id].autoDetected" class="text-xs text-amber-600 mt-1">
-                      Город не найден — введите пункт вручную
-                    </p>
+                    <!-- Selected branch display -->
+                    <div v-if="btsEdit[order.id].selectedBranch" class="border border-green-300 bg-green-50 rounded-lg px-3 py-2 text-sm mb-1 flex items-start justify-between gap-2">
+                      <div>
+                        <p class="font-semibold text-green-800">{{ btsEdit[order.id].selectedBranch.name }}</p>
+                        <p class="text-xs text-green-700">{{ btsEdit[order.id].selectedBranch.address }}</p>
+                        <p class="text-xs text-green-500">{{ btsEdit[order.id].selectedBranch.region }}</p>
+                      </div>
+                      <button @click="btsEdit[order.id].selectedBranch = null; btsEdit[order.id].autoDetected = false" class="text-green-400 hover:text-red-500 transition text-lg leading-none mt-0.5">×</button>
+                    </div>
+                    <!-- Branch list (searchable) -->
+                    <div v-else>
+                      <p v-if="btsBranches.length === 0" class="text-xs text-amber-600 italic">
+                        Пункты БТС не настроены — добавьте их в Админ-панели → вкладка «БТС»
+                      </p>
+                      <div v-else class="border border-blue-200 rounded-lg bg-white max-h-36 overflow-y-auto text-sm divide-y divide-blue-50">
+                        <button
+                          v-for="branch in btsBranches"
+                          :key="branch.id"
+                          @click="selectBtsBranch(order.id, branch)"
+                          class="w-full text-left px-3 py-2 hover:bg-blue-50 transition"
+                        >
+                          <span class="font-medium text-blue-800">{{ branch.name }}</span>
+                          <span class="text-xs text-gray-400 ml-1">{{ branch.region }}</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving || !btsEdit[order.id].trackingNumber" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50">
+                  <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving || !btsEdit[order.id].trackingNumber || !btsEdit[order.id].selectedBranch" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50">
                     {{ btsEdit[order.id]?.saving ? 'Сохранение...' : 'Сохранить' }}
                   </button>
                 </div>
@@ -1673,11 +1687,11 @@ const btsEdit = ref({})
 
 function toggleBtsEdit(orderId, order) {
   if (!btsEdit.value[orderId]) {
-    const branch = order ? detectBtsBranch(order.delivery_address) : null
+    const branch = order ? detectBtsBranch(order.delivery_address, btsBranches.value) : null
     btsEdit.value[orderId] = {
       open: true,
       trackingNumber: order?.bts_tracking_number || '',
-      pickupPoint: order?.bts_pickup_point || (branch ? branch.name + ', ' + branch.address : ''),
+      selectedBranch: branch,
       autoDetected: !!branch,
       saving: false,
     }
@@ -1688,17 +1702,18 @@ function toggleBtsEdit(orderId, order) {
 
 function onBtsTrackingInput(order) {
   const state = btsEdit.value[order.id]
-  if (!state) return
-  // Auto-detect pickup point from delivery address as soon as user starts typing the tracking number
-  if (!state.pickupPoint || state.autoDetected) {
-    const branch = detectBtsBranch(order.delivery_address)
-    if (branch) {
-      state.pickupPoint = branch.name + ', ' + branch.address
-      state.autoDetected = true
-    } else {
-      state.autoDetected = false
-    }
+  if (!state || state.selectedBranch) return
+  const branch = detectBtsBranch(order.delivery_address, btsBranches.value)
+  if (branch) {
+    state.selectedBranch = branch
+    state.autoDetected = true
   }
+}
+
+function selectBtsBranch(orderId, branch) {
+  if (!btsEdit.value[orderId]) return
+  btsEdit.value[orderId].selectedBranch = branch
+  btsEdit.value[orderId].autoDetected = false
 }
 
 async function saveBtsInfo(order) {
@@ -1706,12 +1721,17 @@ async function saveBtsInfo(order) {
   if (!state || !state.trackingNumber) return
   state.saving = true
   try {
+    const branch = state.selectedBranch
     await api.put(`/pickup/orders/${order.id}/bts`, {
       tracking_number: state.trackingNumber,
-      pickup_point: state.pickupPoint,
+      pickup_point: branch ? `${branch.name} — ${branch.address}` : '',
+      branch_lat: branch?.lat || 0,
+      branch_lng: branch?.lng || 0,
     })
     order.bts_tracking_number = state.trackingNumber
-    order.bts_pickup_point = state.pickupPoint
+    order.bts_pickup_point = branch ? `${branch.name} — ${branch.address}` : ''
+    order.bts_branch_lat = branch?.lat || 0
+    order.bts_branch_lng = branch?.lng || 0
     state.open = false
   } catch (err) {
     alert(err.response?.data?.error || 'Ошибка при сохранении')
@@ -2816,12 +2836,23 @@ watch(() => realtime.ordersVersion, () => {
 watch(() => realtime.productsVersion, () => { loadProducts(); loadStock() })
 
 let stockPoll = null
+// ===== BTS branches from API =====
+const btsBranches = ref([])
+
+async function loadBtsBranches() {
+  try {
+    const res = await api.get('/bts-branches')
+    btsBranches.value = res.data || []
+  } catch { /* non-critical */ }
+}
+
 onMounted(() => {
   loadStock()
   loadOrders()
   loadProducts()
   loadDoctors()
   loadMarketologs()
+  loadBtsBranches()
   stockPoll = setInterval(() => {
     if (tab.value === 'offline' || tab.value === 'stock') loadStock()
   }, 7000)
