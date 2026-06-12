@@ -158,7 +158,7 @@
             <p class="text-sm text-gray-400 mt-1">{{ txt.online_orders_hint }}</p>
           </div>
           <div v-else class="pp-divide">
-            <div v-for="order in onlineOrders" :key="order.id" class="p-5 pp-row-hover transition">
+            <div v-for="order in onlineOrders" :key="order.id" class="p-5 pp-row-hover transition" :class="order.status === 'delivered' ? 'opacity-60 bg-green-50/40' : ''"  >
               <div class="flex justify-between items-start gap-3">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -1533,13 +1533,26 @@ async function initDeliveryMap() {
     .addTo(deliveryMapInstance)
     .bindPopup(`<b>${txt.value.delivery_to}</b><br>${order.delivery_address || ''}`)
 
-  // Straight line (cors line) between the two points
-  L.polyline(
-    [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
-    { color: '#2563eb', weight: 3, opacity: 0.8, dashArray: '8 5' }
-  ).addTo(deliveryMapInstance)
+  // Real road route via OSRM (free, no API key needed)
+  try {
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${PICKUP_LNG},${PICKUP_LAT};${customerLng},${customerLat}?overview=full&geometries=geojson`
+    const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
+    const data = await res.json()
+    if (data.code === 'Ok' && data.routes?.[0]) {
+      // GeoJSON coords are [lng, lat] — Leaflet needs [lat, lng]
+      const routeCoords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
+      L.polyline(routeCoords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(deliveryMapInstance)
+    } else {
+      throw new Error('no route')
+    }
+  } catch {
+    // Fallback: straight dashed line if OSRM is unavailable
+    L.polyline(
+      [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
+      { color: '#2563eb', weight: 3, opacity: 0.8, dashArray: '8 5' }
+    ).addTo(deliveryMapInstance)
+  }
 
-  // Fit map to show both markers with padding
   deliveryMapInstance.fitBounds(
     [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
     { padding: [40, 40] }
@@ -1582,7 +1595,7 @@ const recent30Orders = computed(() => {
 })
 
 const onlineOrders = computed(() =>
-  orders.value.filter(o => !o.is_offline && o.status !== 'delivered' && o.status !== 'cancelled')
+  orders.value.filter(o => !o.is_offline && o.status !== 'cancelled')
 )
 
 const offlineOrders = computed(() =>
