@@ -167,6 +167,27 @@
                 </div>
               </div>
 
+              <!-- Payment banner for awaiting_payment orders -->
+              <div v-if="order.status === 'awaiting_payment'" class="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                <p class="text-sm font-semibold text-amber-800 mb-1">Ожидает оплаты</p>
+                <p class="text-xs text-amber-600 mb-3">Отсканируйте QR-код, оплатите и загрузите фото чека.</p>
+                <div class="flex justify-center mb-3">
+                  <div v-if="qrLoading" class="w-36 h-36 flex items-center justify-center bg-white rounded-xl border border-amber-200">
+                    <div class="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <img v-else-if="paymentQrUrl" :src="paymentQrUrl" class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1" @error="qrLoadingError = 'Ошибка загрузки QR'; paymentQrUrl = ''"/>
+                  <div v-else class="w-36 h-36 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
+                    <svg class="w-8 h-8 text-amber-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                    <p class="text-xs text-amber-500">{{ qrLoadingError || 'QR не настроен' }}</p>
+                    <button @click="retryLoadQR" class="text-xs text-amber-600 font-medium mt-1 underline">Обновить</button>
+                  </div>
+                </div>
+                <input :ref="el => ordersTabReceiptInputs[order.id] = el" type="file" accept="image/*" class="hidden" @change="e => uploadReceiptFromOrdersTab(order.id, e)"/>
+                <button @click="ordersTabReceiptInputs[order.id]?.click()" :disabled="ordersTabUploading === order.id" class="w-full bg-amber-600 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-amber-700 transition disabled:opacity-50 font-medium">
+                  {{ ordersTabUploading === order.id ? 'Отправка...' : '📷 Загрузить фото чека' }}
+                </button>
+              </div>
+
               <div class="px-4 py-2.5 border-t border-stone-100 flex justify-between items-center">
                 <span class="text-xs text-stone-400">{{ t.cart_total }}</span>
                 <span class="font-bold text-brand-700">{{ formatPrice(orderTotal(order)) }} {{ t.currency }}</span>
@@ -477,9 +498,9 @@
           <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
           
           <!-- Confirm Payment Button (ONLY way to proceed) -->
-          <button 
-            @click="confirmOrderPayment" 
-            :disabled="!receiptFile || confirmingOrder || !paymentQrUrl" 
+          <button
+            @click="confirmOrderPayment"
+            :disabled="!receiptFile || confirmingOrder"
             class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
@@ -527,7 +548,10 @@ const activeTab = ref('cart')
 
 function switchTab(tab) {
   activeTab.value = tab
-  if (tab === 'orders') loadOrders()
+  if (tab === 'orders') {
+    loadOrders()
+    loadPaymentQR()
+  }
 }
 
 watch(() => cartStore.isOpen, (val) => {
@@ -609,6 +633,27 @@ const showOrderMap = ref(false)
 const selectedOrderForMap = ref(null)
 let orderMapInstance = null
 let orderMapMarker = null
+
+// Receipt upload from orders tab
+const ordersTabReceiptInputs = ref({})
+const ordersTabUploading = ref(null)
+
+async function uploadReceiptFromOrdersTab(orderId, e) {
+  const f = e.target.files[0]
+  if (!f) return
+  ordersTabUploading.value = orderId
+  try {
+    const fd = new FormData()
+    fd.append('receipt', f)
+    await api.post(`/orders/${orderId}/receipt`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await loadOrders()
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка при отправке чека')
+  } finally {
+    ordersTabUploading.value = null
+    e.target.value = ''
+  }
+}
 
 async function openOrderMap(order) {
   selectedOrderForMap.value = order
