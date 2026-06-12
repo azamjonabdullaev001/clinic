@@ -80,10 +80,10 @@
                 <img
                   v-if="!qrImgFailed"
                   src="/images/QRpayment.jpg"
-                  class="w-40 h-40 object-contain rounded-xl border border-amber-200 bg-white p-1"
+                  class="w-48 h-48 object-contain rounded-xl border border-amber-200 bg-white p-1"
                   @error="qrImgFailed = true"
                 />
-                <div v-else class="w-40 h-40 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
+                <div v-else class="w-48 h-48 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
                   <svg class="w-8 h-8 text-amber-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
                   <p class="text-xs text-amber-500">{{ t.payment_qr_not_configured }}</p>
                   <button @click="qrImgFailed = false" class="text-xs text-amber-600 font-medium mt-1 underline">{{ t.qr_retry }}</button>

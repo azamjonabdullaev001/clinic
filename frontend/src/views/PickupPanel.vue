@@ -1108,7 +1108,7 @@
   <Teleport to="body">
     <div v-if="showDeliveryMap" class="fixed inset-0 z-[200] flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeDeliveryMap"></div>
-      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col" style="max-height:90vh">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 overflow-hidden flex flex-col" style="max-height:92vh">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white flex-shrink-0">
           <div>
@@ -1120,7 +1120,7 @@
           </button>
         </div>
         <!-- Map -->
-        <div id="pickup-delivery-map" style="height:420px;width:100%;flex-shrink:0"></div>
+        <div id="pickup-delivery-map" style="height:600px;width:100%;flex-shrink:0"></div>
         <!-- Footer info -->
         <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
           <div class="flex items-center gap-1.5">
