@@ -143,6 +143,7 @@ func main() {
 			pickup.POST("/orders/:id/return", handlers.ReturnOrderFull)
 			pickup.DELETE("/orders/:id", handlers.DeletePickupOrder)
 			pickup.PUT("/orders/:id/bts", handlers.UpdateBtsInfo)
+			pickup.PUT("/orders/:id/notes", handlers.UpdateOrderNotes)
 			pickup.GET("/bts-branches", handlers.GetBtsBranches)
 			pickup.POST("/bts-branches", handlers.CreateBtsBranch)
 			pickup.PUT("/bts-branches/:id", handlers.UpdateBtsBranch)

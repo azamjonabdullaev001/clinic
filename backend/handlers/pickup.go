@@ -470,3 +470,23 @@ func UpdateBtsInfo(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "BTS информация обновлена"})
 }
+
+// UpdateOrderNotes saves a worker note on an order. The note is visible to the customer.
+func UpdateOrderNotes(c *gin.Context) {
+	id := c.Param("id")
+	var body struct {
+		Notes string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		return
+	}
+	var order models.Order
+	if err := database.DB.First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	database.DB.Model(&order).Update("worker_notes", body.Notes)
+	BroadcastOrders()
+	c.JSON(http.StatusOK, gin.H{"message": "Заметка сохранена"})
+}

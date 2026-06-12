@@ -233,13 +233,30 @@
                 </div>
               </div>
 
+              <!-- Saved note display -->
+              <div v-if="order.worker_notes && !noteEdit[order.id]?.open" class="mt-2 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                <p class="text-xs text-indigo-500 font-semibold mb-0.5">📝 Заметка</p>
+                <p class="text-sm text-indigo-800 whitespace-pre-wrap">{{ order.worker_notes }}</p>
+              </div>
+              <!-- Inline note editor -->
+              <div v-if="noteEdit[order.id]?.open" class="mt-2 border border-indigo-200 rounded-lg p-3 bg-indigo-50/60">
+                <label class="text-xs text-indigo-700 font-semibold mb-1 block">Заметка для покупателя</label>
+                <textarea v-model="noteEdit[order.id].text" rows="3" placeholder="Например: БТС трек 123456789, ожидайте в пункте выдачи Ходжаабад…" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white resize-none"></textarea>
+                <div class="flex gap-2 mt-1.5">
+                  <button @click="saveNote(order)" :disabled="noteEdit[order.id].saving" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition disabled:opacity-50">
+                    {{ noteEdit[order.id].saving ? 'Сохранение...' : 'Сохранить' }}
+                  </button>
+                  <button @click="noteEdit[order.id].open = false" class="text-gray-400 text-xs hover:text-gray-600 px-2 py-1 rounded-lg transition">Отмена</button>
+                </div>
+              </div>
+
               <div class="mt-3 flex gap-2 flex-wrap">
                 <button v-if="order.status === 'pending'" @click="updateStatus(order, 'in_transit')" class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium">🚚 {{ txt.in_transit }}</button>
                 <button v-if="order.status === 'in_transit'" @click="updateStatus(order, 'delivered')" class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium">✓ {{ txt.deliver }}</button>
                 <button v-if="order.status !== 'cancelled' && order.status !== 'delivered'" @click="updateStatus(order, 'cancelled')" class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium">{{ txt.cancel }}</button>
-                <button @click="openChat(order)" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                  {{ txt.write }}
+                <button @click="toggleNote(order)" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  {{ noteEdit[order.id]?.open ? 'Скрыть' : (order.worker_notes ? 'Редактировать' : 'Заметка') }}
                 </button>
                 <button v-if="order.latitude && order.longitude || order.delivery_address" @click="openDeliveryMap(order)" class="bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition text-sm font-medium flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
@@ -1156,8 +1173,8 @@
   <Teleport to="body">
     <div v-if="showBtsMapPicker" class="fixed inset-0 z-[250] flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeBtsMapPicker"></div>
-      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden flex flex-col" style="max-height:92vh">
-        <div class="flex items-center justify-between px-5 py-4 border-b bg-white flex-shrink-0">
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col" style="max-height:92vh">
+        <div class="flex items-center justify-between px-5 py-4 border-b bg-white flex-shrink-0 rounded-t-2xl">
           <div>
             <h3 class="text-base font-bold text-gray-900">Укажите пункт выдачи БТС</h3>
             <p class="text-xs text-gray-400 mt-0.5">Найдите адрес или нажмите на карту чтобы поставить метку</p>
@@ -1195,9 +1212,9 @@
           </div>
         </div>
         <!-- Map -->
-        <div id="bts-picker-map" style="height:400px;width:100%;flex-shrink:0"></div>
+        <div id="bts-picker-map" style="height:400px;width:100%;flex-shrink:0;overflow:hidden"></div>
         <!-- Footer -->
-        <div class="px-5 py-3 bg-gray-50 border-t flex items-center justify-between flex-shrink-0">
+        <div class="px-5 py-3 bg-gray-50 border-t flex items-center justify-between flex-shrink-0 rounded-b-2xl">
           <div class="text-sm text-gray-600 flex-1 min-w-0">
             <span v-if="btsPickedLat" class="font-medium text-green-700 flex items-center gap-1">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
@@ -1929,8 +1946,11 @@ async function runBtsSearch() {
   btsSearching.value = true
   btsSearchResults.value = []
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsSearchQuery.value)}&limit=6&countrycodes=uz`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsSearchQuery.value)}&limit=8&addressdetails=1`
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'Accept-Language': 'ru,uz;q=0.9,en;q=0.5' }
+    })
     const data = await res.json()
     btsSearchResults.value = data || []
   } catch { /* ignore */ } finally {
@@ -1964,6 +1984,32 @@ async function selectBtsResult(result) {
         await reverseGeocodeBts(pos.lat, pos.lng)
       })
     }
+  }
+}
+
+// ===== Order Notes =====
+const noteEdit = reactive({})
+
+function toggleNote(order) {
+  if (!noteEdit[order.id]) {
+    noteEdit[order.id] = { open: false, text: order.worker_notes || '', saving: false }
+  }
+  noteEdit[order.id].open = !noteEdit[order.id].open
+  if (noteEdit[order.id].open) noteEdit[order.id].text = order.worker_notes || ''
+}
+
+async function saveNote(order) {
+  const state = noteEdit[order.id]
+  if (!state) return
+  state.saving = true
+  try {
+    await api.put(`/pickup/orders/${order.id}/notes`, { notes: state.text })
+    order.worker_notes = state.text
+    state.open = false
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка при сохранении заметки')
+  } finally {
+    state.saving = false
   }
 }
 

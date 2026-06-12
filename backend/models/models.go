@@ -151,6 +151,7 @@ type Order struct {
 	BtsPickupPoint     string   `json:"bts_pickup_point"`    // BTS pickup point name+address (shown to customer)
 	BtsBranchLat       float64  `json:"bts_branch_lat"`      // exact BTS branch lat for OSRM routing
 	BtsBranchLng       float64  `json:"bts_branch_lng"`      // exact BTS branch lng for OSRM routing
+	WorkerNotes        string   `json:"worker_notes"`        // worker comment visible to the customer
 	CreatedAt       time.Time   `json:"created_at"`
 }
 
