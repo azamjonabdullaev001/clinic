@@ -99,10 +99,28 @@
               <p class="text-sm font-medium text-green-700">Ваш заказ одобрен! Спасибо, что выбрали нас 💚</p>
             </div>
 
+            <!-- BTS cargo info -->
+            <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 mb-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
+              <p class="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                БТС Карго — доставка
+              </p>
+              <p v-if="order.bts_pickup_point" class="text-xs text-blue-800"><span class="font-medium">Пункт выдачи:</span> {{ order.bts_pickup_point }}</p>
+              <p v-if="order.bts_tracking_number" class="text-xs text-blue-800 mt-0.5"><span class="font-medium">Трек-номер:</span> {{ order.bts_tracking_number }}</p>
+            </div>
+
             <!-- Total -->
             <div class="px-4 py-2.5 border-t border-stone-100 flex justify-between items-center">
               <span class="text-xs text-stone-400">{{ t.cart_total }}</span>
               <span class="font-bold text-brand-700">{{ formatPrice(orderTotal(order)) }} {{ t.currency }}</span>
+            </div>
+
+            <!-- Hide delivered/cancelled orders from history -->
+            <div v-if="order.status === 'delivered'" class="px-4 pb-3 flex justify-end">
+              <button @click="confirmHide(order)" class="text-xs text-stone-400 hover:text-red-500 transition flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Удалить из истории
+              </button>
             </div>
           </div>
 
@@ -125,9 +143,14 @@
                     <p class="text-[10px] text-red-300 uppercase tracking-wider mb-0.5">{{ t.orders_code }}</p>
                     <p class="text-2xl font-bold text-red-400 tracking-widest">{{ order.order_code }}</p>
                   </div>
-                  <span class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-100 text-red-600">
-                    {{ t.status_cancelled }}
-                  </span>
+                  <div class="flex items-center gap-2">
+                    <span class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-100 text-red-600">
+                      {{ t.status_cancelled }}
+                    </span>
+                    <button @click="confirmHide(order)" class="p-1.5 hover:bg-red-100 rounded-lg transition text-red-300 hover:text-red-500" title="Удалить из истории">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div class="px-4 py-3 space-y-2">
@@ -194,6 +217,16 @@ watch(() => ordersStore.isOpen, (val) => {
     qrImgFailed.value = false
   }
 })
+
+async function confirmHide(order) {
+  if (!confirm(`Удалить заказ #${order.order_code} из истории?`)) return
+  try {
+    await api.delete(`/orders/${order.id}/hide`)
+    orders.value = orders.value.filter(o => o.id !== order.id)
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка при удалении')
+  }
+}
 
 async function uploadReceipt(orderId, e) {
   const f = e.target.files[0]

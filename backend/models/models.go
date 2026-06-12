@@ -146,6 +146,9 @@ type Order struct {
 	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
 	ArchiveReason      string   `json:"archive_reason"`
 	ReceiptPath        string   `json:"receipt_path"` // uploaded payment receipt photo for online QR payments
+	HiddenByUser       bool     `gorm:"default:false;index" json:"hidden_by_user"` // user hid this order from their own history
+	BtsTrackingNumber  string   `json:"bts_tracking_number"` // BTS cargo waybill number
+	BtsPickupPoint     string   `json:"bts_pickup_point"`    // BTS pickup point address shown to customer
 	CreatedAt       time.Time   `json:"created_at"`
 }
 

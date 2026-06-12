@@ -145,7 +145,7 @@ func CreateOrder(c *gin.Context) {
 func GetUserOrders(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	var orders []models.Order
-	database.DB.Where("user_id = ? AND archived = ? AND is_deleted = ?", userID, false, false).
+	database.DB.Where("user_id = ? AND archived = ? AND is_deleted = ? AND hidden_by_user = ?", userID, false, false, false).
 		Preload("Items.Product").
 		Order("created_at desc").
 		Find(&orders)
@@ -157,6 +157,33 @@ func GetUserOrders(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, orders)
+}
+
+func HideUserOrder(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+
+	var order models.Order
+	if err := database.DB.First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	if order.UserID == nil || *order.UserID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Нет доступа"})
+		return
+	}
+	// Only allow hiding completed or cancelled orders
+	if order.Status != "delivered" && order.Status != "cancelled" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Можно скрыть только выполненные или отменённые заказы"})
+		return
+	}
+
+	database.DB.Model(&order).Update("hidden_by_user", true)
+	c.JSON(http.StatusOK, gin.H{"message": "Заказ скрыт из истории"})
 }
 
 func GetOrders(c *gin.Context) {

@@ -436,3 +436,36 @@ func DeletePickupOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ удалён"})
 }
+
+// UpdateBtsInfo sets the BTS cargo tracking number and pickup point for an order.
+// Workers call this when they hand the package to BTS, so the customer can see
+// exactly at which BTS branch their parcel will be waiting.
+func UpdateBtsInfo(c *gin.Context) {
+	id := c.Param("id")
+	var body struct {
+		TrackingNumber string `json:"tracking_number"`
+		PickupPoint    string `json:"pickup_point"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || (body.TrackingNumber == "" && body.PickupPoint == "") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите трек-номер или пункт выдачи"})
+		return
+	}
+
+	var order models.Order
+	if err := database.DB.First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+
+	updates := map[string]interface{}{}
+	if body.TrackingNumber != "" {
+		updates["bts_tracking_number"] = body.TrackingNumber
+	}
+	if body.PickupPoint != "" {
+		updates["bts_pickup_point"] = body.PickupPoint
+	}
+	database.DB.Model(&order).Updates(updates)
+	BroadcastOrders()
+
+	c.JSON(http.StatusOK, gin.H{"message": "BTS информация обновлена"})
+}

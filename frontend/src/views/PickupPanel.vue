@@ -188,6 +188,32 @@
                   <img :src="order.receipt_path" class="w-14 h-14 object-cover rounded-lg border border-emerald-200 hover:opacity-80 transition"/>
                 </a>
               </div>
+
+              <!-- BTS Cargo section -->
+              <div class="mt-3 border border-blue-200 rounded-xl bg-blue-50/60 p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    БТС Карго
+                  </span>
+                  <button @click="toggleBtsEdit(order.id)" class="text-xs text-blue-600 hover:underline">
+                    {{ btsEdit[order.id]?.open ? 'Скрыть' : 'Изменить' }}
+                  </button>
+                </div>
+                <div v-if="order.bts_tracking_number || order.bts_pickup_point" class="space-y-0.5 mb-2">
+                  <p v-if="order.bts_pickup_point" class="text-xs text-blue-800"><span class="font-medium">Пункт выдачи:</span> {{ order.bts_pickup_point }}</p>
+                  <p v-if="order.bts_tracking_number" class="text-xs text-blue-800"><span class="font-medium">Трек-номер:</span> {{ order.bts_tracking_number }}</p>
+                </div>
+                <p v-else class="text-xs text-blue-400 mb-2 italic">Не заполнено</p>
+                <div v-if="btsEdit[order.id]?.open" class="space-y-2 pt-2 border-t border-blue-200">
+                  <input v-model="btsEdit[order.id].trackingNumber" type="text" placeholder="Трек-номер БТС" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
+                  <input v-model="btsEdit[order.id].pickupPoint" type="text" placeholder="Пункт выдачи (напр: БТС Наманган, ул. Ипак Йули 12)" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
+                  <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50">
+                    {{ btsEdit[order.id]?.saving ? 'Сохранение...' : 'Сохранить' }}
+                  </button>
+                </div>
+              </div>
+
               <div class="mt-3 flex gap-2 flex-wrap">
                 <button v-if="order.status === 'pending'" @click="updateStatus(order, 'in_transit')" class="bg-orange-500 text-white px-4 py-1.5 rounded-lg hover:bg-orange-600 transition text-sm font-medium">🚚 {{ txt.in_transit }}</button>
                 <button v-if="order.status === 'in_transit'" @click="updateStatus(order, 'delivered')" class="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition text-sm font-medium">✓ {{ txt.deliver }}</button>
@@ -1612,6 +1638,36 @@ async function initDeliveryMap() {
     [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
     { padding: [40, 40] }
   )
+}
+
+// ===== BTS Cargo =====
+const btsEdit = ref({})
+
+function toggleBtsEdit(orderId) {
+  if (!btsEdit.value[orderId]) {
+    btsEdit.value[orderId] = { open: true, trackingNumber: '', pickupPoint: '', saving: false }
+  } else {
+    btsEdit.value[orderId].open = !btsEdit.value[orderId].open
+  }
+}
+
+async function saveBtsInfo(order) {
+  const state = btsEdit.value[order.id]
+  if (!state || (!state.trackingNumber && !state.pickupPoint)) return
+  state.saving = true
+  try {
+    await api.put(`/pickup/orders/${order.id}/bts`, {
+      tracking_number: state.trackingNumber,
+      pickup_point: state.pickupPoint,
+    })
+    if (state.trackingNumber) order.bts_tracking_number = state.trackingNumber
+    if (state.pickupPoint) order.bts_pickup_point = state.pickupPoint
+    state.open = false
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка при сохранении')
+  } finally {
+    state.saving = false
+  }
 }
 
 // ===== Orders & sections =====

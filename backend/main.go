@@ -116,6 +116,7 @@ func main() {
 			orders.POST("", handlers.CreateOrder)
 			orders.GET("", handlers.GetUserOrders)
 			orders.POST("/:id/receipt", handlers.UploadOrderReceipt)
+			orders.DELETE("/:id/hide", handlers.HideUserOrder)
 		}
 
 		support := api.Group("/support")
@@ -136,6 +137,7 @@ func main() {
 			pickup.PUT("/orders/:id/items", handlers.UpdateOrderItems)
 			pickup.POST("/orders/:id/return", handlers.ReturnOrderFull)
 			pickup.DELETE("/orders/:id", handlers.DeletePickupOrder)
+			pickup.PUT("/orders/:id/bts", handlers.UpdateBtsInfo)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
 			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)
