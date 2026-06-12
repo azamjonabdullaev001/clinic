@@ -196,7 +196,8 @@
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                   {{ txt.write }}
                 </button>
-                <button v-if="order.latitude && order.longitude" @click="openDeliveryMap(order)" class="bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition text-sm font-medium">
+                <button v-if="order.latitude && order.longitude || order.delivery_address" @click="openDeliveryMap(order)" class="bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition text-sm font-medium flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
                   {{ txt.delivery_map_btn }}
                 </button>
               </div>
@@ -1120,7 +1121,14 @@
           </button>
         </div>
         <!-- Map -->
-        <div id="pickup-delivery-map" style="height:600px;width:100%;flex-shrink:0"></div>
+        <div v-if="deliveryMapGeocoding" class="flex items-center justify-center gap-3 text-gray-500 text-sm" style="height:600px">
+          <svg class="w-5 h-5 animate-spin text-teal-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          {{ txt.geocoding }}
+        </div>
+        <div v-else-if="deliveryMapGeoError" class="flex items-center justify-center text-red-500 text-sm font-medium" style="height:600px">
+          {{ deliveryMapGeoError }}
+        </div>
+        <div v-else id="pickup-delivery-map" style="height:600px;width:100%;flex-shrink:0"></div>
         <!-- Footer info -->
         <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
           <div class="flex items-center gap-1.5">
@@ -1297,10 +1305,12 @@ const texts = {
     quick_select: 'Быстрый выбор',
     dynamics: 'Динамика за день',
     export_excel: 'Экспорт Excel',
-    delivery_map_btn: '🗺 Карта доставки',
-    delivery_map_title: 'Маршрут доставки',
+    delivery_map_btn: 'OSRM Маршрут',
+    delivery_map_title: 'Маршрут доставки (OSRM)',
     delivery_from: 'Пункт выдачи',
     delivery_to: 'Адрес покупателя',
+    geocoding: 'Определяем координаты...',
+    geocode_error: 'Не удалось найти адрес на карте',
   },
   uz: {
     title: 'Berish punkti',
@@ -1445,10 +1455,12 @@ const texts = {
     quick_select: 'Tezkor tanlov',
     dynamics: 'Kunlik dinamika',
     export_excel: 'Excel eksport',
-    delivery_map_btn: '🗺 Yetkazib berish xaritasi',
-    delivery_map_title: 'Yetkazib berish marshuti',
+    delivery_map_btn: 'OSRM Marshrut',
+    delivery_map_title: 'Yetkazib berish marshuti (OSRM)',
     delivery_from: 'Berish nuqtasi',
     delivery_to: 'Xaridor manzili',
+    geocoding: 'Koordinatalar aniqlanmoqda...',
+    geocode_error: 'Manzil xaritada topilmadi',
   }
 }
 
@@ -1466,10 +1478,13 @@ const PICKUP_LNG = 72.3784014
 
 const showDeliveryMap = ref(false)
 const deliveryMapOrder = ref(null)
+const deliveryMapGeocoding = ref(false)
+const deliveryMapGeoError = ref('')
 let deliveryMapInstance = null
 
 async function openDeliveryMap(order) {
   deliveryMapOrder.value = order
+  deliveryMapGeoError.value = ''
   showDeliveryMap.value = true
   await nextTick()
   await initDeliveryMap()
@@ -1478,15 +1493,58 @@ async function openDeliveryMap(order) {
 function closeDeliveryMap() {
   showDeliveryMap.value = false
   deliveryMapOrder.value = null
+  deliveryMapGeocoding.value = false
+  deliveryMapGeoError.value = ''
   if (deliveryMapInstance) {
     deliveryMapInstance.remove()
     deliveryMapInstance = null
   }
 }
 
+async function geocodeAddress(address) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+  const data = await res.json()
+  if (data && data[0]) {
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+  }
+  return null
+}
+
 async function initDeliveryMap() {
   const order = deliveryMapOrder.value
   if (!order) return
+
+  let customerLat = order.latitude
+  let customerLng = order.longitude
+
+  // Geocode text address when coordinates are missing
+  if ((!customerLat || !customerLng) && order.delivery_address) {
+    deliveryMapGeocoding.value = true
+    try {
+      const coords = await geocodeAddress(order.delivery_address)
+      if (coords) {
+        customerLat = coords.lat
+        customerLng = coords.lng
+      } else {
+        deliveryMapGeoError.value = txt.value.geocode_error
+        deliveryMapGeocoding.value = false
+        return
+      }
+    } catch {
+      deliveryMapGeoError.value = txt.value.geocode_error
+      deliveryMapGeocoding.value = false
+      return
+    }
+    deliveryMapGeocoding.value = false
+    await nextTick()
+  }
+
+  if (!customerLat || !customerLng) {
+    deliveryMapGeoError.value = txt.value.geocode_error
+    return
+  }
+
   const L = await import('leaflet')
   await import('leaflet/dist/leaflet.css')
 
@@ -1499,9 +1557,6 @@ async function initDeliveryMap() {
 
   const mapEl = document.getElementById('pickup-delivery-map')
   if (!mapEl) return
-
-  const customerLat = order.latitude
-  const customerLng = order.longitude
 
   const midLat = (PICKUP_LAT + customerLat) / 2
   const midLng = (PICKUP_LNG + customerLng) / 2
