@@ -145,7 +145,14 @@ type Order struct {
 	DeletedByRole      string   `json:"deleted_by_role"`
 	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
 	ArchiveReason      string   `json:"archive_reason"`
+	ReceiptPath        string   `json:"receipt_path"` // uploaded payment receipt photo for online QR payments
 	CreatedAt       time.Time   `json:"created_at"`
+}
+
+// Setting is a simple key/value store (e.g. the payment QR image path).
+type Setting struct {
+	Key   string `gorm:"primaryKey" json:"key"`
+	Value string `gorm:"type:text" json:"value"`
 }
 
 // WorkerStock is the personal inventory of a worker (pickup point or manager).
@@ -166,6 +173,16 @@ type ProductComment struct {
 	AuthorName string    `json:"author_name"`
 	Text       string    `gorm:"type:text;not null" json:"text"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+// MarketologPayment records money a marketolog paid back against their debt (transfer/ХР).
+type MarketologPayment struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	MarketologID uint      `gorm:"index;not null" json:"marketolog_id"`
+	Amount       float64   `gorm:"not null" json:"amount"`
+	WorkerID     *uint     `json:"worker_id"`
+	Note         string    `json:"note"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type OrderItem struct {

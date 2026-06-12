@@ -10,8 +10,10 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -64,8 +66,10 @@ func CreateOrder(c *gin.Context) {
 
 	uid := userID.(uint)
 	order := models.Order{
-		UserID:          &uid,
-		Status:          "pending",
+		UserID: &uid,
+		// Online orders start as awaiting_payment: the customer pays via the QR and uploads
+		// a receipt, which moves the order to "pending" and reveals it at the pickup point.
+		Status:          "awaiting_payment",
 		Phone:           input.Phone,
 		OrderCode:       generateOrderCode(),
 		DeliveryAddress: deliveryAddress,
@@ -153,6 +157,64 @@ func GetUserOrders(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, orders)
+}
+
+// GetPickupOrders returns only orders that should be visible to pickup points:
+// - pending, in_transit, delivered (online orders WITH receipts)
+// - Do NOT return awaiting_payment orders (they haven't paid yet)
+func GetPickupOrders(c *gin.Context) {
+	limit := 100
+	offset := 0
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", "100")); err == nil && l > 0 && l <= 500 {
+		limit = l
+	}
+	if o, err := strconv.Atoi(c.DefaultQuery("offset", "0")); err == nil && o >= 0 {
+		offset = o
+	}
+
+	db := database.DB.Where("archived = ?", false)
+	
+	// Only show orders that have receipt_path (payment confirmed) or offline orders
+	db = db.Where("receipt_path IS NOT NULL OR status IN ('pending', 'in_transit', 'delivered', 'cancelled')")
+
+	if s := c.Query("status"); s != "" {
+		switch s {
+		case "edited":
+			db = db.Where("is_edited = ? OR is_returned = ?", true, true)
+		case "deleted":
+			db = db.Where("is_deleted = ?", true)
+		default:
+			db = db.Where("status = ?", s)
+		}
+	}
+	if df := c.Query("date_from"); df != "" {
+		db = db.Where("created_at >= ?", df)
+	}
+	if dt := c.Query("date_to"); dt != "" {
+		db = db.Where("created_at < ?", dt)
+	}
+
+	var total int64
+	db.Model(&models.Order{}).Count(&total)
+
+	var orders []models.Order
+	db.Preload("Items.Product").Preload("User").
+		Order("created_at desc").
+		Limit(limit).Offset(offset).
+		Find(&orders)
+
+	for i := range orders {
+		for j := range orders[i].Items {
+			orders[i].Items[j].Product.ComputePackPrice()
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"orders": orders,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
 }
 
 func GetOrders(c *gin.Context) {
@@ -361,4 +423,89 @@ func sendTelegramNotification(order models.Order) {
 		return
 	}
 	defer resp.Body.Close()
+}
+
+// UploadOrderReceipt handles payment receipt upload for online orders
+// CRITICAL: Only moves order from "awaiting_payment" to "pending" after receipt upload
+// This makes the order VISIBLE to pickup points ONLY after payment proof
+func UploadOrderReceipt(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	orderID := c.Param("id")
+
+	// Get order and verify ownership
+	var order models.Order
+	if err := database.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+
+	if order.UserID == nil || *order.UserID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещён"})
+		return
+	}
+
+	// Only awaiting_payment orders can receive receipts
+	if order.Status != "awaiting_payment" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Этот заказ не ожидает оплаты"})
+		return
+	}
+
+	// Parse receipt file
+	file, err := c.FormFile("receipt")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл чека не найден"})
+		return
+	}
+
+	// Validate file size (max 5MB)
+	if file.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 5MB)"})
+		return
+	}
+
+	// Validate file type
+	if !strings.Contains(file.Header.Get("Content-Type"), "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением"})
+		return
+	}
+
+	// Create uploads directory if needed
+	uploadsDir := "uploads/receipts"
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
+		return
+	}
+
+	// Generate unique filename: order-id-timestamp.extension
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	ext := strings.ToLower(strings.Split(file.Filename, ".")[len(strings.Split(file.Filename, "."))-1])
+	if ext == "" {
+		ext = "jpg"
+	}
+	filename := fmt.Sprintf("%d-%s.%s", order.ID, timestamp, ext)
+	filepath := fmt.Sprintf("%s/%s", uploadsDir, filename)
+
+	// Save file
+	if err := c.SaveUploadedFile(file, filepath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
+		return
+	}
+
+	// CRITICAL: Update order: save receipt path and change status to "pending"
+	// This makes it visible to pickup points for the first time
+	if err := database.DB.Model(&order).Updates(map[string]interface{}{
+		"receipt_path": filepath,
+		"status":       "pending",
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении заказа"})
+		return
+	}
+
+	// Broadcast order status change to all clients (pickup points will see the new order)
+	BroadcastOrders()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Чек успешно загружен",
+		"receipt_path": filepath,
+	})
 }

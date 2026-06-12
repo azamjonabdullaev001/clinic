@@ -432,4 +432,5 @@ onUnmounted(() => { if (stockPoll) clearInterval(stockPoll) })
 
 // Real-time: a marketolog's debt orders/analytics update without a reload.
 watch(() => realtime.ordersVersion, () => { loadOrders(); loadAnalytics() })
+watch(() => realtime.productsVersion, () => { loadProducts(); loadStock() })
 </script>

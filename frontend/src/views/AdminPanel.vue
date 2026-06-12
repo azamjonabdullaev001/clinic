@@ -1269,6 +1269,24 @@
             </button>
           </form>
         </div>
+
+        <!-- Payment QR for online orders -->
+        <div class="bg-white rounded-xl shadow-sm p-6 mt-5 max-w-2xl">
+          <h3 class="text-lg font-semibold text-gray-800 mb-1">QR-код для онлайн-оплаты</h3>
+          <p class="text-sm text-gray-500 mb-4">Показывается клиентам при оформлении онлайн-заказа для оплаты.</p>
+          <div class="flex items-center gap-5">
+            <div class="w-32 h-32 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+              <img v-if="paymentQrUrl" :src="paymentQrUrl" class="w-full h-full object-contain"/>
+              <span v-else class="text-xs text-gray-300">Нет QR</span>
+            </div>
+            <div>
+              <input ref="qrInput" type="file" accept="image/*" class="hidden" @change="uploadQR"/>
+              <button @click="$refs.qrInput.click()" :disabled="qrUploading" class="bg-teal-600 text-white px-5 py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">
+                {{ qrUploading ? 'Загрузка...' : (paymentQrUrl ? 'Заменить QR' : 'Загрузить QR') }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1317,8 +1335,8 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в флаконе <span class="text-red-400">*</span></label>
-              <input v-model.number="productForm.quantity_per_pack" type="number" min="1" required
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Кол-во в флаконе</label>
+              <input v-model.number="productForm.quantity_per_pack" type="number" min="0" placeholder="нет (поштучно)"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
             <div>
@@ -1327,6 +1345,7 @@
                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500 transition" />
             </div>
           </div>
+          <p class="text-xs text-gray-400 -mt-1">Оставьте «Кол-во в флаконе» пустым, если товар продаётся только поштучно (мазь, смесь, жидкость).</p>
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Количество на складе (штук)</label>
@@ -1745,6 +1764,22 @@ const supportLoading = ref(false)
 
 // Settings
 const settings = reactive({ phone: '', old_password: '', new_password: '' })
+const paymentQrUrl = ref('')
+const qrUploading = ref(false)
+async function loadPaymentQR() {
+  try { paymentQrUrl.value = (await api.get('/settings/payment-qr')).data?.url || '' } catch (e) { /* ignore */ }
+}
+async function uploadQR(e) {
+  const f = e.target.files[0]
+  if (!f) return
+  qrUploading.value = true
+  try {
+    const fd = new FormData()
+    fd.append('image', f)
+    const res = await api.post('/admin/payment-qr', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    paymentQrUrl.value = res.data?.url || ''
+  } catch (err) { alert('Ошибка загрузки QR') } finally { qrUploading.value = false; e.target.value = '' }
+}
 const settingsError = ref('')
 const settingsSuccess = ref('')
 
@@ -2203,12 +2238,14 @@ async function saveProduct() {
   productError.value = ''
   savingProduct.value = true
   try {
+    // Empty "Кол-во в флаконе" → 0 = piece-only product (no флакон).
+    const payload = { ...productForm, quantity_per_pack: Number(productForm.quantity_per_pack) || 0 }
     let savedProduct
     if (editingProduct.value) {
-      const res = await api.put(`/admin/products/${editingProduct.value.id}`, productForm)
+      const res = await api.put(`/admin/products/${editingProduct.value.id}`, payload)
       savedProduct = res.data
     } else {
-      const res = await api.post('/admin/products', productForm)
+      const res = await api.post('/admin/products', payload)
       savedProduct = res.data
     }
     // Upload image if selected
@@ -2765,6 +2802,9 @@ watch(() => realtime.ordersVersion, async () => {
   if (activeTab.value === 'analytics' || analyticsData.value) loadAnalytics()
 })
 
+// Product catalog changed anywhere → refresh the products list in real time.
+watch(() => realtime.productsVersion, () => { loadProducts() })
+
 onMounted(() => {
   loadProducts()
   loadOrders()
@@ -2772,5 +2812,6 @@ onMounted(() => {
   loadWorkers()
   loadFaqs()
   loadSupportThreads()
+  loadPaymentQR()
 })
 </script>

@@ -71,6 +71,32 @@
               </div>
             </div>
 
+            <!-- Payment / approval banner -->
+            <div v-if="order.status === 'awaiting_payment'" class="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+              <p class="text-sm font-semibold text-amber-800 mb-2">Ожидает оплаты</p>
+              <p class="text-xs text-amber-600 mb-3">Отсканируйте QR-код ниже, оплатите и загрузите фото чека для подтверждения заказа.</p>
+              <!-- QR Code -->
+              <div class="flex justify-center mb-3">
+                <div v-if="qrLoading" class="w-36 h-36 flex items-center justify-center bg-white rounded-xl border border-amber-200">
+                  <div class="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <img v-else-if="qrUrl" :src="qrUrl" class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1" @error="qrError = 'Ошибка загрузки QR-кода'; qrUrl = ''"/>
+                <div v-else class="w-36 h-36 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
+                  <svg class="w-8 h-8 text-amber-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                  <p class="text-xs text-amber-500">{{ qrError || 'QR не настроен' }}</p>
+                  <button @click="loadQR" class="text-xs text-amber-600 font-medium mt-1 underline">Обновить</button>
+                </div>
+              </div>
+              <input :ref="el => receiptInputs[order.id] = el" type="file" accept="image/*" class="hidden" @change="e => uploadReceipt(order.id, e)"/>
+              <button @click="receiptInputs[order.id]?.click()" :disabled="receiptUploading === order.id" class="w-full bg-amber-600 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-amber-700 transition disabled:opacity-50 font-medium">
+                {{ receiptUploading === order.id ? 'Отправка...' : '📷 Загрузить фото чека' }}
+              </button>
+            </div>
+            <div v-else-if="order.status === 'in_transit' || order.status === 'delivered'" class="mx-4 mb-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
+              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              <p class="text-sm font-medium text-green-700">Ваш заказ одобрен! Спасибо, что выбрали нас 💚</p>
+            </div>
+
             <!-- Total -->
             <div class="px-4 py-2.5 border-t border-stone-100 flex justify-between items-center">
               <span class="text-xs text-stone-400">{{ t.cart_total }}</span>
@@ -141,23 +167,65 @@ const t = computed(() => langStore.t)
 
 const orders = ref([])
 const loading = ref(false)
+const qrUrl = ref('')
+const qrLoading = ref(false)
+const qrError = ref('')
+const receiptInputs = ref({})
+const receiptUploading = ref(null)
 
 const activeOrders = computed(() => orders.value.filter(o => o.status !== 'cancelled'))
 const cancelledOrders = computed(() => orders.value.filter(o => o.status === 'cancelled'))
 
-watch(() => ordersStore.isOpen, async (val) => {
+async function loadOrders() {
+  loading.value = true
+  try {
+    const res = await api.get('/orders')
+    orders.value = res.data || []
+  } catch (e) {
+    orders.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadQR() {
+  qrLoading.value = true
+  qrError.value = ''
+  try {
+    const res = await api.get('/settings/payment-qr')
+    qrUrl.value = res.data?.url || ''
+    if (!qrUrl.value) qrError.value = 'QR-код не настроен'
+  } catch (e) {
+    qrError.value = 'Не удалось загрузить QR-код'
+    qrUrl.value = ''
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+watch(() => ordersStore.isOpen, (val) => {
   if (val) {
-    loading.value = true
-    try {
-      const res = await api.get('/orders/my')
-      orders.value = res.data || []
-    } catch (e) {
-      orders.value = []
-    } finally {
-      loading.value = false
-    }
+    loadOrders()
+    loadQR()
   }
 })
+
+async function uploadReceipt(orderId, e) {
+  const f = e.target.files[0]
+  if (!f) return
+  receiptUploading.value = orderId
+  try {
+    const fd = new FormData()
+    fd.append('receipt', f)
+    await api.post(`/orders/${orderId}/receipt`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    await loadOrders()
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка при отправке чека')
+  } finally {
+    receiptUploading.value = null
+    e.target.value = ''
+  }
+}
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price))
@@ -169,6 +237,7 @@ function orderTotal(order) {
 
 function statusLabel(status) {
   const map = {
+    awaiting_payment: 'Ожидает оплаты',
     pending: t.value.status_pending,
     in_transit: t.value.status_in_transit,
     delivered: t.value.status_delivered,
@@ -179,6 +248,7 @@ function statusLabel(status) {
 
 function statusClass(status) {
   const map = {
+    awaiting_payment: 'bg-amber-100 text-amber-700',
     pending: 'bg-yellow-100 text-yellow-700',
     in_transit: 'bg-orange-100 text-orange-700',
     delivered: 'bg-green-100 text-green-700',

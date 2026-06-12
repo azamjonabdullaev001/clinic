@@ -35,15 +35,15 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAdmin) {
-    const token = localStorage.getItem('adminToken')
+    const token = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken')
     if (!token) { next('/admin/login'); return }
   }
   if (to.meta.requiresWorker) {
-    const token = localStorage.getItem('workerToken')
+    const token = sessionStorage.getItem('workerToken') || localStorage.getItem('workerToken')
     if (!token) { next('/admin/login'); return }
   }
   if (to.meta.requiresDoctor) {
-    const token = localStorage.getItem('doctorToken')
+    const token = sessionStorage.getItem('doctorToken') || localStorage.getItem('doctorToken')
     if (!token) { next('/admin/login'); return }
   }
   if (to.meta.requiresUser) {

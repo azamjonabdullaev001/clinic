@@ -167,11 +167,16 @@ const translations = {
     orders_empty: 'Заказов пока нет',
     orders_code: 'Код заказа',
     status_pending: 'Ожидает',
+    status_awaiting_payment: 'Ожидает оплаты',
     status_in_transit: 'В пути',
     status_delivered: 'Выдано',
     status_cancelled: 'Отменено',
     status_edited: 'Редактировано',
     status_deleted: 'Удалено',
+    cancellation_reason: 'Причина отмены',
+    underpay_amount: 'Недоплачено на сумму',
+    overpay_amount: 'Переплачено на сумму',
+    pay_additional: 'Доплатить',
 
     // News
     news_title: 'Новости',
@@ -238,6 +243,39 @@ const translations = {
     product_view_desc: 'Описание',
     product_zoom: 'Увеличить',
     product_close_photo: 'Закрыть',
+
+    // Checkout modal
+    checkout_title: 'Оформление заказа',
+    checkout_delivery_address: 'Адрес доставки',
+    checkout_select_on_map: 'Выбрать точку на карте',
+    checkout_hide_map: 'Скрыть карту',
+    checkout_confirm_location: 'Подтвердить локацию',
+    checkout_location_confirmed: 'Локация подтверждена',
+    checkout_change: 'Изменить',
+    checkout_referral: 'Откуда вы узнали о нас?',
+    checkout_referral_placeholder: "Имя доктора, 'Самостоятельно' или 'Из рекламы'",
+    checkout_order_summary: 'Ваш заказ',
+    checkout_confirm_button: 'Подтвердить заказ',
+    checkout_confirming: 'Оформление...',
+
+    // Payment stage
+    payment_title: 'Оплата заказа',
+    payment_subtitle: 'Отсканируйте QR-код и подтвердите оплату',
+    payment_order_code: 'Код заказа',
+    payment_upload_receipt: 'Загрузите фото чека',
+    payment_select_receipt: '📷 Выбрать фото чека',
+    payment_change_receipt: 'Изменить фото чека',
+    payment_confirm: 'Подтвердить заказ',
+    payment_confirming: 'Подтверждение...',
+    payment_later: 'Оплачу позже',
+    payment_qr_not_configured: 'QR-код не настроен — обратитесь в аптеку',
+
+    // Order success stage
+    order_success_title: 'Спасибо, что выбрали нас!',
+    order_success_message: 'Ваш заказ принят и отправлен в пункт выдачи на подтверждение. Мы свяжемся с вами в ближайшее время.',
+    order_success_code_label: 'Ваш код заказа',
+    order_success_code_note: 'Сообщите этот код при получении заказа',
+    order_success_button: 'Отлично!',
   },
   uz: {
     // Navbar
@@ -391,11 +429,16 @@ const translations = {
     orders_empty: 'Hozircha buyurtmalar yo\'q',
     orders_code: 'Buyurtma kodi',
     status_pending: 'Kutilmoqda',
+    status_awaiting_payment: 'To\'lovni kutilmoqda',
     status_in_transit: 'Yo\'lda',
     status_delivered: 'Berildi',
     status_cancelled: 'Bekor qilindi',
     status_edited: 'Tahrirlangan',
     status_deleted: 'O\'chirilgan',
+    cancellation_reason: 'Bekor qilish sababı',
+    underpay_amount: 'Yetishmayotgan summa',
+    overpay_amount: 'Ortiqcha to\'langan summa',
+    pay_additional: 'Doplayin',
 
     // News
     news_title: 'Yangiliklar',
@@ -462,5 +505,38 @@ const translations = {
     product_view_desc: "Tavsif",
     product_zoom: "Kattalashtirish",
     product_close_photo: "Yopish",
+
+    // Checkout modal
+    checkout_title: "Buyurtmani rasmiylashtirish",
+    checkout_delivery_address: "Yetkazib berish manzili",
+    checkout_select_on_map: "Xaritada nuqta tanlang",
+    checkout_hide_map: "Xaritani yashirish",
+    checkout_confirm_location: "Lokatsiyani tasdiqlang",
+    checkout_location_confirmed: "Lokatsiya tasdiqlandi",
+    checkout_change: "O'zgartirish",
+    checkout_referral: "Biz haqida qayerdan bilib oldingiz?",
+    checkout_referral_placeholder: "Doktor ismi, 'Mustaqil' yoki 'Reklama'",
+    checkout_order_summary: "Sizning buyurtmangiz",
+    checkout_confirm_button: "Buyurtmani tasdiqlang",
+    checkout_confirming: "Rasmiylashtirish...",
+
+    // Payment stage
+    payment_title: "Buyurtmani to'lash",
+    payment_subtitle: "QR-kodni skanerlang va to'lovni tasdiqlang",
+    payment_order_code: "Buyurtma kodi",
+    payment_upload_receipt: "Chek suratini yuklang",
+    payment_select_receipt: "📷 Chek suratini tanlang",
+    payment_change_receipt: "Chek suratini o'zgartirish",
+    payment_confirm: "Buyurtmani tasdiqlang",
+    payment_confirming: "Tasdiqlanmoqda...",
+    payment_later: "Keyinroq to'layman",
+    payment_qr_not_configured: "QR-kod sozlanmagan — aptekaga murojaat qiling",
+
+    // Order success stage
+    order_success_title: "Bizi tanlagani uchun rahmat!",
+    order_success_message: "Sizning buyurtmangiz qabul qilindi va sotib olish nuqtasiga tasdiqlash uchun yuborildi. Qo'shimcha paytda biz siz bilan bog'lanamiz.",
+    order_success_code_label: "Sizning buyurtma kodingiz",
+    order_success_code_note: "Buyurtmani olishda bu kodni ayting",
+    order_success_button: "Yaxshi!",
   }
 }

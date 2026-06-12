@@ -254,7 +254,7 @@ func GetPickupOrders(c *gin.Context) {
 	// already finalized or is a direct offline sale stays private to its own worker.
 	database.DB.Where(
 		"archived = false AND is_deleted = false AND ("+
-			"(is_offline = false AND is_nurse_order = false AND status NOT IN ('delivered','cancelled')) "+
+			"(is_offline = false AND is_nurse_order = false AND status NOT IN ('delivered','cancelled','awaiting_payment')) "+
 			"OR (is_nurse_order = true AND status NOT IN ('delivered','cancelled')) "+
 			"OR worker_id = ?)",
 		workerID,

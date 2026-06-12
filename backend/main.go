@@ -50,6 +50,7 @@ func main() {
 			{
 				protected.GET("/profile", handlers.AdminProfile)
 				protected.PUT("/settings", handlers.UpdateAdminSettings)
+				protected.POST("/payment-qr", handlers.UploadPaymentQR)
 				protected.GET("/products", handlers.GetProducts)
 				protected.POST("/products", handlers.CreateProduct)
 				protected.PUT("/products/:id", handlers.UpdateProduct)
@@ -97,6 +98,8 @@ func main() {
 			products.POST("/:id/comments", middleware.UserAuth(), handlers.AddProductComment)
 		}
 
+		api.GET("/settings/payment-qr", handlers.GetPaymentQR)
+
 		api.GET("/faqs", handlers.GetFAQs)
 
 		api.GET("/news", handlers.GetNewsPosts)
@@ -112,6 +115,7 @@ func main() {
 		{
 			orders.POST("", handlers.CreateOrder)
 			orders.GET("", handlers.GetUserOrders)
+			orders.POST("/:id/receipt", handlers.UploadOrderReceipt)
 		}
 
 		support := api.Group("/support")
@@ -136,7 +140,14 @@ func main() {
 			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)
 			pickup.POST("/stock", handlers.AddProductStock)
+			// Product management from the pickup warehouse (same as the admin panel).
+			pickup.POST("/products", handlers.CreateProduct)
+			pickup.PUT("/products/:id", handlers.UpdateProduct)
+			pickup.DELETE("/products/:id", handlers.DeleteProduct)
+			pickup.POST("/products/:id/image", handlers.UploadProductImage)
 			pickup.GET("/marketologs", handlers.GetMarketologs)
+			pickup.GET("/marketologs/:id/debt", handlers.GetMarketologDebt)
+			pickup.POST("/marketologs/:id/payment", handlers.AddMarketologPayment)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)

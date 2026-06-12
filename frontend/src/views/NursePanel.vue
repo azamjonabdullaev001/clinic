@@ -219,14 +219,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
 import { useNight } from '../stores/night'
+import { useStockSocket, realtime } from '../stores/stock'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const { night, toggle: toggleNight } = useNight()
+useStockSocket()
+watch(() => realtime.productsVersion, () => loadProducts())
 
 const lang = ref(localStorage.getItem('nurseLang') || 'ru')
 const watchLang = () => { localStorage.setItem('nurseLang', lang.value) }
