@@ -276,6 +276,13 @@ const translations = {
     order_success_code_label: 'Ваш код заказа',
     order_success_code_note: 'Сообщите этот код при получении заказа',
     order_success_button: 'Отлично!',
+
+    // Receipt upload / awaiting payment
+    payment_scan_and_upload: 'Отсканируйте QR-код, оплатите и загрузите фото чека.',
+    upload_receipt_btn: '📷 Загрузить фото чека',
+    uploading_text: 'Отправка...',
+    qr_retry: 'Обновить',
+    delivery_map_link: '📍 Посмотреть точку доставки на карте',
   },
   uz: {
     // Navbar
@@ -538,5 +545,12 @@ const translations = {
     order_success_code_label: "Sizning buyurtma kodingiz",
     order_success_code_note: "Buyurtmani olishda bu kodni ayting",
     order_success_button: "Yaxshi!",
+
+    // Receipt upload / awaiting payment
+    payment_scan_and_upload: "QR-kodni skanerlang, to'lang va chek suratini yuklang.",
+    upload_receipt_btn: "📷 Chek suratini yuklang",
+    uploading_text: "Yuborilmoqda...",
+    qr_retry: "Yangilash",
+    delivery_map_link: "📍 Yetkazib berish nuqtasini xaritada ko'rish",
   }
 }

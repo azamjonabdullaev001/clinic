@@ -73,23 +73,25 @@
 
             <!-- Payment / approval banner -->
             <div v-if="order.status === 'awaiting_payment'" class="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-              <p class="text-sm font-semibold text-amber-800 mb-2">Ожидает оплаты</p>
-              <p class="text-xs text-amber-600 mb-3">Отсканируйте QR-код ниже, оплатите и загрузите фото чека для подтверждения заказа.</p>
-              <!-- QR Code -->
+              <p class="text-sm font-semibold text-amber-800 mb-2">{{ t.status_awaiting_payment }}</p>
+              <p class="text-xs text-amber-600 mb-3">{{ t.payment_scan_and_upload }}</p>
+              <!-- QR Code (static file) -->
               <div class="flex justify-center mb-3">
-                <div v-if="qrLoading" class="w-36 h-36 flex items-center justify-center bg-white rounded-xl border border-amber-200">
-                  <div class="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <img v-else-if="qrUrl" :src="qrUrl" class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1" @error="qrError = 'Ошибка загрузки QR-кода'; qrUrl = ''"/>
+                <img
+                  v-if="!qrImgFailed"
+                  src="/images/QRpayment.jpg"
+                  class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1"
+                  @error="qrImgFailed = true"
+                />
                 <div v-else class="w-36 h-36 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
                   <svg class="w-8 h-8 text-amber-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                  <p class="text-xs text-amber-500">{{ qrError || 'QR не настроен' }}</p>
-                  <button @click="loadQR" class="text-xs text-amber-600 font-medium mt-1 underline">Обновить</button>
+                  <p class="text-xs text-amber-500">{{ t.payment_qr_not_configured }}</p>
+                  <button @click="qrImgFailed = false" class="text-xs text-amber-600 font-medium mt-1 underline">{{ t.qr_retry }}</button>
                 </div>
               </div>
               <input :ref="el => receiptInputs[order.id] = el" type="file" accept="image/*" class="hidden" @change="e => uploadReceipt(order.id, e)"/>
               <button @click="receiptInputs[order.id]?.click()" :disabled="receiptUploading === order.id" class="w-full bg-amber-600 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-amber-700 transition disabled:opacity-50 font-medium">
-                {{ receiptUploading === order.id ? 'Отправка...' : '📷 Загрузить фото чека' }}
+                {{ receiptUploading === order.id ? t.uploading_text : t.upload_receipt_btn }}
               </button>
             </div>
             <div v-else-if="order.status === 'in_transit' || order.status === 'delivered'" class="mx-4 mb-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
@@ -167,9 +169,7 @@ const t = computed(() => langStore.t)
 
 const orders = ref([])
 const loading = ref(false)
-const qrUrl = ref('')
-const qrLoading = ref(false)
-const qrError = ref('')
+const qrImgFailed = ref(false)
 const receiptInputs = ref({})
 const receiptUploading = ref(null)
 
@@ -188,25 +188,10 @@ async function loadOrders() {
   }
 }
 
-async function loadQR() {
-  qrLoading.value = true
-  qrError.value = ''
-  try {
-    const res = await api.get('/settings/payment-qr')
-    qrUrl.value = res.data?.url || ''
-    if (!qrUrl.value) qrError.value = 'QR-код не настроен'
-  } catch (e) {
-    qrError.value = 'Не удалось загрузить QR-код'
-    qrUrl.value = ''
-  } finally {
-    qrLoading.value = false
-  }
-}
-
 watch(() => ordersStore.isOpen, (val) => {
   if (val) {
     loadOrders()
-    loadQR()
+    qrImgFailed.value = false
   }
 })
 

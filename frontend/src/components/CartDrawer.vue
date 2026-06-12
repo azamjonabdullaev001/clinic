@@ -169,22 +169,24 @@
 
               <!-- Payment banner for awaiting_payment orders -->
               <div v-if="order.status === 'awaiting_payment'" class="mx-4 mb-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                <p class="text-sm font-semibold text-amber-800 mb-1">Ожидает оплаты</p>
-                <p class="text-xs text-amber-600 mb-3">Отсканируйте QR-код, оплатите и загрузите фото чека.</p>
+                <p class="text-sm font-semibold text-amber-800 mb-1">{{ t.status_awaiting_payment }}</p>
+                <p class="text-xs text-amber-600 mb-3">{{ t.payment_scan_and_upload }}</p>
                 <div class="flex justify-center mb-3">
-                  <div v-if="qrLoading" class="w-36 h-36 flex items-center justify-center bg-white rounded-xl border border-amber-200">
-                    <div class="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                  <img v-else-if="paymentQrUrl" :src="paymentQrUrl" class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1" @error="qrLoadingError = 'Ошибка загрузки QR'; paymentQrUrl = ''"/>
+                  <img
+                    v-if="!ordersTabQrFailed"
+                    src="/images/QRpayment.jpg"
+                    class="w-36 h-36 object-contain rounded-xl border border-amber-200 bg-white p-1"
+                    @error="ordersTabQrFailed = true"
+                  />
                   <div v-else class="w-36 h-36 flex flex-col items-center justify-center bg-white rounded-xl border border-amber-200 text-center px-2">
                     <svg class="w-8 h-8 text-amber-300 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-                    <p class="text-xs text-amber-500">{{ qrLoadingError || 'QR не настроен' }}</p>
-                    <button @click="retryLoadQR" class="text-xs text-amber-600 font-medium mt-1 underline">Обновить</button>
+                    <p class="text-xs text-amber-500">{{ t.payment_qr_not_configured }}</p>
+                    <button @click="ordersTabQrFailed = false" class="text-xs text-amber-600 font-medium mt-1 underline">{{ t.qr_retry }}</button>
                   </div>
                 </div>
                 <input :ref="el => ordersTabReceiptInputs[order.id] = el" type="file" accept="image/*" class="hidden" @change="e => uploadReceiptFromOrdersTab(order.id, e)"/>
                 <button @click="ordersTabReceiptInputs[order.id]?.click()" :disabled="ordersTabUploading === order.id" class="w-full bg-amber-600 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-amber-700 transition disabled:opacity-50 font-medium">
-                  {{ ordersTabUploading === order.id ? 'Отправка...' : '📷 Загрузить фото чека' }}
+                  {{ ordersTabUploading === order.id ? t.uploading_text : t.upload_receipt_btn }}
                 </button>
               </div>
 
@@ -203,7 +205,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  📍 Посмотреть точку доставки на карте
+                  {{ t.delivery_map_link }}
                 </button>
               </div>
             </div>
@@ -469,18 +471,19 @@
           <h3 class="text-xl font-bold text-stone-900 mb-1">{{ t.payment_title }}</h3>
           <p class="text-stone-500 mb-4 text-sm">{{ t.payment_subtitle }}</p>
           
-          <!-- QR Code Display -->
+          <!-- QR Code Display (static file) -->
           <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center min-h-56">
-            <div v-if="qrLoadingError" class="text-center w-full">
-              <div class="text-red-500 text-sm mb-3">{{ qrLoadingError }}</div>
-              <button @click="retryLoadQR" class="text-brand-600 hover:text-brand-700 text-sm font-medium">Попробовать ещё раз</button>
+            <img
+              v-if="!successQrFailed"
+              src="/images/QRpayment.jpg"
+              :alt="t.payment_title"
+              class="w-48 h-48 object-contain"
+              @error="successQrFailed = true"
+            />
+            <div v-else class="w-48 h-48 flex flex-col items-center justify-center text-center px-3 gap-2">
+              <p class="text-stone-400 text-sm">{{ t.payment_qr_not_configured }}</p>
+              <button @click="successQrFailed = false" class="text-brand-600 hover:text-brand-700 text-sm font-medium">{{ t.qr_retry }}</button>
             </div>
-            <div v-else-if="qrLoading" class="flex flex-col items-center justify-center gap-2">
-              <div class="w-8 h-8 border-3 border-brand-300 border-t-brand-600 rounded-full animate-spin"></div>
-              <p class="text-xs text-stone-400">Загрузка QR...</p>
-            </div>
-            <img v-else-if="paymentQrUrl" :src="paymentQrUrl" :alt="t.payment_title" class="w-48 h-48 object-contain" @error="handleQRLoadError" />
-            <div v-else class="w-48 h-48 flex items-center justify-center text-stone-300 text-sm text-center px-3">{{ t.payment_qr_not_configured }}</div>
           </div>
           
           <p class="text-xs text-stone-400 mb-4">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
@@ -550,7 +553,7 @@ function switchTab(tab) {
   activeTab.value = tab
   if (tab === 'orders') {
     loadOrders()
-    loadPaymentQR()
+    ordersTabQrFailed.value = false
   }
 }
 
@@ -627,6 +630,7 @@ const locationConfirmed = ref(false)
 // Order success
 const showOrderSuccess = ref(false)
 const orderSuccessCode = ref('')
+const successQrFailed = ref(false)
 
 // Order Map
 const showOrderMap = ref(false)
@@ -637,6 +641,7 @@ let orderMapMarker = null
 // Receipt upload from orders tab
 const ordersTabReceiptInputs = ref({})
 const ordersTabUploading = ref(null)
+const ordersTabQrFailed = ref(false)
 
 async function uploadReceiptFromOrdersTab(orderId, e) {
   const f = e.target.files[0]
@@ -1047,9 +1052,7 @@ async function submitOrder() {
     receiptError.value = ''
     paymentError.value = ''
     paymentStage.value = 'pay'
-    
-    await loadPaymentQR()
-    
+    successQrFailed.value = false
     showOrderSuccess.value = true
   } catch (e) {
     checkoutError.value = e.response?.data?.error || 'Ошибка при оформлении заказа'
