@@ -176,11 +176,6 @@ func HideUserOrder(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Нет доступа"})
 		return
 	}
-	// Only allow hiding completed or cancelled orders
-	if order.Status != "delivered" && order.Status != "cancelled" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Можно скрыть только выполненные или отменённые заказы"})
-		return
-	}
 
 	database.DB.Model(&order).Update("hidden_by_user", true)
 	c.JSON(http.StatusOK, gin.H{"message": "Заказ скрыт из истории"})

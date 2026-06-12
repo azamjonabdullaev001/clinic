@@ -195,10 +195,16 @@
                 <span class="font-bold text-brand-700">{{ formatPrice(orderTotal(order)) }} {{ t.currency }}</span>
               </div>
 
-              <!-- Delivery location -->
-              <div v-if="order.latitude && order.longitude" class="px-4 py-3 border-t border-stone-100 bg-blue-50">
-                <button 
-                  @click="openOrderMap(order)" 
+              <!-- Delivery address text (always visible) -->
+              <div v-if="order.delivery_address" class="px-4 py-2 border-t border-stone-100 flex items-start gap-2">
+                <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+                <p class="text-xs text-stone-500 leading-relaxed">{{ order.delivery_address }}</p>
+              </div>
+
+              <!-- Delivery location map button -->
+              <div v-if="order.latitude && order.longitude || order.delivery_address" class="px-4 py-3 border-t border-stone-100 bg-blue-50">
+                <button
+                  @click="openOrderMap(order)"
                   class="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors w-full"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -206,6 +212,41 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   {{ t.delivery_map_link }}
+                </button>
+              </div>
+
+              <!-- Worker notes (visible to customer) -->
+              <div v-if="order.worker_notes" class="mx-4 my-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5">
+                <p class="text-xs font-semibold text-indigo-700 mb-1 flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                  Сообщение от менеджера
+                </p>
+                <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
+              </div>
+
+              <!-- BTS cargo info -->
+              <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 my-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
+                <p class="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                  БТС Карго — ваш заказ в пути
+                </p>
+                <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium">📍 {{ order.bts_pickup_point }}</p>
+                <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 mt-0.5">Трек: {{ order.bts_tracking_number }}</p>
+                <button
+                  v-if="order.bts_branch_lat && order.bts_branch_lng"
+                  @click="openBtsMap(order)"
+                  class="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-blue-700 transition"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                  Показать пункт выдачи на карте
+                </button>
+              </div>
+
+              <!-- Delete from history button (all orders) -->
+              <div class="px-4 pb-3 pt-1 flex justify-end border-t border-stone-50">
+                <button @click="confirmHide(order)" class="text-xs text-stone-300 hover:text-red-500 transition flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  Удалить из истории
                 </button>
               </div>
             </div>
@@ -250,7 +291,6 @@
     <div v-if="showOrderMap" class="fixed inset-0 z-[75] flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeOrderMap"></div>
       <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
           <div>
             <h3 class="text-lg font-bold text-stone-900">Доставка заказа</h3>
@@ -262,14 +302,39 @@
             </svg>
           </button>
         </div>
-        <!-- Map -->
+        <div v-if="orderMapLoading" class="flex items-center justify-center gap-3 text-stone-400 text-sm" style="height:400px">
+          <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          Загрузка карты…
+        </div>
         <div id="order-map-container" style="height: 400px; width: 100%;"></div>
-        <!-- Info -->
-        <div class="px-6 py-4 border-t border-stone-100 bg-stone-50">
-          <p class="text-xs font-semibold text-stone-600 mb-2">КООРДИНАТЫ ДОСТАВКИ</p>
-          <p class="text-sm text-stone-700">
-            📍 {{ selectedOrderForMap?.latitude?.toFixed(5) }}, {{ selectedOrderForMap?.longitude?.toFixed(5) }}
-          </p>
+        <div class="px-6 py-3 border-t border-stone-100 bg-stone-50 text-xs text-stone-500">
+          <span v-if="selectedOrderForMap?.delivery_address">📍 {{ selectedOrderForMap.delivery_address }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BTS MAP MODAL ===== -->
+    <div v-if="showBtsMap" class="fixed inset-0 z-[76] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeBtsMap"></div>
+      <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
+          <div>
+            <h3 class="text-lg font-bold text-stone-900">Пункт выдачи БТС</h3>
+            <p class="text-xs text-stone-400 mt-0.5">{{ btsMapOrder?.order_code }}</p>
+          </div>
+          <button @click="closeBtsMap" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
+            <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div v-if="btsMapLoading" class="flex items-center justify-center gap-3 text-stone-400 text-sm" style="height:380px">
+          <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          Загрузка карты…
+        </div>
+        <div id="bts-map-container" style="height:380px;width:100%;flex-shrink:0"></div>
+        <div v-if="btsMapOrder" class="px-5 py-3 bg-blue-50 border-t border-blue-100 text-xs text-blue-800">
+          📍 {{ btsMapOrder.bts_pickup_point || 'Пункт выдачи БТС' }}<span v-if="btsMapOrder.bts_tracking_number"> · Трек: {{ btsMapOrder.bts_tracking_number }}</span>
         </div>
       </div>
     </div>
@@ -634,9 +699,95 @@ const successQrFailed = ref(false)
 
 // Order Map
 const showOrderMap = ref(false)
+const orderMapLoading = ref(false)
 const selectedOrderForMap = ref(null)
 let orderMapInstance = null
 let orderMapMarker = null
+
+// BTS Map
+const showBtsMap = ref(false)
+const btsMapLoading = ref(false)
+const btsMapOrder = ref(null)
+let btsMapInstance = null
+
+async function confirmHide(order) {
+  if (!confirm('Удалить этот заказ из истории?')) return
+  try {
+    await api.delete(`/orders/${order.id}/hide`)
+    orders.value = orders.value.filter(o => o.id !== order.id)
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка')
+  }
+}
+
+async function openBtsMap(order) {
+  btsMapOrder.value = order
+  btsMapLoading.value = true
+  showBtsMap.value = true
+  await nextTick()
+  await initBtsMap(order)
+}
+
+function closeBtsMap() {
+  showBtsMap.value = false
+  btsMapOrder.value = null
+  btsMapLoading.value = false
+  if (btsMapInstance) { btsMapInstance.remove(); btsMapInstance = null }
+}
+
+async function initBtsMap(order) {
+  const L = await import('leaflet')
+  await import('leaflet/dist/leaflet.css')
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  })
+  const mapEl = document.getElementById('bts-map-container')
+  if (!mapEl) { btsMapLoading.value = false; return }
+
+  const lat = order.bts_branch_lat
+  const lng = order.bts_branch_lng
+  btsMapLoading.value = false
+
+  btsMapInstance = L.map('bts-map-container').setView([lat, lng], 16)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(btsMapInstance)
+
+  const popup = order.bts_pickup_point || 'Пункт выдачи БТС'
+  L.marker([lat, lng]).addTo(btsMapInstance).bindPopup(`<b>📦 БТС</b><br>${popup}`).openPopup()
+
+  // If customer has coordinates, also show their address and draw a line
+  let customerLat = order.latitude
+  let customerLng = order.longitude
+  if ((!customerLat || !customerLng) && order.delivery_address) {
+    try {
+      const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 8000)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`, { signal: ctrl.signal })
+      const data = await res.json()
+      if (data?.[0]) { customerLat = parseFloat(data[0].lat); customerLng = parseFloat(data[0].lon) }
+    } catch { /* ignore */ }
+  }
+  if (customerLat && customerLng) {
+    const orangeIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#f97316;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [14, 14], iconAnchor: [7, 7] })
+    L.marker([customerLat, customerLng], { icon: orangeIcon }).addTo(btsMapInstance).bindPopup('<b>Ваш адрес</b>')
+    try {
+      const ctrl2 = new AbortController(); setTimeout(() => ctrl2.abort(), 8000)
+      const osrm = `https://router.project-osrm.org/route/v1/driving/${customerLng},${customerLat};${lng},${lat}?overview=full&geometries=geojson`
+      const rr = await fetch(osrm, { signal: ctrl2.signal })
+      const rd = await rr.json()
+      if (rd.code === 'Ok' && rd.routes?.[0]) {
+        const coords = rd.routes[0].geometry.coordinates.map(([ln, la]) => [la, ln])
+        L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(btsMapInstance)
+      } else throw new Error()
+    } catch {
+      L.polyline([[customerLat, customerLng], [lat, lng]], { color: '#2563eb', weight: 3, dashArray: '8 5' }).addTo(btsMapInstance)
+    }
+    btsMapInstance.fitBounds([[customerLat, customerLng], [lat, lng]], { padding: [40, 40] })
+  }
+}
 
 // Receipt upload from orders tab
 const ordersTabReceiptInputs = ref({})
@@ -662,6 +813,7 @@ async function uploadReceiptFromOrdersTab(orderId, e) {
 
 async function openOrderMap(order) {
   selectedOrderForMap.value = order
+  orderMapLoading.value = true
   showOrderMap.value = true
   await nextTick()
   await initOrderMap()
@@ -670,6 +822,7 @@ async function openOrderMap(order) {
 function closeOrderMap() {
   showOrderMap.value = false
   selectedOrderForMap.value = null
+  orderMapLoading.value = false
   if (orderMapInstance) {
     orderMapInstance.remove()
     orderMapInstance = null
@@ -678,38 +831,37 @@ function closeOrderMap() {
 }
 
 async function initOrderMap() {
-  if (!selectedOrderForMap.value) return
+  const order = selectedOrderForMap.value
+  if (!order) return
   const L = await import('leaflet')
   await import('leaflet/dist/leaflet.css')
-
   delete L.Icon.Default.prototype._getIconUrl
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
     shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
   })
-
   const mapEl = document.getElementById('order-map-container')
-  if (!mapEl) return
+  if (!mapEl) { orderMapLoading.value = false; return }
 
-  const lat = selectedOrderForMap.value.latitude || 40.9983
-  const lng = selectedOrderForMap.value.longitude || 71.6726
+  let lat = order.latitude
+  let lng = order.longitude
 
+  if ((!lat || !lng) && order.delivery_address) {
+    try {
+      const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 8000)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`, { signal: ctrl.signal })
+      const data = await res.json()
+      if (data?.[0]) { lat = parseFloat(data[0].lat); lng = parseFloat(data[0].lon) }
+    } catch { /* fall back to Uzbekistan center */ }
+  }
+  if (!lat || !lng) { lat = 40.9983; lng = 71.6726 }
+
+  orderMapLoading.value = false
   orderMapInstance = L.map('order-map-container').setView([lat, lng], 15)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(orderMapInstance)
-
-  orderMapMarker = L.marker([lat, lng], {
-    icon: L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    })
-  }).addTo(orderMapInstance).bindPopup(`<b>Точка доставки</b><br>Заказ: ${selectedOrderForMap.value.order_code}`)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(orderMapInstance)
+  orderMapMarker = L.marker([lat, lng]).addTo(orderMapInstance)
+    .bindPopup(`<b>Точка доставки</b><br>${order.delivery_address || order.order_code}`).openPopup()
 }
 
 // Online payment (QR + receipt) flow
