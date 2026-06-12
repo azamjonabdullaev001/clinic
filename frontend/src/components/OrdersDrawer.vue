@@ -206,8 +206,8 @@
         <div v-else id="bts-route-map" style="height:380px;width:100%;flex-shrink:0"></div>
         <div v-if="btsMapOrder && btsBranchFor(btsMapOrder)" class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
           <div class="flex items-center gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-teal-600 flex-shrink-0"></span>
-            <span class="text-gray-600 font-medium">Наша аптека (Андижан)</span>
+            <span class="w-3 h-3 rounded-full bg-orange-500 flex-shrink-0"></span>
+            <span class="text-gray-600 font-medium">Ваш адрес</span>
           </div>
           <div class="flex items-center gap-1.5">
             <span class="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0"></span>
@@ -225,10 +225,6 @@ import { useOrdersStore } from '../stores/orders'
 import { useLangStore } from '../stores/lang'
 import { api } from '../stores/auth'
 import { detectBtsBranch } from '../config/btsBranches'
-
-// Clinic/pickup point coordinates (Andijan)
-const CLINIC_LAT = 40.7760385
-const CLINIC_LNG = 72.3784014
 
 // BTS branches loaded from API
 const btsBranches = ref([])
@@ -309,8 +305,24 @@ function closeBtsMap() {
 }
 
 async function initBtsMap(order) {
-  const branch = detectBtsBranch(order.delivery_address)
+  const branch = btsBranchFor(order)
   if (!branch) { btsMapLoading.value = false; return }
+
+  // Get customer coordinates — use saved coords or geocode the address
+  let customerLat = order.latitude
+  let customerLng = order.longitude
+
+  if ((!customerLat || !customerLng) && order.delivery_address) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      const data = await res.json()
+      if (data?.[0]) {
+        customerLat = parseFloat(data[0].lat)
+        customerLng = parseFloat(data[0].lon)
+      }
+    } catch { /* will show branch location only */ }
+  }
 
   const L = await import('leaflet')
   await import('leaflet/dist/leaflet.css')
@@ -328,47 +340,51 @@ async function initBtsMap(order) {
   const mapEl = document.getElementById('bts-route-map')
   if (!mapEl) return
 
-  const midLat = (CLINIC_LAT + branch.lat) / 2
-  const midLng = (CLINIC_LNG + branch.lng) / 2
+  // Center on BTS branch by default; if we have customer coords, center between them
+  const centerLat = customerLat ? (customerLat + branch.lat) / 2 : branch.lat
+  const centerLng = customerLng ? (customerLng + branch.lng) / 2 : branch.lng
 
-  btsMapInstance = L.map('bts-route-map').setView([midLat, midLng], 7)
+  btsMapInstance = L.map('bts-route-map').setView([centerLat, centerLng], customerLat ? 13 : 14)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(btsMapInstance)
 
-  // Clinic marker (teal)
-  const clinicIcon = L.divIcon({
-    html: '<div style="background:#0d9488;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0d9488"></div>',
-    className: '', iconSize: [14, 14], iconAnchor: [7, 7],
-  })
-  L.marker([CLINIC_LAT, CLINIC_LNG], { icon: clinicIcon })
-    .addTo(btsMapInstance)
-    .bindPopup('<b>Наша аптека</b><br>Андижан')
+  // Customer marker (orange) — where they are
+  if (customerLat && customerLng) {
+    const customerIcon = L.divIcon({
+      html: '<div style="background:#f97316;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #f97316"></div>',
+      className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+    })
+    L.marker([customerLat, customerLng], { icon: customerIcon })
+      .addTo(btsMapInstance)
+      .bindPopup(`<b>Ваш адрес</b><br>${order.delivery_address || ''}`)
+  }
 
-  // BTS branch marker (blue)
+  // BTS branch marker (blue) — where to go
   const btsIcon = L.divIcon({
-    html: '<div style="background:#2563eb;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
-    className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+    html: '<div style="background:#2563eb;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
+    className: '', iconSize: [18, 18], iconAnchor: [9, 9],
   })
   L.marker([branch.lat, branch.lng], { icon: btsIcon })
     .addTo(btsMapInstance)
-    .bindPopup(`<b>${branch.name}</b><br>${branch.address}`)
+    .bindPopup(`<b>${branch.name}</b><br>${branch.address || ''}`)
     .openPopup()
 
-  // OSRM road route
-  try {
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${CLINIC_LNG},${CLINIC_LAT};${branch.lng},${branch.lat}?overview=full&geometries=geojson`
-    const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
-    const data = await res.json()
-    if (data.code === 'Ok' && data.routes?.[0]) {
-      const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
-      L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(btsMapInstance)
-    } else throw new Error('no route')
-  } catch {
-    L.polyline([[CLINIC_LAT, CLINIC_LNG], [branch.lat, branch.lng]], { color: '#2563eb', weight: 3, dashArray: '8 5', opacity: 0.8 }).addTo(btsMapInstance)
+  // OSRM road route: customer → BTS branch
+  if (customerLat && customerLng) {
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${customerLng},${customerLat};${branch.lng},${branch.lat}?overview=full&geometries=geojson`
+      const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
+      const data = await res.json()
+      if (data.code === 'Ok' && data.routes?.[0]) {
+        const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
+        L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(btsMapInstance)
+      } else throw new Error('no route')
+    } catch {
+      L.polyline([[customerLat, customerLng], [branch.lat, branch.lng]], { color: '#2563eb', weight: 3, dashArray: '8 5', opacity: 0.8 }).addTo(btsMapInstance)
+    }
+    btsMapInstance.fitBounds([[customerLat, customerLng], [branch.lat, branch.lng]], { padding: [40, 40] })
   }
-
-  btsMapInstance.fitBounds([[CLINIC_LAT, CLINIC_LNG], [branch.lat, branch.lng]], { padding: [40, 40] })
 }
 
 async function confirmHide(order) {
