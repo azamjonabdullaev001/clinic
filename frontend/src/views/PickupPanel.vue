@@ -196,19 +196,46 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                     БТС Карго
                   </span>
-                  <button @click="toggleBtsEdit(order.id)" class="text-xs text-blue-600 hover:underline">
-                    {{ btsEdit[order.id]?.open ? 'Скрыть' : 'Изменить' }}
+                  <button @click="toggleBtsEdit(order.id, order)" class="text-xs text-blue-600 hover:underline">
+                    {{ btsEdit[order.id]?.open ? 'Скрыть' : (order.bts_tracking_number ? 'Изменить' : '+ Трек-номер') }}
                   </button>
                 </div>
                 <div v-if="order.bts_tracking_number || order.bts_pickup_point" class="space-y-0.5 mb-2">
-                  <p v-if="order.bts_pickup_point" class="text-xs text-blue-800"><span class="font-medium">Пункт выдачи:</span> {{ order.bts_pickup_point }}</p>
-                  <p v-if="order.bts_tracking_number" class="text-xs text-blue-800"><span class="font-medium">Трек-номер:</span> {{ order.bts_tracking_number }}</p>
+                  <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium">📍 {{ order.bts_pickup_point }}</p>
+                  <p v-if="order.bts_tracking_number" class="text-xs text-blue-600">Трек: {{ order.bts_tracking_number }}</p>
                 </div>
-                <p v-else class="text-xs text-blue-400 mb-2 italic">Не заполнено</p>
+                <p v-else class="text-xs text-blue-400 mb-2 italic">Введите трек-номер — пункт выдачи определится автоматически</p>
                 <div v-if="btsEdit[order.id]?.open" class="space-y-2 pt-2 border-t border-blue-200">
-                  <input v-model="btsEdit[order.id].trackingNumber" type="text" placeholder="Трек-номер БТС" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
-                  <input v-model="btsEdit[order.id].pickupPoint" type="text" placeholder="Пункт выдачи (напр: БТС Наманган, ул. Ипак Йули 12)" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
-                  <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50">
+                  <div>
+                    <label class="text-xs text-blue-700 font-medium mb-1 block">Трек-номер накладной БТС</label>
+                    <input
+                      v-model="btsEdit[order.id].trackingNumber"
+                      @input="onBtsTrackingInput(order)"
+                      type="text"
+                      placeholder="напр: BTS-2024-001234"
+                      class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs text-blue-700 font-medium mb-1 block">
+                      Пункт выдачи
+                      <span v-if="btsEdit[order.id].autoDetected" class="text-green-600 ml-1">✓ определён автоматически</span>
+                    </label>
+                    <input
+                      v-model="btsEdit[order.id].pickupPoint"
+                      type="text"
+                      placeholder="Определяется по адресу заказа…"
+                      class="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
+                      :class="btsEdit[order.id].autoDetected ? 'border-green-300 bg-green-50' : 'border-blue-200'"
+                    />
+                    <p v-if="btsEdit[order.id].autoDetected" class="text-xs text-green-600 mt-1">
+                      Город определён по адресу: «{{ order.delivery_address }}»
+                    </p>
+                    <p v-else-if="btsEdit[order.id].trackingNumber && !btsEdit[order.id].autoDetected" class="text-xs text-amber-600 mt-1">
+                      Город не найден — введите пункт вручную
+                    </p>
+                  </div>
+                  <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving || !btsEdit[order.id].trackingNumber" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50">
                     {{ btsEdit[order.id]?.saving ? 'Сохранение...' : 'Сохранить' }}
                   </button>
                 </div>
@@ -1175,6 +1202,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, api } from '../stores/auth'
+import { detectBtsBranch } from '../config/btsBranches'
 import { useNight } from '../stores/night'
 import { useStockSocket, displayStock, realtime } from '../stores/stock'
 import LineChart from '../components/LineChart.vue'
@@ -1643,25 +1671,47 @@ async function initDeliveryMap() {
 // ===== BTS Cargo =====
 const btsEdit = ref({})
 
-function toggleBtsEdit(orderId) {
+function toggleBtsEdit(orderId, order) {
   if (!btsEdit.value[orderId]) {
-    btsEdit.value[orderId] = { open: true, trackingNumber: '', pickupPoint: '', saving: false }
+    const branch = order ? detectBtsBranch(order.delivery_address) : null
+    btsEdit.value[orderId] = {
+      open: true,
+      trackingNumber: order?.bts_tracking_number || '',
+      pickupPoint: order?.bts_pickup_point || (branch ? branch.name + ', ' + branch.address : ''),
+      autoDetected: !!branch,
+      saving: false,
+    }
   } else {
     btsEdit.value[orderId].open = !btsEdit.value[orderId].open
   }
 }
 
+function onBtsTrackingInput(order) {
+  const state = btsEdit.value[order.id]
+  if (!state) return
+  // Auto-detect pickup point from delivery address as soon as user starts typing the tracking number
+  if (!state.pickupPoint || state.autoDetected) {
+    const branch = detectBtsBranch(order.delivery_address)
+    if (branch) {
+      state.pickupPoint = branch.name + ', ' + branch.address
+      state.autoDetected = true
+    } else {
+      state.autoDetected = false
+    }
+  }
+}
+
 async function saveBtsInfo(order) {
   const state = btsEdit.value[order.id]
-  if (!state || (!state.trackingNumber && !state.pickupPoint)) return
+  if (!state || !state.trackingNumber) return
   state.saving = true
   try {
     await api.put(`/pickup/orders/${order.id}/bts`, {
       tracking_number: state.trackingNumber,
       pickup_point: state.pickupPoint,
     })
-    if (state.trackingNumber) order.bts_tracking_number = state.trackingNumber
-    if (state.pickupPoint) order.bts_pickup_point = state.pickupPoint
+    order.bts_tracking_number = state.trackingNumber
+    order.bts_pickup_point = state.pickupPoint
     state.open = false
   } catch (err) {
     alert(err.response?.data?.error || 'Ошибка при сохранении')

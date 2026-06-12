@@ -103,10 +103,18 @@
             <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 mb-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
               <p class="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                БТС Карго — доставка
+                БТС Карго — ваш заказ в пути
               </p>
-              <p v-if="order.bts_pickup_point" class="text-xs text-blue-800"><span class="font-medium">Пункт выдачи:</span> {{ order.bts_pickup_point }}</p>
-              <p v-if="order.bts_tracking_number" class="text-xs text-blue-800 mt-0.5"><span class="font-medium">Трек-номер:</span> {{ order.bts_tracking_number }}</p>
+              <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium">📍 {{ order.bts_pickup_point }}</p>
+              <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 mt-0.5">Трек: {{ order.bts_tracking_number }}</p>
+              <button
+                v-if="btsBranchFor(order)"
+                @click="openBtsMap(order)"
+                class="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                Показать маршрут доставки
+              </button>
             </div>
 
             <!-- Total -->
@@ -177,14 +185,50 @@
         </div>
       </div>
     </div>
+
+    <!-- BTS Route Map Modal -->
+    <div v-if="btsMapOpen" class="fixed inset-0 z-[300] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeBtsMap"></div>
+      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col" style="max-height:90vh">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white flex-shrink-0">
+          <div>
+            <h3 class="text-base font-bold text-gray-900">Маршрут вашего заказа</h3>
+            <p v-if="btsMapOrder" class="text-xs text-gray-500 mt-0.5">{{ btsMapOrder.order_code }} → {{ btsBranchFor(btsMapOrder)?.city }}</p>
+          </div>
+          <button @click="closeBtsMap" class="p-2 hover:bg-gray-100 rounded-xl transition">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div v-if="btsMapLoading" class="flex items-center justify-center gap-3 text-gray-500 text-sm" style="height:380px">
+          <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+          Строим маршрут…
+        </div>
+        <div v-else id="bts-route-map" style="height:380px;width:100%;flex-shrink:0"></div>
+        <div v-if="btsMapOrder && btsBranchFor(btsMapOrder)" class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-teal-600 flex-shrink-0"></span>
+            <span class="text-gray-600 font-medium">Наша аптека (Андижан)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0"></span>
+            <span class="text-gray-600 font-medium">{{ btsBranchFor(btsMapOrder)?.name }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useOrdersStore } from '../stores/orders'
 import { useLangStore } from '../stores/lang'
 import { api } from '../stores/auth'
+import { detectBtsBranch } from '../config/btsBranches'
+
+// Clinic/pickup point coordinates (Andijan)
+const CLINIC_LAT = 40.7760385
+const CLINIC_LNG = 72.3784014
 
 const ordersStore = useOrdersStore()
 const langStore = useLangStore()
@@ -217,6 +261,94 @@ watch(() => ordersStore.isOpen, (val) => {
     qrImgFailed.value = false
   }
 })
+
+// ===== BTS Route Map =====
+const btsMapOpen = ref(false)
+const btsMapOrder = ref(null)
+const btsMapLoading = ref(false)
+let btsMapInstance = null
+
+function btsBranchFor(order) {
+  return detectBtsBranch(order.delivery_address)
+}
+
+async function openBtsMap(order) {
+  btsMapOrder.value = order
+  btsMapOpen.value = true
+  btsMapLoading.value = true
+  await nextTick()
+  await initBtsMap(order)
+}
+
+function closeBtsMap() {
+  btsMapOpen.value = false
+  btsMapOrder.value = null
+  btsMapLoading.value = false
+  if (btsMapInstance) { btsMapInstance.remove(); btsMapInstance = null }
+}
+
+async function initBtsMap(order) {
+  const branch = detectBtsBranch(order.delivery_address)
+  if (!branch) { btsMapLoading.value = false; return }
+
+  const L = await import('leaflet')
+  await import('leaflet/dist/leaflet.css')
+
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  })
+
+  btsMapLoading.value = false
+  await nextTick()
+
+  const mapEl = document.getElementById('bts-route-map')
+  if (!mapEl) return
+
+  const midLat = (CLINIC_LAT + branch.lat) / 2
+  const midLng = (CLINIC_LNG + branch.lng) / 2
+
+  btsMapInstance = L.map('bts-route-map').setView([midLat, midLng], 7)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(btsMapInstance)
+
+  // Clinic marker (teal)
+  const clinicIcon = L.divIcon({
+    html: '<div style="background:#0d9488;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #0d9488"></div>',
+    className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+  })
+  L.marker([CLINIC_LAT, CLINIC_LNG], { icon: clinicIcon })
+    .addTo(btsMapInstance)
+    .bindPopup('<b>Наша аптека</b><br>Андижан')
+
+  // BTS branch marker (blue)
+  const btsIcon = L.divIcon({
+    html: '<div style="background:#2563eb;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
+    className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+  })
+  L.marker([branch.lat, branch.lng], { icon: btsIcon })
+    .addTo(btsMapInstance)
+    .bindPopup(`<b>${branch.name}</b><br>${branch.address}`)
+    .openPopup()
+
+  // OSRM road route
+  try {
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${CLINIC_LNG},${CLINIC_LAT};${branch.lng},${branch.lat}?overview=full&geometries=geojson`
+    const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
+    const data = await res.json()
+    if (data.code === 'Ok' && data.routes?.[0]) {
+      const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
+      L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(btsMapInstance)
+    } else throw new Error('no route')
+  } catch {
+    L.polyline([[CLINIC_LAT, CLINIC_LNG], [branch.lat, branch.lng]], { color: '#2563eb', weight: 3, dashArray: '8 5', opacity: 0.8 }).addTo(btsMapInstance)
+  }
+
+  btsMapInstance.fitBounds([[CLINIC_LAT, CLINIC_LNG], [branch.lat, branch.lng]], { padding: [40, 40] })
+}
 
 async function confirmHide(order) {
   if (!confirm(`Удалить заказ #${order.order_code} из истории?`)) return
