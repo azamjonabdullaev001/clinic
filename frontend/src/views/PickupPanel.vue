@@ -1183,23 +1183,23 @@
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <!-- Search box -->
-        <div class="px-4 py-3 border-b bg-gray-50 flex-shrink-0 relative">
+        <!-- Search box — z-index:900 ensures dropdown renders above Leaflet's tile/marker panes (z 200-700) -->
+        <div class="px-4 py-3 border-b bg-gray-50 flex-shrink-0" style="position:relative;z-index:900">
           <div class="flex gap-2">
             <input
               v-model="btsSearchQuery"
               @input="debounceBtsSearch"
               @keyup.enter="runBtsSearch"
               type="text"
-              placeholder="Введите адрес пункта БТС (улица, город)…"
+              placeholder="Введите адрес пункта БТС (улица, город, район)…"
               class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
             />
-            <button @click="runBtsSearch" :disabled="btsSearching" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap">
-              {{ btsSearching ? '...' : 'Найти' }}
+            <button @click="runBtsSearch" :disabled="btsSearching" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap min-w-[72px]">
+              {{ btsSearching ? '⏳ ...' : '🔍 Найти' }}
             </button>
           </div>
           <!-- Search results dropdown -->
-          <div v-if="btsSearchResults.length > 0" class="absolute left-4 right-4 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+          <div v-if="btsSearchResults.length > 0" class="absolute left-4 right-4 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-52 overflow-y-auto" style="z-index:1000">
             <button
               v-for="r in btsSearchResults"
               :key="r.place_id"
@@ -1207,8 +1207,12 @@
               class="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition text-sm border-b border-gray-50 last:border-0"
             >
               <p class="font-medium text-gray-800 leading-tight">{{ r.display_name.split(',')[0] }}</p>
-              <p class="text-xs text-gray-400 truncate">{{ r.display_name }}</p>
+              <p class="text-xs text-gray-400 truncate mt-0.5">{{ r.display_name }}</p>
             </button>
+          </div>
+          <!-- No results / error message -->
+          <div v-else-if="btsSearchError && !btsSearching" class="absolute left-4 right-4 top-full mt-1 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800" style="z-index:1000">
+            {{ btsSearchError }}
           </div>
         </div>
         <!-- Map -->
@@ -1663,12 +1667,17 @@ function closeDeliveryMap() {
 }
 
 async function geocodeAddress(address) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-  const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
-  const data = await res.json()
-  if (data && data[0]) {
-    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-  }
+  const ctrl = new AbortController()
+  const tid = setTimeout(() => ctrl.abort(), 10000)
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+    const res = await fetch(url, { signal: ctrl.signal })
+    clearTimeout(tid)
+    const data = await res.json()
+    if (data && data[0]) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+    }
+  } catch { clearTimeout(tid) }
   return null
 }
 
@@ -1752,7 +1761,9 @@ async function initDeliveryMap() {
   // Real road route via OSRM (free, no API key needed)
   try {
     const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${PICKUP_LNG},${PICKUP_LAT};${customerLng},${customerLat}?overview=full&geometries=geojson`
-    const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
+    const osrmCtrl = new AbortController()
+    setTimeout(() => osrmCtrl.abort(), 8000)
+    const res = await fetch(osrmUrl, { signal: osrmCtrl.signal })
     const data = await res.json()
     if (data.code === 'Ok' && data.routes?.[0]) {
       // GeoJSON coords are [lng, lat] — Leaflet needs [lat, lng]
@@ -1825,9 +1836,11 @@ const btsSearching = ref(false)
 const btsPickedLat = ref(null)
 const btsPickedLng = ref(null)
 const btsPickedLabel = ref('')
+const btsSearchError = ref('')
 let btsPickerMapInstance = null
 let btsPickerMarker = null
 let btsSearchTimer = null
+let btsSearchAbortCtrl = null
 let leafletLib = null
 
 async function openBtsMapPicker(order) {
@@ -1838,6 +1851,7 @@ async function openBtsMapPicker(order) {
   btsPickedLabel.value = state?.pinLabel || ''
   btsSearchQuery.value = ''
   btsSearchResults.value = []
+  btsSearchError.value = ''
   showBtsMapPicker.value = true
   await nextTick()
   await initBtsPickerMap(order)
@@ -1846,6 +1860,9 @@ async function openBtsMapPicker(order) {
 function closeBtsMapPicker() {
   showBtsMapPicker.value = false
   btsSearchResults.value = []
+  btsSearchError.value = ''
+  btsSearchQuery.value = ''
+  if (btsSearchAbortCtrl) { btsSearchAbortCtrl.abort(); btsSearchAbortCtrl = null }
   if (btsPickerMapInstance) { btsPickerMapInstance.remove(); btsPickerMapInstance = null }
   btsPickerMarker = null
 }
@@ -1921,7 +1938,10 @@ async function initBtsPickerMap(order) {
 
 async function reverseGeocodeBts(lat, lng) {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { signal: AbortSignal.timeout(5000) })
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), 5000)
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ru`, { signal: ctrl.signal })
+    clearTimeout(tid)
     const data = await res.json()
     if (data?.display_name) {
       const parts = data.display_name.split(',')
@@ -1937,23 +1957,34 @@ async function reverseGeocodeBts(lat, lng) {
 
 function debounceBtsSearch() {
   clearTimeout(btsSearchTimer)
+  btsSearchError.value = ''
   if (btsSearchQuery.value.length < 3) { btsSearchResults.value = []; return }
-  btsSearchTimer = setTimeout(runBtsSearch, 500)
+  btsSearchTimer = setTimeout(runBtsSearch, 600)
 }
 
 async function runBtsSearch() {
-  if (!btsSearchQuery.value.trim()) return
+  const q = btsSearchQuery.value.trim()
+  if (!q) return
+  if (btsSearchAbortCtrl) btsSearchAbortCtrl.abort()
+  btsSearchAbortCtrl = new AbortController()
+  const timeoutId = setTimeout(() => btsSearchAbortCtrl.abort(), 10000)
   btsSearching.value = true
   btsSearchResults.value = []
+  btsSearchError.value = ''
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsSearchQuery.value)}&limit=8&addressdetails=1`
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(8000),
-      headers: { 'Accept-Language': 'ru,uz;q=0.9,en;q=0.5' }
-    })
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&addressdetails=1&accept-language=ru`
+    const res = await fetch(url, { signal: btsSearchAbortCtrl.signal })
     const data = await res.json()
     btsSearchResults.value = data || []
-  } catch { /* ignore */ } finally {
+    if (!data || data.length === 0) {
+      btsSearchError.value = 'Ничего не найдено. Попробуйте более точный адрес или нажмите на карту вручную.'
+    }
+  } catch (e) {
+    if (!btsSearchAbortCtrl?.signal?.aborted) {
+      btsSearchError.value = 'Ошибка поиска. Проверьте интернет-соединение.'
+    }
+  } finally {
+    clearTimeout(timeoutId)
     btsSearching.value = false
   }
 }

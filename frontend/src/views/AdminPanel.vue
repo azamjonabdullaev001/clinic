@@ -2934,7 +2934,8 @@ async function geocodeBtsAddress() {
   btsGeocodingAddress.value = true
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsForm.address)}&limit=1`
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    const geoCtrl = new AbortController(); setTimeout(() => geoCtrl.abort(), 8000)
+    const res = await fetch(url, { signal: geoCtrl.signal })
     const data = await res.json()
     if (data?.[0]) {
       btsForm.lat = parseFloat(data[0].lat).toFixed(6)

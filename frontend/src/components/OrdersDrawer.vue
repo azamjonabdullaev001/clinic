@@ -324,7 +324,8 @@ async function initBtsMap(order) {
   if ((!customerLat || !customerLng) && order.delivery_address) {
     try {
       const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`
-      const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+      const geoCtrl = new AbortController(); setTimeout(() => geoCtrl.abort(), 8000)
+      const res = await fetch(url, { signal: geoCtrl.signal })
       const data = await res.json()
       if (data?.[0]) {
         customerLat = parseFloat(data[0].lat)
@@ -383,7 +384,8 @@ async function initBtsMap(order) {
   if (customerLat && customerLng) {
     try {
       const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${customerLng},${customerLat};${branch.lng},${branch.lat}?overview=full&geometries=geojson`
-      const res = await fetch(osrmUrl, { signal: AbortSignal.timeout(8000) })
+      const osrmCtrl = new AbortController(); setTimeout(() => osrmCtrl.abort(), 8000)
+      const res = await fetch(osrmUrl, { signal: osrmCtrl.signal })
       const data = await res.json()
       if (data.code === 'Ok' && data.routes?.[0]) {
         const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
