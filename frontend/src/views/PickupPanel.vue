@@ -2155,9 +2155,10 @@ function inPeriod(order) {
   return true
 }
 
-// Top-30 most recent orders, regardless of type (online / offline / own patient).
+// Top-30 most recent orders, excluding fully returned ones
 const recent30Orders = computed(() => {
   return [...orders.value]
+    .filter(o => !o.is_returned)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 30)
 })
@@ -2167,7 +2168,7 @@ const onlineOrders = computed(() =>
 )
 
 const offlineOrders = computed(() =>
-  orders.value.filter(o => o.is_offline && o.status !== 'delivered' && o.status !== 'cancelled')
+  orders.value.filter(o => o.is_offline && o.status !== 'delivered' && o.status !== 'cancelled' && !o.is_returned)
 )
 
 const historyOrders = computed(() => {
