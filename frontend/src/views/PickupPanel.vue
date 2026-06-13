@@ -1215,8 +1215,20 @@
             {{ btsSearchError }}
           </div>
         </div>
+        <!-- Saved BTS points (quick-pick chips) -->
+        <div v-if="savedBtsPoints.length" class="px-4 py-2 border-b border-green-100 bg-green-50/80 flex-shrink-0">
+          <p class="text-[11px] text-green-700 font-semibold mb-1.5">✓ Ранее сохранённые пункты:</p>
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            <button
+              v-for="(pt, idx) in savedBtsPoints"
+              :key="idx"
+              @click="selectSavedPoint(pt)"
+              class="flex-shrink-0 text-xs bg-white border border-green-300 text-green-800 px-3 py-1.5 rounded-full hover:bg-green-100 transition shadow-sm whitespace-nowrap max-w-[220px] truncate"
+            >📍 {{ pt.label }}</button>
+          </div>
+        </div>
         <!-- Map -->
-        <div id="bts-picker-map" style="height:400px;width:100%;flex-shrink:0;overflow:hidden"></div>
+        <div id="bts-picker-map" style="height:380px;width:100%;flex-shrink:0;overflow:hidden"></div>
         <!-- Footer -->
         <div class="px-5 py-3 bg-gray-50 border-t flex items-center justify-between flex-shrink-0 rounded-b-2xl">
           <div class="text-sm text-gray-600 flex-1 min-w-0">
@@ -1452,8 +1464,8 @@ const texts = {
     quick_select: 'Быстрый выбор',
     dynamics: 'Динамика за день',
     export_excel: 'Экспорт Excel',
-    delivery_map_btn: 'OSRM Маршрут',
-    delivery_map_title: 'Маршрут доставки (OSRM)',
+    delivery_map_btn: 'Маршрут',
+    delivery_map_title: 'Маршрут доставки',
     delivery_from: 'Пункт выдачи',
     delivery_to: 'Адрес покупателя',
     geocoding: 'Определяем координаты...',
@@ -1620,8 +1632,8 @@ const texts = {
     quick_select: 'Tezkor tanlov',
     dynamics: 'Kunlik dinamika',
     export_excel: 'Excel eksport',
-    delivery_map_btn: 'OSRM Marshrut',
-    delivery_map_title: 'Yetkazib berish marshuti (OSRM)',
+    delivery_map_btn: 'Marshrut',
+    delivery_map_title: 'Yetkazib berish marshuti',
     delivery_from: 'Berish nuqtasi',
     delivery_to: 'Xaridor manzili',
     geocoding: 'Koordinatalar aniqlanmoqda...',
@@ -1789,6 +1801,12 @@ async function initDeliveryMap() {
 // ===== BTS Cargo per-order =====
 const btsEdit = ref({})
 
+// Saved BTS pickup points (persisted in localStorage for quick reuse)
+function loadSavedBtsPoints() {
+  try { return JSON.parse(localStorage.getItem('clinic_bts_saved_points') || '[]') } catch { return [] }
+}
+const savedBtsPoints = ref(loadSavedBtsPoints())
+
 function toggleBtsEdit(orderId, order) {
   if (!btsEdit.value[orderId]) {
     btsEdit.value[orderId] = {
@@ -1820,6 +1838,13 @@ async function saveBtsInfo(order) {
     order.bts_branch_lat = state.pinLat
     order.bts_branch_lng = state.pinLng
     state.open = false
+    // Persist the pickup point for future orders
+    const newPt = { label: state.pinLabel, lat: state.pinLat, lng: state.pinLng }
+    const already = savedBtsPoints.value.some(p => Math.abs(p.lat - newPt.lat) < 0.0005 && Math.abs(p.lng - newPt.lng) < 0.0005)
+    if (!already) {
+      savedBtsPoints.value = [newPt, ...savedBtsPoints.value].slice(0, 15)
+      localStorage.setItem('clinic_bts_saved_points', JSON.stringify(savedBtsPoints.value))
+    }
   } catch (err) {
     alert(err.response?.data?.error || 'Ошибка при сохранении')
   } finally {
@@ -1915,6 +1940,24 @@ async function initBtsPickerMap(order) {
     })
   }
 
+  // Render previously saved BTS pickup points as small green circle markers
+  savedBtsPoints.value.forEach(pt => {
+    L.circleMarker([pt.lat, pt.lng], {
+      radius: 8,
+      fillColor: '#22c55e',
+      color: '#16a34a',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.85,
+    })
+      .addTo(btsPickerMapInstance)
+      .bindPopup(`<b>✓ Сохранённый пункт</b><br>${pt.label}`)
+      .on('click', (ev) => {
+        ev.originalEvent?.stopPropagation?.()
+        selectSavedPoint(pt)
+      })
+  })
+
   // Click on map → place/move marker
   btsPickerMapInstance.on('click', async (e) => {
     const { lat, lng } = e.latlng
@@ -1966,26 +2009,42 @@ async function runBtsSearch() {
   const q = btsSearchQuery.value.trim()
   if (!q) return
   if (btsSearchAbortCtrl) btsSearchAbortCtrl.abort()
-  btsSearchAbortCtrl = new AbortController()
-  const timeoutId = setTimeout(() => btsSearchAbortCtrl.abort(), 10000)
+  const ctrl = new AbortController()
+  btsSearchAbortCtrl = ctrl
+  let timedOut = false
+  const timeoutId = setTimeout(() => {
+    timedOut = true
+    ctrl.abort()
+  }, 12000)
   btsSearching.value = true
   btsSearchResults.value = []
   btsSearchError.value = ''
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&addressdetails=1&accept-language=ru`
-    const res = await fetch(url, { signal: btsSearchAbortCtrl.signal })
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&addressdetails=1&accept-language=ru&countrycodes=uz`
+    const res = await fetch(url, { signal: ctrl.signal })
     const data = await res.json()
     btsSearchResults.value = data || []
     if (!data || data.length === 0) {
-      btsSearchError.value = 'Ничего не найдено. Попробуйте более точный адрес или нажмите на карту вручную.'
+      // Try a broader search without country restriction
+      const url2 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&addressdetails=1&accept-language=ru`
+      const res2 = await fetch(url2, { signal: ctrl.signal })
+      const data2 = await res2.json()
+      btsSearchResults.value = data2 || []
+      if (!data2 || data2.length === 0) {
+        btsSearchError.value = 'Ничего не найдено. Попробуйте другой адрес или нажмите на карту вручную.'
+      }
     }
   } catch (e) {
-    if (!btsSearchAbortCtrl?.signal?.aborted) {
+    if (timedOut) {
+      btsSearchError.value = 'Нет ответа от сервера. Проверьте интернет или нажмите на карту вручную.'
+    } else if (ctrl.signal.aborted) {
+      // Aborted by a new search — suppress
+    } else {
       btsSearchError.value = 'Ошибка поиска. Проверьте интернет-соединение.'
     }
   } finally {
     clearTimeout(timeoutId)
-    btsSearching.value = false
+    if (btsSearchAbortCtrl === ctrl) btsSearching.value = false
   }
 }
 
@@ -2015,6 +2074,30 @@ async function selectBtsResult(result) {
         await reverseGeocodeBts(pos.lat, pos.lng)
       })
     }
+  }
+}
+
+async function selectSavedPoint(pt) {
+  btsPickedLat.value = pt.lat
+  btsPickedLng.value = pt.lng
+  btsPickedLabel.value = pt.label
+  btsSearchQuery.value = pt.label
+  if (!btsPickerMapInstance) return
+  btsPickerMapInstance.setView([pt.lat, pt.lng], 16)
+  const Lib = leafletLib || await import('leaflet')
+  if (btsPickerMarker) {
+    btsPickerMarker.setLatLng([pt.lat, pt.lng]).bindPopup(pt.label).openPopup()
+  } else {
+    btsPickerMarker = Lib.marker([pt.lat, pt.lng], { draggable: true })
+      .addTo(btsPickerMapInstance)
+      .bindPopup(pt.label)
+      .openPopup()
+    btsPickerMarker.on('dragend', async (ev) => {
+      const pos = ev.target.getLatLng()
+      btsPickedLat.value = pos.lat
+      btsPickedLng.value = pos.lng
+      await reverseGeocodeBts(pos.lat, pos.lng)
+    })
   }
 }
 

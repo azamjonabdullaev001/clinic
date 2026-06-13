@@ -225,21 +225,30 @@
               </div>
 
               <!-- BTS cargo info -->
-              <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 my-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
-                <p class="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                  БТС Карго — ваш заказ в пути
-                </p>
-                <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium">📍 {{ order.bts_pickup_point }}</p>
-                <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 mt-0.5">Трек: {{ order.bts_tracking_number }}</p>
-                <button
-                  v-if="order.bts_branch_lat && order.bts_branch_lng"
-                  @click="openBtsMap(order)"
-                  class="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-blue-700 transition"
-                >
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                  Показать пункт выдачи на карте
-                </button>
+              <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 my-2 rounded-2xl overflow-hidden border border-blue-200 shadow-sm">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-2 flex items-center gap-2">
+                  <svg class="w-4 h-4 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                  <span class="text-xs font-bold text-white tracking-wide">БТС Карго</span>
+                  <span class="ml-auto text-[10px] text-blue-200 font-medium">● В пути</span>
+                </div>
+                <div class="bg-blue-50 px-3 py-2.5 space-y-1.5">
+                  <div v-if="order.bts_pickup_point" class="flex items-start gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
+                    <p class="text-xs text-blue-900 font-semibold leading-snug">{{ order.bts_pickup_point }}</p>
+                  </div>
+                  <div v-if="order.bts_tracking_number" class="flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <p class="text-xs text-blue-700 font-mono">{{ order.bts_tracking_number }}</p>
+                  </div>
+                  <button
+                    v-if="order.bts_branch_lat && order.bts_branch_lng"
+                    @click="openBtsMap(order)"
+                    class="w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-700 transition mt-1"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+                    Показать на карте → Маршрут
+                  </button>
+                </div>
               </div>
 
               <!-- Delete from history button (all orders) -->
@@ -273,6 +282,16 @@
                   <div v-for="item in order.items" :key="item.id" class="flex items-center justify-between gap-2 opacity-60">
                     <p class="font-medium text-stone-600 text-sm truncate line-through">{{ item.product?.name }}</p>
                     <p class="font-semibold text-stone-400 text-sm flex-shrink-0 line-through">{{ formatPrice(item.price) }} {{ t.currency }}</p>
+                  </div>
+                  <!-- Worker notes remain visible even after cancellation (explain the reason) -->
+                  <div v-if="order.worker_notes" class="mt-2 pt-2 border-t border-red-100">
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5">
+                      <p class="text-xs font-semibold text-indigo-700 mb-1 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                        Сообщение от менеджера
+                      </p>
+                      <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
+                    </div>
                   </div>
                   <div v-if="order.cancellation_reason" class="mt-3 pt-3 border-t border-red-200">
                     <p class="text-xs font-semibold text-red-600">{{ t.cancellation_reason }}:</p>
