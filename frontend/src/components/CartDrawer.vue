@@ -293,6 +293,19 @@
                       <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
                     </div>
                   </div>
+                  <!-- BTS info visible even after cancellation -->
+                  <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mt-2 pt-2 border-t border-red-100">
+                    <div class="rounded-xl overflow-hidden border border-blue-200 opacity-80">
+                      <div class="bg-gradient-to-r from-blue-500 to-blue-400 px-3 py-1.5 flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <span class="text-xs font-bold text-white">БТС Карго</span>
+                      </div>
+                      <div class="bg-blue-50 px-3 py-2 space-y-1">
+                        <p v-if="order.bts_pickup_point" class="text-xs text-blue-900 font-medium">📍 {{ order.bts_pickup_point }}</p>
+                        <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 font-mono">{{ order.bts_tracking_number }}</p>
+                      </div>
+                    </div>
+                  </div>
                   <div v-if="order.cancellation_reason" class="mt-3 pt-3 border-t border-red-200">
                     <p class="text-xs font-semibold text-red-600">{{ t.cancellation_reason }}:</p>
                     <p class="text-xs text-red-500 mt-1">{{ order.cancellation_reason }}</p>
