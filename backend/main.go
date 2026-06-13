@@ -144,6 +144,7 @@ func main() {
 			pickup.DELETE("/orders/:id", handlers.DeletePickupOrder)
 			pickup.PUT("/orders/:id/bts", handlers.UpdateBtsInfo)
 			pickup.PUT("/orders/:id/notes", handlers.UpdateOrderNotes)
+			pickup.PUT("/orders/:id/payment", handlers.UpdateOrderPayment)
 			pickup.GET("/bts-branches", handlers.GetBtsBranches)
 			pickup.POST("/bts-branches", handlers.CreateBtsBranch)
 			pickup.PUT("/bts-branches/:id", handlers.UpdateBtsBranch)

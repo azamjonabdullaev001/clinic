@@ -472,6 +472,31 @@ func UpdateBtsInfo(c *gin.Context) {
 }
 
 // UpdateOrderNotes saves a worker note on an order. The note is visible to the customer.
+func UpdateOrderPayment(c *gin.Context) {
+	id := c.Param("id")
+	var body struct {
+		PaymentMethod string `json:"payment_method"`
+		CardType      string `json:"card_type"`
+		PaymentSplits string `json:"payment_splits"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		return
+	}
+	var order models.Order
+	if err := database.DB.First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	database.DB.Model(&order).Updates(map[string]interface{}{
+		"payment_method": body.PaymentMethod,
+		"card_type":      body.CardType,
+		"payment_splits": body.PaymentSplits,
+	})
+	BroadcastOrders()
+	c.JSON(http.StatusOK, gin.H{"message": "Способ оплаты обновлён"})
+}
+
 func UpdateOrderNotes(c *gin.Context) {
 	id := c.Param("id")
 	var body struct {

@@ -1009,17 +1009,71 @@
                 </div>
               </div>
 
-              <!-- Actions: only Редактировать and Полный возврат remain -->
+              <!-- Actions: Редактировать, Способ оплаты, Полный возврат -->
               <div v-if="!listEdit[order.id]?.editing" class="mt-3 flex gap-2 flex-wrap">
                 <button v-if="order.is_offline && !order.marketolog_id && order.status !== 'cancelled'"
                   @click="startListEdit(order)"
                   class="bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 px-4 py-1.5 rounded-lg transition text-sm font-medium">
                   {{ txt.edit_items }}
                 </button>
+                <button v-if="!order.is_vip"
+                  @click="togglePayEdit(order)"
+                  :class="payEdit[order.id]?.open ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'"
+                  class="border px-4 py-1.5 rounded-lg transition text-sm font-medium">
+                  {{ lang === 'uz' ? "To'lov usuli" : 'Способ оплаты' }}
+                </button>
                 <button v-if="order.is_offline && !order.marketolog_id && order.status === 'delivered'"
                   @click="fullReturn(order)" class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium">
                   {{ txt.full_return }}
                 </button>
+              </div>
+
+              <!-- Inline payment editor -->
+              <div v-if="payEdit[order.id]?.open && !listEdit[order.id]?.editing" class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between mb-1">
+                  <p class="text-xs font-semibold text-amber-800">{{ lang === 'uz' ? "To'lov usulini tanlang" : 'Выберите способ оплаты' }}</p>
+                  <button @click="payEditToggleSplit(order.id)"
+                    :class="payEdit[order.id].mode==='split' ? 'bg-amber-600 text-white' : 'bg-white text-amber-700 border border-amber-300'"
+                    class="text-xs px-2.5 py-1 rounded-full font-medium transition">
+                    {{ lang === 'uz' ? 'Kombinatsiya' : 'Комбинировать' }}
+                  </button>
+                </div>
+
+                <!-- Single method: 5 quick-pick buttons -->
+                <div v-if="payEdit[order.id].mode === 'single'" class="flex gap-2 flex-wrap">
+                  <button v-for="m in histPayMethods" :key="m.key"
+                    @click="payEditPickSingle(order.id, m.key)"
+                    :class="payEdit[order.id].method === m.key ? m.color + ' ring-2 ring-offset-1 ring-amber-400 font-bold' : 'bg-white text-gray-600 border-gray-200'"
+                    class="border px-3 py-1.5 rounded-lg text-sm transition">
+                    {{ m.label }}
+                  </button>
+                </div>
+
+                <!-- Split method: amount per method -->
+                <div v-else class="space-y-2">
+                  <div v-for="m in histPayMethods" :key="m.key" class="flex items-center gap-2">
+                    <span :class="m.color" class="border rounded-md px-2 py-0.5 text-xs font-medium w-28 text-center flex-shrink-0">{{ m.label }}</span>
+                    <input v-model.number="payEdit[order.id].amounts[m.key]" type="number" min="0" step="1000"
+                      class="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                      :placeholder="lang === 'uz' ? 'Summa' : 'Сумма'"/>
+                  </div>
+                  <p class="text-xs text-amber-700">
+                    {{ lang === 'uz' ? 'Jami:' : 'Итого:' }}
+                    <span class="font-bold">{{ formatPrice(Object.values(payEdit[order.id].amounts).reduce((s,v)=>s+(Number(v)||0),0)) }} {{ txt.sum }}</span>
+                  </p>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                  <button @click="savePayEdit(order)"
+                    :disabled="payEdit[order.id].saving"
+                    class="bg-amber-600 text-white px-5 py-1.5 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-40 transition">
+                    {{ payEdit[order.id].saving ? (lang === 'uz' ? 'Saqlanmoqda...' : 'Сохранение...') : (lang === 'uz' ? 'Saqlash' : 'Сохранить') }}
+                  </button>
+                  <button @click="togglePayEdit(order)"
+                    class="bg-white border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                    {{ lang === 'uz' ? 'Bekor qilish' : 'Отмена' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2172,7 +2226,7 @@ const offlineOrders = computed(() =>
 )
 
 const historyOrders = computed(() => {
-  let list = orders.value
+  let list = orders.value.filter(o => !o.is_returned)
   if (historyType.value === 'online') list = list.filter(o => !o.is_offline)
   else if (historyType.value === 'offline') list = list.filter(o => o.is_offline)
   else if (historyType.value === 'vip') list = list.filter(o => o.is_vip)
@@ -2416,6 +2470,88 @@ async function sendWorkerMessage() {
 
 // ===== Inline edit for orders list =====
 const listEdit = ref({})
+
+// ===== Payment editing in history tab =====
+const payEdit = ref({}) // keyed by order id: { open, mode:'single'|'split', method, amounts:{}, saving }
+
+const histPayMethods = computed(() => [
+  { key: 'cash', label: txt.value.pay_cash, color: 'bg-green-100 text-green-700 border-green-300' },
+  { key: 'terminal', label: txt.value.pay_terminal, color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  { key: 'cassa1', label: txt.value.card_cassa1, color: 'bg-violet-100 text-violet-700 border-violet-300' },
+  { key: 'click', label: txt.value.card_click, color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
+  { key: 'transfer', label: txt.value.card_transfer, color: 'bg-sky-100 text-sky-700 border-sky-300' },
+])
+
+function togglePayEdit(order) {
+  if (payEdit.value[order.id]?.open) {
+    delete payEdit.value[order.id]
+    return
+  }
+  let mode = 'single'
+  let method = order.payment_method || 'cash'
+  const amounts = { cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 }
+  if (order.payment_splits) {
+    try {
+      const splits = JSON.parse(order.payment_splits).filter(s => s.amount > 0)
+      if (splits.length > 1) {
+        mode = 'split'
+        splits.forEach(s => { amounts[s.method] = s.amount })
+      } else if (splits.length === 1) {
+        method = splits[0].method
+      }
+    } catch (e) { /* ignore */ }
+  }
+  payEdit.value[order.id] = { open: true, mode, method, amounts, saving: false }
+}
+
+function payEditPickSingle(orderId, key) {
+  const e = payEdit.value[orderId]
+  if (!e) return
+  e.mode = 'single'
+  e.method = key
+}
+
+function payEditToggleSplit(orderId) {
+  const e = payEdit.value[orderId]
+  if (!e) return
+  e.mode = e.mode === 'split' ? 'single' : 'split'
+}
+
+async function savePayEdit(order) {
+  const e = payEdit.value[order.id]
+  if (!e || e.saving) return
+  e.saving = true
+  try {
+    let paymentMethod = e.method
+    let cardType = ''
+    let paymentSplits = ''
+    if (e.mode === 'split') {
+      const splits = histPayMethods.value
+        .map(m => ({ method: m.key, amount: Number(e.amounts[m.key]) || 0 }))
+        .filter(s => s.amount > 0)
+      if (splits.length === 1) {
+        paymentMethod = splits[0].method
+        paymentSplits = ''
+      } else if (splits.length > 1) {
+        paymentMethod = 'mixed'
+        paymentSplits = JSON.stringify(splits)
+      } else {
+        return
+      }
+    }
+    // Map legacy card subtypes
+    if (['cassa1', 'click', 'transfer'].includes(paymentMethod)) {
+      cardType = paymentMethod
+      paymentMethod = 'card'
+    }
+    await api.put(`/pickup/orders/${order.id}/payment`, { payment_method: paymentMethod, card_type: cardType, payment_splits: paymentSplits })
+    delete payEdit.value[order.id]
+  } catch (err) {
+    console.error(err)
+  } finally {
+    if (payEdit.value[order.id]) payEdit.value[order.id].saving = false
+  }
+}
 
 function startListEdit(order) {
   listEdit.value[order.id] = {
