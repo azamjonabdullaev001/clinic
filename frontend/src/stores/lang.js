@@ -299,6 +299,11 @@ const translations = {
 
     // Profile
     nav_profile_phone: 'Телефон не указан',
+
+    // BTS route map (OrdersDrawer)
+    bts_route_title: 'Маршрут вашего заказа',
+    bts_route_building: 'Строим маршрут…',
+    bts_your_address: 'Ваш адрес',
   },
   uz: {
     // Navbar
@@ -584,5 +589,10 @@ const translations = {
 
     // Profile
     nav_profile_phone: "Telefon ko'rsatilmagan",
+
+    // BTS route map (OrdersDrawer)
+    bts_route_title: 'Buyurtmangiz yo\'li',
+    bts_route_building: 'Yo\'nalish qurilmoqda…',
+    bts_your_address: 'Sizning manzilingiz',
   }
 }

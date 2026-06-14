@@ -201,22 +201,22 @@
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col" style="max-height:90vh">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white flex-shrink-0">
           <div>
-            <h3 class="text-base font-bold text-gray-900">Маршрут вашего заказа</h3>
-            <p v-if="btsMapOrder" class="text-xs text-gray-500 mt-0.5">{{ btsMapOrder.order_code }} → {{ btsMapOrder.bts_pickup_point || 'БТС пункт выдачи' }}</p>
+            <h3 class="text-base font-bold text-gray-900">{{ t.bts_route_title }}</h3>
+            <p v-if="btsMapOrder" class="text-xs text-gray-500 mt-0.5">{{ btsMapOrder.order_code }} → {{ btsMapOrder.bts_pickup_point || t.bts_pickup_point_label }}</p>
           </div>
           <button @click="closeBtsMap" class="p-2 hover:bg-gray-100 rounded-xl transition">
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <div v-if="btsMapLoading" class="flex items-center justify-center gap-3 text-gray-500 text-sm" style="height:380px">
+        <div v-if="btsMapLoading" class="flex-1 flex items-center justify-center gap-3 text-gray-500 text-sm min-h-[200px]">
           <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-          Строим маршрут…
+          {{ t.bts_route_building }}
         </div>
-        <div v-else id="bts-route-map" style="height:380px;width:100%;flex-shrink:0"></div>
+        <div v-else id="bts-route-map" class="flex-1 min-h-0" style="min-height:220px;width:100%"></div>
         <div v-if="btsMapOrder && btsBranchFor(btsMapOrder)" class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
           <div class="flex items-center gap-1.5">
             <span class="w-3 h-3 rounded-full bg-orange-500 flex-shrink-0"></span>
-            <span class="text-gray-600 font-medium">Ваш адрес</span>
+            <span class="text-gray-600 font-medium">{{ t.bts_your_address }}</span>
           </div>
           <div class="flex items-center gap-1.5">
             <span class="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0"></span>

@@ -337,12 +337,13 @@
         <iframe
           v-if="orderGoogleMapUrl"
           :src="orderGoogleMapUrl"
-          style="height:400px;width:100%;border:0"
+          class="flex-1 min-h-0"
+          style="min-height:220px;width:100%;border:0"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen
         ></iframe>
-        <div v-else class="flex items-center justify-center text-stone-400 text-sm" style="height:400px">Адрес не указан</div>
+        <div v-else class="flex-1 flex items-center justify-center text-stone-400 text-sm min-h-[200px]">Адрес не указан</div>
         <div class="px-6 py-3 border-t border-stone-100 bg-stone-50 text-xs text-stone-500">
           <span v-if="selectedOrderForMap?.delivery_address">📍 {{ selectedOrderForMap.delivery_address }}</span>
         </div>
@@ -367,7 +368,8 @@
         <iframe
           v-if="btsGoogleMapUrl"
           :src="btsGoogleMapUrl"
-          style="height:380px;width:100%;flex-shrink:0;border:0"
+          class="flex-1 min-h-0"
+          style="min-height:220px;width:100%;border:0"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen
