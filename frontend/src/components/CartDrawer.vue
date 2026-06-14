@@ -767,7 +767,7 @@ function openBtsMap(order) {
 
   if (btsLat && btsLng && customerLat && customerLng) {
     // Route from customer delivery location → BTS pickup point
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${customerLat},${customerLng}&daddr=${btsLat},${btsLng}&output=embed`
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${customerLat},${customerLng}&daddr=${btsLat},${btsLng}&dirflg=d&output=embed`
   } else if (btsLat && btsLng) {
     btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${btsLat},${btsLng}&z=16&output=embed`
   } else {
