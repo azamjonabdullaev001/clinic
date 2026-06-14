@@ -74,9 +74,9 @@
           </button>
 
           <!-- Profile button (logged-in) / Login link (not logged-in) -->
-          <div v-if="authStore.isLoggedIn" class="relative profile-btn-container hidden sm:block">
+          <div v-if="authStore.isLoggedIn" class="relative profile-btn-container">
             <button @click.stop="profileOpen = !profileOpen"
-                    class="flex items-center gap-1.5 pl-1 pr-2.5 py-1.5 rounded-xl hover:bg-brand-50 transition-all duration-200">
+                    class="flex items-center gap-1.5 p-1.5 rounded-xl hover:bg-brand-50 transition-all duration-200">
               <div class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 select-none">
                 {{ userInitials }}
               </div>
@@ -106,8 +106,8 @@
             </svg>
           </router-link>
 
-          <!-- Language switcher -->
-          <div class="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
+          <!-- Language switcher (hidden on xs — accessible via hamburger menu) -->
+          <div class="hidden sm:flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
             <button @click="langStore.setLang('ru')"
                     class="text-[11px] font-semibold px-2.5 py-1.5 rounded-md transition-all duration-200"
                     :class="langStore.current === 'ru' ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'">RU</button>
@@ -134,7 +134,7 @@
     <teleport to="body">
       <div v-if="chatOpen"
            class="fixed z-[200] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
-           style="bottom:80px;right:16px;width:360px;height:480px">
+           style="bottom:80px;right:16px;width:min(360px,calc(100vw - 32px));height:480px">
         <div class="flex items-center justify-between px-4 py-3 bg-brand-700 flex-shrink-0">
           <span class="text-white font-semibold text-sm">{{ t.nav_support }}</span>
           <button @click="chatOpen = false" class="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition">
