@@ -334,11 +334,15 @@
             </svg>
           </button>
         </div>
-        <div v-if="orderMapLoading" class="flex items-center justify-center gap-3 text-stone-400 text-sm" style="height:400px">
-          <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-          Загрузка карты…
-        </div>
-        <div id="order-map-container" style="height: 400px; width: 100%;"></div>
+        <iframe
+          v-if="orderGoogleMapUrl"
+          :src="orderGoogleMapUrl"
+          style="height:400px;width:100%;border:0"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
+        <div v-else class="flex items-center justify-center text-stone-400 text-sm" style="height:400px">Адрес не указан</div>
         <div class="px-6 py-3 border-t border-stone-100 bg-stone-50 text-xs text-stone-500">
           <span v-if="selectedOrderForMap?.delivery_address">📍 {{ selectedOrderForMap.delivery_address }}</span>
         </div>
@@ -351,7 +355,7 @@
       <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
           <div>
-            <h3 class="text-lg font-bold text-stone-900">Пункт выдачи БТС</h3>
+            <h3 class="text-lg font-bold text-stone-900">БТС Карго</h3>
             <p class="text-xs text-stone-400 mt-0.5">{{ btsMapOrder?.order_code }}</p>
           </div>
           <button @click="closeBtsMap" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
@@ -360,11 +364,14 @@
             </svg>
           </button>
         </div>
-        <div v-if="btsMapLoading" class="flex items-center justify-center gap-3 text-stone-400 text-sm" style="height:380px">
-          <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-          Загрузка карты…
-        </div>
-        <div id="bts-map-container" style="height:380px;width:100%;flex-shrink:0"></div>
+        <iframe
+          v-if="btsGoogleMapUrl"
+          :src="btsGoogleMapUrl"
+          style="height:380px;width:100%;flex-shrink:0;border:0"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
         <div v-if="btsMapOrder" class="px-5 py-3 bg-blue-50 border-t border-blue-100 text-xs text-blue-800">
           📍 {{ btsMapOrder.bts_pickup_point || 'Пункт выдачи БТС' }}<span v-if="btsMapOrder.bts_tracking_number"> · Трек: {{ btsMapOrder.bts_tracking_number }}</span>
         </div>
@@ -731,16 +738,13 @@ const successQrFailed = ref(false)
 
 // Order Map
 const showOrderMap = ref(false)
-const orderMapLoading = ref(false)
 const selectedOrderForMap = ref(null)
-let orderMapInstance = null
-let orderMapMarker = null
+const orderGoogleMapUrl = ref('')
 
 // BTS Map
 const showBtsMap = ref(false)
-const btsMapLoading = ref(false)
 const btsMapOrder = ref(null)
-let btsMapInstance = null
+const btsGoogleMapUrl = ref('')
 
 async function confirmHide(order) {
   if (!confirm('Удалить этот заказ из истории?')) return
@@ -752,74 +756,24 @@ async function confirmHide(order) {
   }
 }
 
-async function openBtsMap(order) {
+function openBtsMap(order) {
   btsMapOrder.value = order
-  btsMapLoading.value = true
+  const lat = order.bts_branch_lat
+  const lng = order.bts_branch_lng
+  if (lat && lng) {
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`
+  } else {
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${encodeURIComponent(order.bts_pickup_point || 'Uzbekistan')}&output=embed`
+  }
   showBtsMap.value = true
-  await nextTick()
-  await initBtsMap(order)
 }
 
 function closeBtsMap() {
   showBtsMap.value = false
   btsMapOrder.value = null
-  btsMapLoading.value = false
-  if (btsMapInstance) { btsMapInstance.remove(); btsMapInstance = null }
+  btsGoogleMapUrl.value = ''
 }
 
-async function initBtsMap(order) {
-  const L = await import('leaflet')
-  await import('leaflet/dist/leaflet.css')
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  })
-  const mapEl = document.getElementById('bts-map-container')
-  if (!mapEl) { btsMapLoading.value = false; return }
-
-  const lat = order.bts_branch_lat
-  const lng = order.bts_branch_lng
-  btsMapLoading.value = false
-
-  btsMapInstance = L.map('bts-map-container').setView([lat, lng], 16)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(btsMapInstance)
-
-  const popup = order.bts_pickup_point || 'Пункт выдачи БТС'
-  L.marker([lat, lng]).addTo(btsMapInstance).bindPopup(`<b>📦 БТС</b><br>${popup}`).openPopup()
-
-  // If customer has coordinates, also show their address and draw a line
-  let customerLat = order.latitude
-  let customerLng = order.longitude
-  if ((!customerLat || !customerLng) && order.delivery_address) {
-    try {
-      const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 8000)
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`, { signal: ctrl.signal })
-      const data = await res.json()
-      if (data?.[0]) { customerLat = parseFloat(data[0].lat); customerLng = parseFloat(data[0].lon) }
-    } catch { /* ignore */ }
-  }
-  if (customerLat && customerLng) {
-    const orangeIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;background:#f97316;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>', iconSize: [14, 14], iconAnchor: [7, 7] })
-    L.marker([customerLat, customerLng], { icon: orangeIcon }).addTo(btsMapInstance).bindPopup('<b>Ваш адрес</b>')
-    try {
-      const ctrl2 = new AbortController(); setTimeout(() => ctrl2.abort(), 8000)
-      const osrm = `https://router.project-osrm.org/route/v1/driving/${customerLng},${customerLat};${lng},${lat}?overview=full&geometries=geojson`
-      const rr = await fetch(osrm, { signal: ctrl2.signal })
-      const rd = await rr.json()
-      if (rd.code === 'Ok' && rd.routes?.[0]) {
-        const coords = rd.routes[0].geometry.coordinates.map(([ln, la]) => [la, ln])
-        L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(btsMapInstance)
-      } else throw new Error()
-    } catch {
-      L.polyline([[customerLat, customerLng], [lat, lng]], { color: '#2563eb', weight: 3, dashArray: '8 5' }).addTo(btsMapInstance)
-    }
-    btsMapInstance.fitBounds([[customerLat, customerLng], [lat, lng]], { padding: [40, 40] })
-  }
-}
 
 // Receipt upload from orders tab
 const ordersTabReceiptInputs = ref({})
@@ -843,57 +797,24 @@ async function uploadReceiptFromOrdersTab(orderId, e) {
   }
 }
 
-async function openOrderMap(order) {
+function openOrderMap(order) {
   selectedOrderForMap.value = order
-  orderMapLoading.value = true
+  const lat = order.latitude
+  const lng = order.longitude
+  if (lat && lng) {
+    orderGoogleMapUrl.value = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`
+  } else if (order.delivery_address) {
+    orderGoogleMapUrl.value = `https://maps.google.com/maps?q=${encodeURIComponent(order.delivery_address)}&output=embed`
+  } else {
+    orderGoogleMapUrl.value = ''
+  }
   showOrderMap.value = true
-  await nextTick()
-  await initOrderMap()
 }
 
 function closeOrderMap() {
   showOrderMap.value = false
   selectedOrderForMap.value = null
-  orderMapLoading.value = false
-  if (orderMapInstance) {
-    orderMapInstance.remove()
-    orderMapInstance = null
-    orderMapMarker = null
-  }
-}
-
-async function initOrderMap() {
-  const order = selectedOrderForMap.value
-  if (!order) return
-  const L = await import('leaflet')
-  await import('leaflet/dist/leaflet.css')
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  })
-  const mapEl = document.getElementById('order-map-container')
-  if (!mapEl) { orderMapLoading.value = false; return }
-
-  let lat = order.latitude
-  let lng = order.longitude
-
-  if ((!lat || !lng) && order.delivery_address) {
-    try {
-      const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 8000)
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`, { signal: ctrl.signal })
-      const data = await res.json()
-      if (data?.[0]) { lat = parseFloat(data[0].lat); lng = parseFloat(data[0].lon) }
-    } catch { /* fall back to Uzbekistan center */ }
-  }
-  if (!lat || !lng) { lat = 40.9983; lng = 71.6726 }
-
-  orderMapLoading.value = false
-  orderMapInstance = L.map('order-map-container').setView([lat, lng], 15)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(orderMapInstance)
-  orderMapMarker = L.marker([lat, lng]).addTo(orderMapInstance)
-    .bindPopup(`<b>Точка доставки</b><br>${order.delivery_address || order.order_code}`).openPopup()
+  orderGoogleMapUrl.value = ''
 }
 
 // Online payment (QR + receipt) flow
@@ -1247,9 +1168,6 @@ async function submitOrder() {
 
 onUnmounted(() => {
   destroyMap()
-  if (orderMapInstance) {
-    orderMapInstance.remove()
-  }
 })
 
 function showOrders() {

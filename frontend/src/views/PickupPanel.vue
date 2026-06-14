@@ -1315,15 +1315,15 @@
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <!-- Map -->
-        <div v-if="deliveryMapGeocoding" class="flex items-center justify-center gap-3 text-gray-500 text-sm" style="height:600px">
-          <svg class="w-5 h-5 animate-spin text-teal-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-          {{ txt.geocoding }}
-        </div>
-        <div v-else-if="deliveryMapGeoError" class="flex items-center justify-center text-red-500 text-sm font-medium" style="height:600px">
-          {{ deliveryMapGeoError }}
-        </div>
-        <div v-else id="pickup-delivery-map" style="height:600px;width:100%;flex-shrink:0"></div>
+        <!-- Map: Google Maps iframe with real driving directions -->
+        <iframe
+          v-if="deliveryGoogleMapUrl"
+          :src="deliveryGoogleMapUrl"
+          style="height:600px;width:100%;flex-shrink:0;border:0"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
         <!-- Footer info -->
         <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
           <div class="flex items-center gap-1.5">
@@ -1763,148 +1763,29 @@ const PICKUP_LNG = 72.3784014
 
 const showDeliveryMap = ref(false)
 const deliveryMapOrder = ref(null)
-const deliveryMapGeocoding = ref(false)
-const deliveryMapGeoError = ref('')
-let deliveryMapInstance = null
+const deliveryGoogleMapUrl = ref('')
 
 async function openDeliveryMap(order) {
   deliveryMapOrder.value = order
-  deliveryMapGeoError.value = ''
+  const customerLat = order.latitude
+  const customerLng = order.longitude
+  if (customerLat && customerLng) {
+    deliveryGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${PICKUP_LAT},${PICKUP_LNG}&daddr=${customerLat},${customerLng}&output=embed`
+  } else if (order.delivery_address) {
+    deliveryGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${PICKUP_LAT},${PICKUP_LNG}&daddr=${encodeURIComponent(order.delivery_address)}&output=embed`
+  } else {
+    deliveryGoogleMapUrl.value = `https://maps.google.com/maps?q=${PICKUP_LAT},${PICKUP_LNG}&z=14&output=embed`
+  }
   showDeliveryMap.value = true
-  await nextTick()
-  await initDeliveryMap()
 }
 
 function closeDeliveryMap() {
   showDeliveryMap.value = false
   deliveryMapOrder.value = null
-  deliveryMapGeocoding.value = false
-  deliveryMapGeoError.value = ''
-  if (deliveryMapInstance) {
-    deliveryMapInstance.remove()
-    deliveryMapInstance = null
-  }
+  deliveryGoogleMapUrl.value = ''
 }
 
-async function geocodeAddress(address) {
-  const ctrl = new AbortController()
-  const tid = setTimeout(() => ctrl.abort(), 10000)
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-    const res = await fetch(url, { signal: ctrl.signal })
-    clearTimeout(tid)
-    const data = await res.json()
-    if (data && data[0]) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-    }
-  } catch { clearTimeout(tid) }
-  return null
-}
 
-async function initDeliveryMap() {
-  const order = deliveryMapOrder.value
-  if (!order) return
-
-  let customerLat = order.latitude
-  let customerLng = order.longitude
-
-  // Geocode text address when coordinates are missing
-  if ((!customerLat || !customerLng) && order.delivery_address) {
-    deliveryMapGeocoding.value = true
-    try {
-      const coords = await geocodeAddress(order.delivery_address)
-      if (coords) {
-        customerLat = coords.lat
-        customerLng = coords.lng
-      } else {
-        deliveryMapGeoError.value = txt.value.geocode_error
-        deliveryMapGeocoding.value = false
-        return
-      }
-    } catch {
-      deliveryMapGeoError.value = txt.value.geocode_error
-      deliveryMapGeocoding.value = false
-      return
-    }
-    deliveryMapGeocoding.value = false
-    await nextTick()
-  }
-
-  if (!customerLat || !customerLng) {
-    deliveryMapGeoError.value = txt.value.geocode_error
-    return
-  }
-
-  const L = await import('leaflet')
-  await import('leaflet/dist/leaflet.css')
-
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  })
-
-  const mapEl = document.getElementById('pickup-delivery-map')
-  if (!mapEl) return
-
-  const midLat = (PICKUP_LAT + customerLat) / 2
-  const midLng = (PICKUP_LNG + customerLng) / 2
-
-  deliveryMapInstance = L.map('pickup-delivery-map').setView([midLat, midLng], 13)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(deliveryMapInstance)
-
-  // Pickup point marker (blue)
-  const pickupIcon = L.divIcon({
-    html: '<div style="background:#2563eb;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
-    className: '',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  })
-  L.marker([PICKUP_LAT, PICKUP_LNG], { icon: pickupIcon })
-    .addTo(deliveryMapInstance)
-    .bindPopup(`<b>${txt.value.delivery_from}</b>`)
-
-  // Customer marker (orange)
-  const customerIcon = L.divIcon({
-    html: '<div style="background:#f97316;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #f97316"></div>',
-    className: '',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-  })
-  L.marker([customerLat, customerLng], { icon: customerIcon })
-    .addTo(deliveryMapInstance)
-    .bindPopup(`<b>${txt.value.delivery_to}</b><br>${order.delivery_address || ''}`)
-
-  // Real road route via OSRM (free, no API key needed)
-  try {
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${PICKUP_LNG},${PICKUP_LAT};${customerLng},${customerLat}?overview=full&geometries=geojson`
-    const osrmCtrl = new AbortController()
-    setTimeout(() => osrmCtrl.abort(), 8000)
-    const res = await fetch(osrmUrl, { signal: osrmCtrl.signal })
-    const data = await res.json()
-    if (data.code === 'Ok' && data.routes?.[0]) {
-      // GeoJSON coords are [lng, lat] — Leaflet needs [lat, lng]
-      const routeCoords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
-      L.polyline(routeCoords, { color: '#2563eb', weight: 5, opacity: 0.85 }).addTo(deliveryMapInstance)
-    } else {
-      throw new Error('no route')
-    }
-  } catch {
-    // Fallback: straight dashed line if OSRM is unavailable
-    L.polyline(
-      [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
-      { color: '#2563eb', weight: 3, opacity: 0.8, dashArray: '8 5' }
-    ).addTo(deliveryMapInstance)
-  }
-
-  deliveryMapInstance.fitBounds(
-    [[PICKUP_LAT, PICKUP_LNG], [customerLat, customerLng]],
-    { padding: [40, 40] }
-  )
-}
 
 // ===== BTS Cargo per-order =====
 const btsEdit = ref({})
@@ -2037,8 +1918,10 @@ async function initBtsPickerMap(order) {
   const zoom = order.latitude ? 13 : 6
 
   btsPickerMapInstance = L.map('bts-picker-map').setView([startLat, startLng], zoom)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 21,
+    attribution: '© Google Maps'
   }).addTo(btsPickerMapInstance)
 
   // If there's already a saved pin, show it
