@@ -27,11 +27,6 @@
             {{ t.nav_news }}
             <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
           </a>
-          <a href="/#about"
-             class="relative text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-2 rounded-lg hover:bg-brand-50 transition-all duration-200 group">
-            {{ t.nav_features_link }}
-            <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-brand-500 rounded-full group-hover:w-5 transition-all duration-300"></span>
-          </a>
           <router-link to="/support"
              class="relative text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-2 rounded-lg hover:bg-brand-50 transition-all duration-200 group">
             {{ t.nav_support }}
@@ -78,15 +73,38 @@
             </span>
           </button>
 
-          <!-- Logout icon (logged-in, desktop) -->
-          <button v-if="authStore.isLoggedIn"
-                  @click="authStore.logout()"
-                  :title="t.nav_logout_icon_title"
-                  class="hidden sm:flex p-2.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200">
+          <!-- Profile button (logged-in) / Login link (not logged-in) -->
+          <div v-if="authStore.isLoggedIn" class="relative profile-btn-container hidden sm:block">
+            <button @click.stop="profileOpen = !profileOpen"
+                    class="flex items-center gap-1.5 pl-1 pr-2.5 py-1.5 rounded-xl hover:bg-brand-50 transition-all duration-200">
+              <div class="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 select-none">
+                {{ userInitials }}
+              </div>
+              <span class="hidden lg:block text-sm font-medium text-slate-700 max-w-[90px] truncate">{{ authStore.user?.first_name }}</span>
+            </button>
+            <!-- Profile dropdown -->
+            <div v-if="profileOpen"
+                 class="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-[200]">
+              <div class="px-4 py-3 border-b border-slate-100 bg-brand-50">
+                <p class="font-semibold text-slate-900 text-sm">{{ authStore.user?.first_name }} {{ authStore.user?.last_name }}</p>
+                <p v-if="authStore.user?.phone" class="text-xs text-brand-600 mt-0.5">{{ authStore.user.phone }}</p>
+                <p v-else class="text-xs text-slate-400 mt-0.5 italic">{{ t.nav_profile_phone }}</p>
+              </div>
+              <button @click="authStore.logout(); profileOpen = false"
+                      class="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors text-left">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+                </svg>
+                {{ t.nav_logout_icon_title }}
+              </button>
+            </div>
+          </div>
+          <router-link v-else to="/login"
+                       class="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition-all duration-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-          </button>
+          </router-link>
 
           <!-- Language switcher -->
           <div class="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
@@ -170,10 +188,6 @@
          class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
         {{ t.nav_news }}
       </a>
-      <a href="/#about" @click="mobileMenuOpen = false"
-         class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
-        {{ t.nav_features_link }}
-      </a>
       <router-link to="/support" @click="mobileMenuOpen = false"
          class="text-sm font-medium text-slate-600 hover:text-brand-700 px-4 py-3 rounded-xl hover:bg-brand-50 transition-all">
         {{ t.nav_support }}
@@ -193,6 +207,12 @@
                   :class="langStore.current === 'uz' ? 'bg-brand-600 text-white' : 'bg-gray-100 text-slate-500'">UZ</button>
         </div>
         <template v-if="authStore.isLoggedIn">
+          <!-- User info card -->
+          <div class="px-4 py-3 bg-brand-50 rounded-xl mb-1">
+            <p class="text-sm font-semibold text-slate-900">{{ authStore.user?.first_name }} {{ authStore.user?.last_name }}</p>
+            <p v-if="authStore.user?.phone" class="text-xs text-brand-600 mt-0.5">{{ authStore.user.phone }}</p>
+            <p v-else class="text-xs text-slate-400 mt-0.5 italic">{{ t.nav_profile_phone }}</p>
+          </div>
           <button @click="authStore.logout(); mobileMenuOpen = false"
                   class="text-sm font-medium text-red-500 hover:text-red-600 px-4 py-3 rounded-xl hover:bg-red-50 transition text-left flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -230,6 +250,15 @@ const scrolled = ref(false)
 const mobileMenuOpen = ref(false)
 const countPulse = ref(false)
 const chatOpen = ref(false)
+const profileOpen = ref(false)
+
+const userInitials = computed(() => {
+  const u = authStore.user
+  if (!u) return '?'
+  const first = (u.first_name || '').charAt(0).toUpperCase()
+  const last = (u.last_name || '').charAt(0).toUpperCase()
+  return (first + last) || '?'
+})
 const chatMessages = ref([])
 const chatNewMsg = ref('')
 const chatSending = ref(false)
@@ -292,10 +321,25 @@ watch(() => cartStore.totalItems, (n, o) => {
 function handleScroll() {
   scrolled.value = window.scrollY > 40
   if (mobileMenuOpen.value) mobileMenuOpen.value = false
+  if (profileOpen.value) profileOpen.value = false
 }
 
-onMounted(() => { window.addEventListener('scroll', handleScroll, { passive: true }); handleScroll() })
-onUnmounted(() => { window.removeEventListener('scroll', handleScroll); clearInterval(unreadTimer) })
+function handleDocumentClick(e) {
+  if (!e.target.closest('.profile-btn-container')) {
+    profileOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  document.addEventListener('click', handleDocumentClick)
+  handleScroll()
+})
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  document.removeEventListener('click', handleDocumentClick)
+  clearInterval(unreadTimer)
+})
 </script>
 
 <style scoped>

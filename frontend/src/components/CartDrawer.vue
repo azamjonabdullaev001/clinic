@@ -228,7 +228,7 @@
               <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 my-2 rounded-2xl overflow-hidden border border-blue-200 shadow-sm">
                 <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-2 flex items-center gap-2">
                   <svg class="w-4 h-4 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                  <span class="text-xs font-bold text-white tracking-wide">БТС Карго</span>
+                  <span class="text-xs font-bold text-white tracking-wide">{{ t.bts_cargo_label }}</span>
                   <span class="ml-auto text-[10px] text-blue-200 font-medium">{{ t.bts_in_transit }}</span>
                 </div>
                 <div class="bg-blue-50 px-3 py-2.5 space-y-1.5">
@@ -298,7 +298,7 @@
                     <div class="rounded-xl overflow-hidden border border-blue-200 opacity-80">
                       <div class="bg-gradient-to-r from-blue-500 to-blue-400 px-3 py-1.5 flex items-center gap-2">
                         <svg class="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                        <span class="text-xs font-bold text-white">БТС Карго</span>
+                        <span class="text-xs font-bold text-white">{{ t.bts_cargo_label }}</span>
                       </div>
                       <div class="bg-blue-50 px-3 py-2 space-y-1">
                         <p v-if="order.bts_pickup_point" class="text-xs text-blue-900 font-medium">📍 {{ order.bts_pickup_point }}</p>
@@ -355,7 +355,7 @@
       <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
           <div>
-            <h3 class="text-lg font-bold text-stone-900">БТС Карго</h3>
+            <h3 class="text-lg font-bold text-stone-900">{{ t.bts_cargo_label }}</h3>
             <p class="text-xs text-stone-400 mt-0.5">{{ btsMapOrder?.order_code }}</p>
           </div>
           <button @click="closeBtsMap" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
@@ -373,7 +373,7 @@
           allowfullscreen
         ></iframe>
         <div v-if="btsMapOrder" class="px-5 py-3 bg-blue-50 border-t border-blue-100 text-xs text-blue-800">
-          📍 {{ btsMapOrder.bts_pickup_point || 'Пункт выдачи БТС' }}<span v-if="btsMapOrder.bts_tracking_number"> · Трек: {{ btsMapOrder.bts_tracking_number }}</span>
+          📍 {{ btsMapOrder.bts_pickup_point || t.bts_pickup_point_label }}<span v-if="btsMapOrder.bts_tracking_number"> · {{ t.bts_track_info }}: {{ btsMapOrder.bts_tracking_number }}</span>
         </div>
       </div>
     </div>
@@ -758,10 +758,16 @@ async function confirmHide(order) {
 
 function openBtsMap(order) {
   btsMapOrder.value = order
-  const lat = order.bts_branch_lat
-  const lng = order.bts_branch_lng
-  if (lat && lng) {
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`
+  const btsLat = order.bts_branch_lat
+  const btsLng = order.bts_branch_lng
+  const customerLat = order.latitude
+  const customerLng = order.longitude
+
+  if (btsLat && btsLng && customerLat && customerLng) {
+    // Route from customer delivery location → BTS pickup point
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${customerLat},${customerLng}&daddr=${btsLat},${btsLng}&output=embed`
+  } else if (btsLat && btsLng) {
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${btsLat},${btsLng}&z=16&output=embed`
   } else {
     btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${encodeURIComponent(order.bts_pickup_point || 'Uzbekistan')}&output=embed`
   }

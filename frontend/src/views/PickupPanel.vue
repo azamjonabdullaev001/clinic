@@ -194,7 +194,7 @@
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-xs font-semibold text-blue-700 flex items-center gap-1">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    БТС Карго
+                    {{ txt.bts_cargo }}
                   </span>
                   <button @click="toggleBtsEdit(order.id, order)" class="text-xs text-blue-600 hover:underline">
                     {{ btsEdit[order.id]?.open ? txt.bts_hide : (order.bts_tracking_number ? txt.bts_change : txt.bts_add_track) }}
@@ -1474,6 +1474,7 @@ const texts = {
     nav_history: 'История',
     nav_stock: 'Склад',
     nav_bts: 'БТС пункты',
+    bts_cargo: 'БТС Карго',
     bts_title: 'Пункты выдачи БТС Карго',
     bts_desc: 'Добавьте точные адреса пунктов БТС. Адрес → нажмите «Найти» → координаты заполнятся автоматически.',
     bts_name: 'Название',
@@ -1669,6 +1670,7 @@ const texts = {
     nav_history: 'Tarix',
     nav_stock: 'Ombor',
     nav_bts: 'BTS nuqtalar',
+    bts_cargo: 'BTS Kargo',
     bts_title: 'BTS Kargo berish nuqtalari',
     bts_desc: 'BTS nuqtalarining aniq manzillarini kiriting. Manzil → «Topish» tugmasini bosing → koordinatalar avtomatik to\'ldiriladi.',
     bts_name: 'Nomi',

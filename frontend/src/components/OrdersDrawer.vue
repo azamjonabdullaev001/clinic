@@ -112,17 +112,17 @@
             <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 mb-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
               <p class="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                БТС Карго — ваш заказ в пути
+                {{ t.bts_cargo_label }} — {{ t.bts_in_transit }}
               </p>
               <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium">📍 {{ order.bts_pickup_point }}</p>
-              <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 mt-0.5">Трек: {{ order.bts_tracking_number }}</p>
+              <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 mt-0.5">{{ t.bts_track_info }}: {{ order.bts_tracking_number }}</p>
               <button
                 v-if="order.bts_branch_lat && order.bts_branch_lng"
                 @click="openBtsMap(order)"
                 class="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                Показать маршрут до пункта выдачи
+                {{ t.bts_map_btn }}
               </button>
             </div>
 

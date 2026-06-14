@@ -288,11 +288,17 @@ const translations = {
     worker_msg_title: 'Сообщение от менеджера',
     bts_in_transit: '● В пути',
     bts_map_btn: 'Показать на карте',
+    bts_cargo_label: 'БТС Карго',
+    bts_pickup_point_label: 'Пункт выдачи БТС',
+    bts_track_info: 'Трек',
     delete_from_history: 'Удалить из истории',
     delivery_order_title: 'Доставка заказа',
     referral_self: 'Самостоятельно',
     referral_ad: 'Из рекламы',
     referral_doctor_prefix: 'Доктор: ',
+
+    // Profile
+    nav_profile_phone: 'Телефон не указан',
   },
   uz: {
     // Navbar
@@ -567,10 +573,16 @@ const translations = {
     worker_msg_title: "Menejer xabari",
     bts_in_transit: '● Yetkazilmoqda',
     bts_map_btn: "Xaritada ko'rsatish",
+    bts_cargo_label: 'BTS Kargo',
+    bts_pickup_point_label: "BTS yetkazib berish nuqtasi",
+    bts_track_info: 'Trek',
     delete_from_history: "Tarixdan o'chirish",
     delivery_order_title: "Yetkazib berish",
     referral_self: "Mustaqil",
     referral_ad: "Reklama orqali",
     referral_doctor_prefix: "Doktor: ",
+
+    // Profile
+    nav_profile_phone: "Telefon ko'rsatilmagan",
   }
 }
