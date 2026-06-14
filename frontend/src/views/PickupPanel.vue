@@ -183,7 +183,7 @@
                 </div>
               </div>
               <div v-if="order.receipt_path" class="mt-2 flex items-center gap-2">
-                <span class="text-xs text-emerald-600 font-medium">✓ Чек об оплате:</span>
+                <span class="text-xs text-emerald-600 font-medium">{{ txt.receipt_label }}</span>
                 <a :href="order.receipt_path" target="_blank" rel="noopener">
                   <img :src="order.receipt_path" class="w-14 h-14 object-cover rounded-lg border border-emerald-200 hover:opacity-80 transition"/>
                 </a>
@@ -197,7 +197,7 @@
                     БТС Карго
                   </span>
                   <button @click="toggleBtsEdit(order.id, order)" class="text-xs text-blue-600 hover:underline">
-                    {{ btsEdit[order.id]?.open ? 'Скрыть' : (order.bts_tracking_number ? 'Изменить' : '+ Трек-номер') }}
+                    {{ btsEdit[order.id]?.open ? txt.bts_hide : (order.bts_tracking_number ? txt.bts_change : txt.bts_add_track) }}
                   </button>
                 </div>
                 <div v-if="order.bts_tracking_number || order.bts_pickup_point" class="space-y-0.5 mb-1">
@@ -207,14 +207,14 @@
                   </p>
                   <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 font-mono">{{ order.bts_tracking_number }}</p>
                 </div>
-                <p v-else class="text-xs text-blue-400 mb-1 italic">Не заполнено</p>
+                <p v-else class="text-xs text-blue-400 mb-1 italic">{{ txt.bts_not_filled }}</p>
                 <div v-if="btsEdit[order.id]?.open" class="space-y-2 pt-2 border-t border-blue-200">
                   <div>
-                    <label class="text-xs text-blue-700 font-medium mb-1 block">Трек-номер накладной</label>
-                    <input v-model="btsEdit[order.id].trackingNumber" type="text" placeholder="напр: 123456789" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
+                    <label class="text-xs text-blue-700 font-medium mb-1 block">{{ txt.bts_track_label }}</label>
+                    <input v-model="btsEdit[order.id].trackingNumber" type="text" :placeholder="txt.bts_track_ph" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
                   </div>
                   <div>
-                    <label class="text-xs text-blue-700 font-medium mb-1 block">Пункт выдачи БТС</label>
+                    <label class="text-xs text-blue-700 font-medium mb-1 block">{{ txt.bts_pickup_label }}</label>
                     <div v-if="btsEdit[order.id].pinLat" class="border border-green-300 bg-green-50 rounded-lg px-3 py-2 flex items-start justify-between gap-2 mb-1">
                       <div>
                         <p class="text-xs font-semibold text-green-800">📍 {{ btsEdit[order.id].pinLabel }}</p>
@@ -224,29 +224,29 @@
                     </div>
                     <button @click="openBtsMapPicker(order)" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-blue-300 text-blue-600 hover:border-blue-400 hover:bg-blue-50 rounded-lg py-2 text-sm transition">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                      {{ btsEdit[order.id].pinLat ? 'Изменить точку на карте' : 'Указать пункт БТС на карте' }}
+                      {{ btsEdit[order.id].pinLat ? txt.bts_change_pin : txt.bts_set_pin }}
                     </button>
                   </div>
                   <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving || !btsEdit[order.id].trackingNumber || !btsEdit[order.id].pinLat" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50 w-full font-medium">
-                    {{ btsEdit[order.id]?.saving ? 'Сохранение...' : 'Сохранить' }}
+                    {{ btsEdit[order.id]?.saving ? txt.bts_saving : txt.bts_save }}
                   </button>
                 </div>
               </div>
 
               <!-- Saved note display -->
               <div v-if="order.worker_notes && !noteEdit[order.id]?.open" class="mt-2 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
-                <p class="text-xs text-indigo-500 font-semibold mb-0.5">📝 Заметка</p>
+                <p class="text-xs text-indigo-500 font-semibold mb-0.5">{{ txt.note_label }}</p>
                 <p class="text-sm text-indigo-800 whitespace-pre-wrap">{{ order.worker_notes }}</p>
               </div>
               <!-- Inline note editor -->
               <div v-if="noteEdit[order.id]?.open" class="mt-2 border border-indigo-200 rounded-lg p-3 bg-indigo-50/60">
-                <label class="text-xs text-indigo-700 font-semibold mb-1 block">Заметка для покупателя</label>
-                <textarea v-model="noteEdit[order.id].text" rows="3" placeholder="Например: БТС трек 123456789, ожидайте в пункте выдачи Ходжаабад…" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white resize-none"></textarea>
+                <label class="text-xs text-indigo-700 font-semibold mb-1 block">{{ txt.note_buyer_label }}</label>
+                <textarea v-model="noteEdit[order.id].text" rows="3" :placeholder="txt.note_ph" class="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white resize-none"></textarea>
                 <div class="flex gap-2 mt-1.5">
                   <button @click="saveNote(order)" :disabled="noteEdit[order.id].saving" class="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-indigo-700 transition disabled:opacity-50">
-                    {{ noteEdit[order.id].saving ? 'Сохранение...' : 'Сохранить' }}
+                    {{ noteEdit[order.id].saving ? txt.bts_saving : txt.bts_save }}
                   </button>
-                  <button @click="noteEdit[order.id].open = false" class="text-gray-400 text-xs hover:text-gray-600 px-2 py-1 rounded-lg transition">Отмена</button>
+                  <button @click="noteEdit[order.id].open = false" class="text-gray-400 text-xs hover:text-gray-600 px-2 py-1 rounded-lg transition">{{ txt.bts_cancel }}</button>
                 </div>
               </div>
 
@@ -256,7 +256,7 @@
                 <button v-if="order.status !== 'cancelled' && order.status !== 'delivered'" @click="updateStatus(order, 'cancelled')" class="bg-red-50 text-red-600 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition text-sm font-medium">{{ txt.cancel }}</button>
                 <button @click="toggleNote(order)" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition text-sm font-medium flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                  {{ noteEdit[order.id]?.open ? 'Скрыть' : (order.worker_notes ? 'Редактировать' : 'Заметка') }}
+                  {{ noteEdit[order.id]?.open ? txt.note_hide : (order.worker_notes ? txt.note_edit : txt.note_btn) }}
                 </button>
                 <button v-if="order.latitude && order.longitude || order.delivery_address" @click="openDeliveryMap(order)" class="bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1.5 rounded-lg hover:bg-teal-100 transition text-sm font-medium flex items-center gap-1">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
@@ -1535,6 +1535,22 @@ const texts = {
     bts_err_not_found: 'Ничего не найдено. Попробуйте другой адрес или нажмите на карту вручную.',
     bts_err_timeout: 'Нет ответа от сервера. Проверьте интернет или нажмите на карту вручную.',
     bts_err_generic: 'Ошибка поиска. Проверьте интернет-соединение.',
+    receipt_label: '✓ Чек об оплате:',
+    bts_hide: 'Скрыть',
+    bts_change: 'Изменить',
+    bts_add_track: '+ Трек-номер',
+    bts_not_filled: 'Не заполнено',
+    bts_track_label: 'Трек-номер накладной',
+    bts_track_ph: 'напр: 123456789',
+    bts_pickup_label: 'Пункт выдачи БТС',
+    bts_change_pin: 'Изменить точку на карте',
+    bts_set_pin: 'Указать пункт БТС на карте',
+    note_label: '📝 Заметка',
+    note_buyer_label: 'Заметка для покупателя',
+    note_ph: 'Например: БТС трек 123456789, ожидайте в пункте выдачи…',
+    note_hide: 'Скрыть',
+    note_edit: 'Редактировать',
+    note_btn: 'Заметка',
   },
   uz: {
     title: 'Berish punkti',
@@ -1714,6 +1730,22 @@ const texts = {
     bts_err_not_found: "Hech narsa topilmadi. Boshqa manzil kiriting yoki xaritaga bosing.",
     bts_err_timeout: "Server javob bermadi. Internetni tekshiring yoki xaritaga bosing.",
     bts_err_generic: "Qidiruv xatosi. Internet aloqasini tekshiring.",
+    receipt_label: "✓ To'lov cheki:",
+    bts_hide: "Yashirish",
+    bts_change: "O'zgartirish",
+    bts_add_track: "+ Trek-raqam",
+    bts_not_filled: "To'ldirilmagan",
+    bts_track_label: "Yuk xati trek-raqami",
+    bts_track_ph: "msl: 123456789",
+    bts_pickup_label: "BTS yetkazib berish nuqtasi",
+    bts_change_pin: "Xaritada nuqtani o'zgartirish",
+    bts_set_pin: "Xaritada BTS nuqtasini belgilash",
+    note_label: "📝 Izoh",
+    note_buyer_label: "Xaridor uchun izoh",
+    note_ph: "Masalan: BTS trek 123456789, yetkazib berish nuqtasida kuting…",
+    note_hide: "Yashirish",
+    note_edit: "Tahrirlash",
+    note_btn: "Izoh",
   }
 }
 
@@ -2128,58 +2160,57 @@ async function runBtsSearch() {
   const ctrl = new AbortController()
   btsSearchAbortCtrl = ctrl
   let timedOut = false
-  const timeoutId = setTimeout(() => {
-    timedOut = true
-    ctrl.abort()
-  }, 12000)
+  const timeoutId = setTimeout(() => { timedOut = true; ctrl.abort() }, 12000)
   btsSearching.value = true
   btsSearchResults.value = []
   btsSearchError.value = ''
 
-  // 2. Clean query: strip Cyrillic-only parts if mixed with Latin (common in Google Maps copies)
-  // Try the full query first, then a simplified version using only Latin parts
-  function latinOnly(s) {
+  // Photon geocoder (komoot) — much better coverage of Uzbekistan than Nominatim
+  // Returns GeoJSON; we normalise to {lat, lon, display_name} for the dropdown
+  function photonToResults(gj) {
+    return (gj.features || []).map(f => {
+      const p = f.properties
+      const label = [p.name, p.street && p.housenumber ? `${p.street} ${p.housenumber}` : (p.street || ''), p.city || p.town || p.village, p.state, p.country].filter(Boolean).join(', ')
+      return { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], display_name: label }
+    })
+  }
+
+  // Strip Cyrillic-only comma-parts (Google Maps copies are often mixed Latin/Cyrillic)
+  function latinParts(s) {
     return s.split(',').map(p => p.trim()).filter(p => /[a-zA-Z]/.test(p)).join(', ')
   }
-  const cleanQ = latinOnly(q) || q
 
-  async function nominatimSearch(query, signal) {
-    const url1 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&accept-language=ru&countrycodes=uz`
-    const r1 = await fetch(url1, { signal })
-    const d1 = await r1.json()
-    if (d1 && d1.length) return d1
-    // Fallback: no country restriction
-    const url2 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&accept-language=ru`
-    const r2 = await fetch(url2, { signal })
-    return await r2.json()
+  async function photonSearch(query, signal) {
+    // Try with Uzbekistan bbox first, then global
+    const bbox = '55.99,37.19,73.13,45.57'
+    const u1 = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8&lang=default&bbox=${bbox}`
+    const r1 = await fetch(u1, { signal })
+    const d1 = photonToResults(await r1.json())
+    if (d1.length) return d1
+    const u2 = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8&lang=default`
+    const r2 = await fetch(u2, { signal })
+    return photonToResults(await r2.json())
   }
 
   try {
-    let data = await nominatimSearch(q, ctrl.signal)
-    // If no results and query had Cyrillic, retry with Latin-only parts
-    if ((!data || !data.length) && cleanQ !== q) {
-      data = await nominatimSearch(cleanQ, ctrl.signal)
+    let data = await photonSearch(q, ctrl.signal)
+    // Retry with Latin-only parts if mixed query failed
+    const cleanQ = latinParts(q)
+    if (!data.length && cleanQ && cleanQ !== q) {
+      data = await photonSearch(cleanQ, ctrl.signal)
     }
-    // If still nothing, try just the last 2 comma-parts (city-level)
-    if (!data || !data.length) {
+    // Fallback: try last 2 comma-parts (city-level)
+    if (!data.length) {
       const parts = q.split(',').map(p => p.trim()).filter(Boolean)
       if (parts.length > 2) {
-        const shortQ = parts.slice(-2).join(', ')
-        data = await nominatimSearch(shortQ, ctrl.signal)
+        data = await photonSearch(parts.slice(-2).join(', '), ctrl.signal)
       }
     }
-    btsSearchResults.value = data || []
-    if (!btsSearchResults.value.length) {
-      btsSearchError.value = txt.value.bts_err_not_found
-    }
+    btsSearchResults.value = data
+    if (!data.length) btsSearchError.value = txt.value.bts_err_not_found
   } catch (e) {
-    if (timedOut) {
-      btsSearchError.value = txt.value.bts_err_timeout
-    } else if (ctrl.signal.aborted) {
-      // Aborted by a new search — suppress
-    } else {
-      btsSearchError.value = txt.value.bts_err_generic
-    }
+    if (timedOut) btsSearchError.value = txt.value.bts_err_timeout
+    else if (!ctrl.signal.aborted) btsSearchError.value = txt.value.bts_err_generic
   } finally {
     clearTimeout(timeoutId)
     if (btsSearchAbortCtrl === ctrl) btsSearching.value = false
