@@ -991,8 +991,10 @@ async function initMap() {
   const defaultLng = checkoutForm.value.lng || 71.6726
 
   leafletMap = L.map('checkout-map').setView([defaultLat, defaultLng], checkoutForm.value.lat ? 15 : 13)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'],
+    maxZoom: 21,
+    attribution: '© Google Maps'
   }).addTo(leafletMap)
 
   if (checkoutForm.value.lat && checkoutForm.value.lng) {
@@ -1010,17 +1012,6 @@ async function initMap() {
       leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
     }
 
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-        { headers: { 'Accept-Language': 'ru' } }
-      )
-      const data = await res.json()
-      if (data?.display_name) {
-        checkoutForm.value.address = data.display_name
-        locationError.value = ''
-      }
-    } catch { /* ignore */ }
   })
 }
 
@@ -1054,22 +1045,6 @@ async function detectGPS() {
       const { latitude, longitude } = pos.coords
       checkoutForm.value.lat = latitude
       checkoutForm.value.lng = longitude
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-          { headers: { 'Accept-Language': 'ru' } }
-        )
-        const data = await res.json()
-        if (data?.address) {
-          const a = data.address
-          const parts = []
-          if (a.state) parts.push(a.state)
-          if (a.county || a.district) parts.push(a.county || a.district)
-          if (a.city || a.town || a.village) parts.push(a.city || a.town || a.village)
-          if (a.road) parts.push(a.road)
-          checkoutForm.value.address = parts.join(', ') || data.display_name
-        }
-      } catch { /* ignore */ }
       if (showMap.value && leafletMap) {
         const L = await import('leaflet')
         leafletMap.setView([latitude, longitude], 15)
