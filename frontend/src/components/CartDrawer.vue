@@ -219,7 +219,7 @@
               <div v-if="order.worker_notes" class="mx-4 my-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5">
                 <p class="text-xs font-semibold text-indigo-700 mb-1 flex items-center gap-1">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                  Сообщение от менеджера
+                  {{ t.worker_msg_title }}
                 </p>
                 <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
               </div>
@@ -229,7 +229,7 @@
                 <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-2 flex items-center gap-2">
                   <svg class="w-4 h-4 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                   <span class="text-xs font-bold text-white tracking-wide">БТС Карго</span>
-                  <span class="ml-auto text-[10px] text-blue-200 font-medium">● В пути</span>
+                  <span class="ml-auto text-[10px] text-blue-200 font-medium">{{ t.bts_in_transit }}</span>
                 </div>
                 <div class="bg-blue-50 px-3 py-2.5 space-y-1.5">
                   <div v-if="order.bts_pickup_point" class="flex items-start gap-1.5">
@@ -246,7 +246,7 @@
                     class="w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-700 transition mt-1"
                   >
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                    Показать на карте → Маршрут
+                    {{ t.bts_map_btn }}
                   </button>
                 </div>
               </div>
@@ -255,7 +255,7 @@
               <div class="px-4 pb-3 pt-1 flex justify-end border-t border-stone-50">
                 <button @click="confirmHide(order)" class="text-xs text-stone-300 hover:text-red-500 transition flex items-center gap-1">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                  Удалить из истории
+                  {{ t.delete_from_history }}
                 </button>
               </div>
             </div>
@@ -288,7 +288,7 @@
                     <div class="bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5">
                       <p class="text-xs font-semibold text-indigo-700 mb-1 flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                        Сообщение от менеджера
+                        {{ t.worker_msg_title }}
                       </p>
                       <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
                     </div>
@@ -325,7 +325,7 @@
       <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
           <div>
-            <h3 class="text-lg font-bold text-stone-900">Доставка заказа</h3>
+            <h3 class="text-lg font-bold text-stone-900">{{ t.delivery_order_title }}</h3>
             <p class="text-xs text-stone-400 mt-0.5">{{ selectedOrderForMap?.order_code }}</p>
           </div>
           <button @click="closeOrderMap" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
@@ -398,10 +398,10 @@
             <div v-if="locationConfirmed" class="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-3">
               <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-green-700 mb-0.5">Локация подтверждена</p>
+                <p class="text-xs font-semibold text-green-700 mb-0.5">{{ t.checkout_location_confirmed }}</p>
                 <p class="text-xs text-green-600 truncate">{{ checkoutForm.address || `${checkoutForm.lat.toFixed(5)}, ${checkoutForm.lng.toFixed(5)}` }}</p>
               </div>
-              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">Изменить</button>
+              <button type="button" @click="locationConfirmed = false; showMap = true; initMap()" class="text-xs text-green-600 hover:text-green-800 font-medium flex-shrink-0">{{ t.checkout_change }}</button>
             </div>
 
             <template v-else>
@@ -994,7 +994,7 @@ const doctors = ref([])
 
 const quickOptions = computed(() => {
   const q = referralInput.value.toLowerCase()
-  const opts = ['Самостоятельно', 'Из рекламы']
+  const opts = [t.value.referral_self, t.value.referral_ad]
   if (!q) return opts
   return opts.filter(o => o.toLowerCase().includes(q))
 })
@@ -1014,7 +1014,7 @@ function hideReferralDropdown() {
 }
 
 function selectReferral(val, isDoctor = false) {
-  referralInput.value = isDoctor ? ('Доктор: ' + val) : val
+  referralInput.value = isDoctor ? (t.value.referral_doctor_prefix + val) : val
   referralError.value = ''
   showReferralDropdown.value = false
 }

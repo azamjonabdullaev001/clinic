@@ -1230,8 +1230,8 @@
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col" style="max-height:92vh">
         <div class="flex items-center justify-between px-5 py-4 border-b bg-white flex-shrink-0 rounded-t-2xl">
           <div>
-            <h3 class="text-base font-bold text-gray-900">Укажите пункт выдачи БТС</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Найдите адрес или нажмите на карту чтобы поставить метку</p>
+            <h3 class="text-base font-bold text-gray-900">{{ txt.bts_modal_title }}</h3>
+            <p class="text-xs text-gray-400 mt-0.5">{{ txt.bts_modal_subtitle }}</p>
           </div>
           <button @click="closeBtsMapPicker" class="p-2 hover:bg-gray-100 rounded-xl transition">
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -1245,11 +1245,11 @@
               @input="debounceBtsSearch"
               @keyup.enter="runBtsSearch"
               type="text"
-              placeholder="Введите адрес пункта БТС (улица, город, район)…"
+              :placeholder="txt.bts_search_placeholder"
               class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
             />
             <button @click="runBtsSearch" :disabled="btsSearching" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50 whitespace-nowrap min-w-[72px]">
-              {{ btsSearching ? '⏳ ...' : '🔍 Найти' }}
+              {{ btsSearching ? txt.bts_searching : txt.bts_search_btn }}
             </button>
           </div>
           <!-- Search results dropdown -->
@@ -1271,7 +1271,7 @@
         </div>
         <!-- Saved BTS points (quick-pick chips) -->
         <div v-if="savedBtsPoints.length" class="px-4 py-2 border-b border-green-100 bg-green-50/80 flex-shrink-0">
-          <p class="text-[11px] text-green-700 font-semibold mb-1.5">✓ Ранее сохранённые пункты:</p>
+          <p class="text-[11px] text-green-700 font-semibold mb-1.5">{{ txt.bts_saved_label }}</p>
           <div class="flex gap-2 overflow-x-auto pb-1">
             <button
               v-for="(pt, idx) in savedBtsPoints"
@@ -1290,10 +1290,10 @@
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
               <span class="truncate">{{ btsPickedLabel }}</span>
             </span>
-            <span v-else class="text-gray-400 text-xs">Нажмите на карту чтобы поставить метку на пункт БТС</span>
+            <span v-else class="text-gray-400 text-xs">{{ txt.bts_map_hint }}</span>
           </div>
           <button @click="confirmBtsPick" :disabled="!btsPickedLat" class="ml-3 bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-40 flex-shrink-0">
-            Выбрать эту точку
+            {{ txt.bts_confirm_pick }}
           </button>
         </div>
       </div>
@@ -1524,6 +1524,17 @@ const texts = {
     delivery_to: 'Адрес покупателя',
     geocoding: 'Определяем координаты...',
     geocode_error: 'Не удалось найти адрес на карте',
+    bts_modal_title: 'Укажите пункт выдачи БТС',
+    bts_modal_subtitle: 'Найдите адрес или нажмите на карту, чтобы поставить метку',
+    bts_search_placeholder: 'Введите адрес, название или координаты…',
+    bts_search_btn: '🔍 Найти',
+    bts_searching: '⏳ ...',
+    bts_confirm_pick: 'Выбрать эту точку',
+    bts_map_hint: 'Нажмите на карту, чтобы поставить метку на пункт БТС',
+    bts_saved_label: '✓ Ранее сохранённые пункты:',
+    bts_err_not_found: 'Ничего не найдено. Попробуйте другой адрес или нажмите на карту вручную.',
+    bts_err_timeout: 'Нет ответа от сервера. Проверьте интернет или нажмите на карту вручную.',
+    bts_err_generic: 'Ошибка поиска. Проверьте интернет-соединение.',
   },
   uz: {
     title: 'Berish punkti',
@@ -1692,6 +1703,17 @@ const texts = {
     delivery_to: 'Xaridor manzili',
     geocoding: 'Koordinatalar aniqlanmoqda...',
     geocode_error: 'Manzil xaritada topilmadi',
+    bts_modal_title: "BTS yetkazib berish nuqtasini ko'rsating",
+    bts_modal_subtitle: "Manzil kiriting yoki xaritaga bosib belgi qo'ying",
+    bts_search_placeholder: "Manzil, joy nomi yoki koordinatalar kiriting…",
+    bts_search_btn: '🔍 Qidirish',
+    bts_searching: '⏳ ...',
+    bts_confirm_pick: "Bu nuqtani tanlash",
+    bts_map_hint: "Xaritaga bosib, BTS nuqtasini belgilang",
+    bts_saved_label: "✓ Oldingi saqlanган nuqtalar:",
+    bts_err_not_found: "Hech narsa topilmadi. Boshqa manzil kiriting yoki xaritaga bosing.",
+    bts_err_timeout: "Server javob bermadi. Internetni tekshiring yoki xaritaga bosing.",
+    bts_err_generic: "Qidiruv xatosi. Internet aloqasini tekshiring.",
   }
 }
 
@@ -1928,7 +1950,14 @@ async function openBtsMapPicker(order) {
   btsPickedLat.value = state?.pinLat || null
   btsPickedLng.value = state?.pinLng || null
   btsPickedLabel.value = state?.pinLabel || ''
-  btsSearchQuery.value = ''
+  // Auto-preselect the last saved point if no current pin
+  if (!btsPickedLat.value && savedBtsPoints.value.length > 0) {
+    const last = savedBtsPoints.value[0]
+    btsPickedLat.value = last.lat
+    btsPickedLng.value = last.lng
+    btsPickedLabel.value = last.label
+  }
+  btsSearchQuery.value = btsPickedLabel.value
   btsSearchResults.value = []
   btsSearchError.value = ''
   showBtsMapPicker.value = true
@@ -2005,7 +2034,7 @@ async function initBtsPickerMap(order) {
       fillOpacity: 0.85,
     })
       .addTo(btsPickerMapInstance)
-      .bindPopup(`<b>✓ Сохранённый пункт</b><br>${pt.label}`)
+      .bindPopup(`<b>${txt.value.bts_saved_label}</b><br>${pt.label}`)
       .on('click', (ev) => {
         ev.originalEvent?.stopPropagation?.()
         selectSavedPoint(pt)
@@ -2062,6 +2091,39 @@ function debounceBtsSearch() {
 async function runBtsSearch() {
   const q = btsSearchQuery.value.trim()
   if (!q) return
+
+  // 1. Coordinate detection: "41.0123, 71.0456" or "41.0123 71.0456"
+  const coordMatch = q.match(/^(-?\d{1,3}\.?\d*)[,\s]+(-?\d{1,3}\.?\d*)$/)
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1])
+    const lng = parseFloat(coordMatch[2])
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      btsSearching.value = true
+      btsSearchResults.value = []
+      btsSearchError.value = ''
+      try {
+        if (btsPickerMapInstance) btsPickerMapInstance.setView([lat, lng], 16)
+        const Lib = leafletLib || await import('leaflet')
+        if (btsPickerMarker) {
+          btsPickerMarker.setLatLng([lat, lng])
+        } else {
+          btsPickerMarker = Lib.marker([lat, lng], { draggable: true })
+            .addTo(btsPickerMapInstance)
+          btsPickerMarker.on('dragend', async (ev) => {
+            const pos = ev.target.getLatLng()
+            btsPickedLat.value = pos.lat; btsPickedLng.value = pos.lng
+            await reverseGeocodeBts(pos.lat, pos.lng)
+          })
+        }
+        btsPickedLat.value = lat; btsPickedLng.value = lng
+        await reverseGeocodeBts(lat, lng)
+      } finally {
+        btsSearching.value = false
+      }
+      return
+    }
+  }
+
   if (btsSearchAbortCtrl) btsSearchAbortCtrl.abort()
   const ctrl = new AbortController()
   btsSearchAbortCtrl = ctrl
@@ -2073,28 +2135,50 @@ async function runBtsSearch() {
   btsSearching.value = true
   btsSearchResults.value = []
   btsSearchError.value = ''
+
+  // 2. Clean query: strip Cyrillic-only parts if mixed with Latin (common in Google Maps copies)
+  // Try the full query first, then a simplified version using only Latin parts
+  function latinOnly(s) {
+    return s.split(',').map(p => p.trim()).filter(p => /[a-zA-Z]/.test(p)).join(', ')
+  }
+  const cleanQ = latinOnly(q) || q
+
+  async function nominatimSearch(query, signal) {
+    const url1 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&accept-language=ru&countrycodes=uz`
+    const r1 = await fetch(url1, { signal })
+    const d1 = await r1.json()
+    if (d1 && d1.length) return d1
+    // Fallback: no country restriction
+    const url2 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&accept-language=ru`
+    const r2 = await fetch(url2, { signal })
+    return await r2.json()
+  }
+
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&addressdetails=1&accept-language=ru&countrycodes=uz`
-    const res = await fetch(url, { signal: ctrl.signal })
-    const data = await res.json()
-    btsSearchResults.value = data || []
-    if (!data || data.length === 0) {
-      // Try a broader search without country restriction
-      const url2 = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=8&addressdetails=1&accept-language=ru`
-      const res2 = await fetch(url2, { signal: ctrl.signal })
-      const data2 = await res2.json()
-      btsSearchResults.value = data2 || []
-      if (!data2 || data2.length === 0) {
-        btsSearchError.value = 'Ничего не найдено. Попробуйте другой адрес или нажмите на карту вручную.'
+    let data = await nominatimSearch(q, ctrl.signal)
+    // If no results and query had Cyrillic, retry with Latin-only parts
+    if ((!data || !data.length) && cleanQ !== q) {
+      data = await nominatimSearch(cleanQ, ctrl.signal)
+    }
+    // If still nothing, try just the last 2 comma-parts (city-level)
+    if (!data || !data.length) {
+      const parts = q.split(',').map(p => p.trim()).filter(Boolean)
+      if (parts.length > 2) {
+        const shortQ = parts.slice(-2).join(', ')
+        data = await nominatimSearch(shortQ, ctrl.signal)
       }
+    }
+    btsSearchResults.value = data || []
+    if (!btsSearchResults.value.length) {
+      btsSearchError.value = txt.value.bts_err_not_found
     }
   } catch (e) {
     if (timedOut) {
-      btsSearchError.value = 'Нет ответа от сервера. Проверьте интернет или нажмите на карту вручную.'
+      btsSearchError.value = txt.value.bts_err_timeout
     } else if (ctrl.signal.aborted) {
       // Aborted by a new search — suppress
     } else {
-      btsSearchError.value = 'Ошибка поиска. Проверьте интернет-соединение.'
+      btsSearchError.value = txt.value.bts_err_generic
     }
   } finally {
     clearTimeout(timeoutId)

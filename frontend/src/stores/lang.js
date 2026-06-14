@@ -283,6 +283,16 @@ const translations = {
     uploading_text: 'Отправка...',
     qr_retry: 'Обновить',
     delivery_map_link: '📍 Посмотреть точку доставки на карте',
+
+    // Cart drawer hardcoded strings
+    worker_msg_title: 'Сообщение от менеджера',
+    bts_in_transit: '● В пути',
+    bts_map_btn: 'Показать на карте',
+    delete_from_history: 'Удалить из истории',
+    delivery_order_title: 'Доставка заказа',
+    referral_self: 'Самостоятельно',
+    referral_ad: 'Из рекламы',
+    referral_doctor_prefix: 'Доктор: ',
   },
   uz: {
     // Navbar
@@ -552,5 +562,15 @@ const translations = {
     uploading_text: "Yuborilmoqda...",
     qr_retry: "Yangilash",
     delivery_map_link: "📍 Yetkazib berish nuqtasini xaritada ko'rish",
+
+    // Cart drawer hardcoded strings
+    worker_msg_title: "Menejer xabari",
+    bts_in_transit: '● Yetkazilmoqda',
+    bts_map_btn: "Xaritada ko'rsatish",
+    delete_from_history: "Tarixdan o'chirish",
+    delivery_order_title: "Yetkazib berish",
+    referral_self: "Mustaqil",
+    referral_ad: "Reklama orqali",
+    referral_doctor_prefix: "Doktor: ",
   }
 }
