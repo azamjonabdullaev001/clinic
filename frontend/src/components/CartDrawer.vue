@@ -230,14 +230,13 @@
               </div>
 
               <!-- Delivery location map + change location for pending orders -->
-              <div v-if="order.latitude && order.longitude || order.delivery_address" class="px-4 py-3 border-t border-stone-100 bg-blue-50 flex flex-col gap-1.5">
-                <button @click="openOrderMap(order)" class="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors w-full">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <div v-if="order.latitude && order.longitude || order.delivery_address" class="px-4 py-3 border-t border-stone-100 flex flex-col gap-2">
+                <button @click="openOrderMap(order)" class="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   {{ t.delivery_map_link }}
                 </button>
-                <!-- Change location button — only for pending/awaiting orders -->
-                <button v-if="order.status === 'pending' || order.status === 'awaiting_payment'" @click="openEditLocation(order)" class="flex items-center gap-2 text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors w-full">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <button v-if="order.status === 'pending' || order.status === 'awaiting_payment'" @click="openEditLocation(order)" class="flex items-center justify-center gap-2 w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold py-2.5 rounded-xl transition">
+                  <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                   {{ t.change_location_btn }}
                 </button>
               </div>
