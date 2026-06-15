@@ -349,13 +349,13 @@ async function loadProducts() {
     const res = await api.get('/manager/products')
     products.value = res.data || []
     for (const p of products.value) p.price_per_pack = p.price_per_pill * p.quantity_per_pack
-  } catch (e) { console.error(e) }
+  } catch { /* ignore network errors; UI shows stale data */ }
 }
 async function loadStock() {
-  try { stock.value = (await api.get('/manager/stock')).data || [] } catch (e) { console.error(e) }
+  try { stock.value = (await api.get('/manager/stock')).data || [] } catch { /* ignore network errors */ }
 }
 async function loadOrders() {
-  try { orders.value = (await api.get('/manager/orders')).data || [] } catch (e) { console.error(e) }
+  try { orders.value = (await api.get('/manager/orders')).data || [] } catch { /* ignore network errors */ }
 }
 
 function unitPrice(product) { return saleUnit.value === 'piece' ? (product.price_per_pill || 0) : (product.price_per_pack || 0) }
@@ -415,7 +415,7 @@ async function loadAnalytics() {
     const params = { period: period.value }
     if (period.value === 'custom') params.date = customDate.value
     analytics.value = (await api.get('/manager/analytics', { params })).data
-  } catch (e) { console.error(e) } finally { analyticsLoading.value = false }
+  } catch { /* ignore network errors; UI shows stale data */ } finally { analyticsLoading.value = false }
 }
 function selectPeriod(p) { period.value = p; if (p !== 'custom') loadAnalytics() }
 

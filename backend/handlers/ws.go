@@ -11,7 +11,13 @@ import (
 )
 
 var wsUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // same-origin requests have no Origin header
+		}
+		return origin == "http://"+r.Host || origin == "https://"+r.Host
+	},
 }
 
 type stockHubT struct {

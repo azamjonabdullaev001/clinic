@@ -1763,7 +1763,7 @@ async function openProductAnalytics(product) {
     const res = await api.get(`/admin/products/${product.id}/analytics`)
     productAnalyticsData.value = res.data
   } catch (e) {
-    console.error(e)
+    void e
   } finally {
     productAnalyticsLoading.value = false
   }
@@ -1939,7 +1939,7 @@ async function loadProducts() {
     const res = await api.get('/admin/products')
     products.value = res.data || []
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -1961,7 +1961,7 @@ async function loadOrders() {
     orders.value = res.data.orders || []
     ordersTotal.value = res.data.total || 0
   } catch (e) {
-    console.error(e)
+    void e
   } finally {
     ordersLoading.value = false
   }
@@ -1972,7 +1972,7 @@ async function loadProfile() {
     const res = await api.get('/admin/profile')
     settings.phone = res.data.phone.replace('998', '')
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -1981,7 +1981,7 @@ async function loadWorkers() {
     const res = await api.get('/admin/workers')
     workers.value = res.data || []
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -2004,7 +2004,7 @@ async function loadAnalytics() {
     await nextTick()
     renderAnalyticsChart(res.data)
   } catch (e) {
-    console.error(e)
+    void e
     analyticsLoading.value = false
   }
 }
@@ -2095,7 +2095,7 @@ async function loadFaqs() {
     const res = await api.get('/admin/faqs')
     faqs.value = res.data || []
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -2183,7 +2183,7 @@ async function loadSupportThreads() {
       await openSupportThread(supportThreads.value[0].id)
     }
   } catch (e) {
-    console.error(e)
+    void e
   } finally {
     supportLoading.value = false
   }
@@ -2194,7 +2194,7 @@ async function openSupportThread(id) {
     const res = await api.get(`/admin/support/threads/${id}`)
     selectedThread.value = res.data
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
