@@ -1550,6 +1550,7 @@ const texts = {
     note_buyer_label: 'Заметка для покупателя',
     note_ph: 'Например: БТС трек 123456789, ожидайте в пункте выдачи…',
     note_hide: 'Скрыть',
+    customer_location: 'Адрес клиента',
     note_edit: 'Редактировать',
     note_btn: 'Заметка',
     piece_only: 'Только поштучно',
@@ -1788,6 +1789,7 @@ const texts = {
     note_buyer_label: "Xaridor uchun izoh",
     note_ph: "Masalan: BTS trek 123456789, yetkazib berish nuqtasida kuting…",
     note_hide: "Yashirish",
+    customer_location: 'Mijoz manzili',
     note_edit: "Tahrirlash",
     note_btn: "Izoh",
     piece_only: 'Faqat donabay',
@@ -2009,6 +2011,23 @@ async function initBtsPickerMap(order) {
     maxZoom: 21,
     attribution: '© Google Maps'
   }).addTo(btsPickerMapInstance)
+
+  // Customer delivery location marker (red pulsing dot)
+  if (order.latitude && order.longitude) {
+    const customerIcon = L.divIcon({
+      html: `<div style="position:relative;width:22px;height:22px">
+        <div style="position:absolute;inset:0;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.45)"></div>
+        <div style="position:absolute;inset:-5px;border:2px solid #ef4444;border-radius:50%;opacity:0.45"></div>
+      </div>`,
+      className: '',
+      iconAnchor: [11, 11],
+      iconSize: [22, 22],
+    })
+    L.marker([order.latitude, order.longitude], { icon: customerIcon, zIndexOffset: 1000 })
+      .addTo(btsPickerMapInstance)
+      .bindPopup(`<b>📍 ${txt.value.customer_location}</b><br><span style="font-size:12px">${order.delivery_address || `${order.latitude.toFixed(5)}, ${order.longitude.toFixed(5)}`}</span>`)
+      .openPopup()
+  }
 
   // If there's already a saved pin, show it
   if (btsPickedLat.value) {
