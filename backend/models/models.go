@@ -145,7 +145,9 @@ type Order struct {
 	DeletedByRole      string   `json:"deleted_by_role"`
 	Archived           bool     `gorm:"default:false;index" json:"archived"` // hidden from order lists but kept for analytics
 	ArchiveReason      string   `json:"archive_reason"`
-	ReceiptPath        string   `json:"receipt_path"` // uploaded payment receipt photo for online QR payments
+	ReceiptPath        string     `json:"receipt_path"` // uploaded payment receipt photo for online QR payments
+	ReceiptPaths       string     `gorm:"type:text" json:"receipt_paths"` // JSON []string — all uploaded receipt photos (split payment support)
+	LastReceiptAt      *time.Time `json:"last_receipt_at"`                // last receipt upload time (10-sec rate limit)
 	HiddenByUser       bool     `gorm:"default:false;index" json:"hidden_by_user"` // user hid this order from their own history
 	BtsTrackingNumber  string   `json:"bts_tracking_number"` // BTS cargo waybill number
 	BtsPickupPoint     string   `json:"bts_pickup_point"`    // BTS pickup point name+address (shown to customer)

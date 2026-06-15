@@ -182,11 +182,20 @@
                   <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
                 </div>
               </div>
-              <div v-if="order.receipt_path" class="mt-2 flex items-center gap-2">
-                <span class="text-xs text-emerald-600 font-medium">{{ txt.receipt_label }}</span>
-                <a :href="order.receipt_path" target="_blank" rel="noopener">
-                  <img :src="order.receipt_path" class="w-14 h-14 object-cover rounded-lg border border-emerald-200 hover:opacity-80 transition"/>
-                </a>
+              <!-- Receipt(s) display — supports split payment (multiple receipts) -->
+              <div v-if="parseReceiptPaths(order).length > 0" class="mt-2">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span class="text-xs text-emerald-600 font-semibold">{{ txt.receipt_label }}</span>
+                  <span v-if="parseReceiptPaths(order).length > 1" class="text-[10px] bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-bold">{{ parseReceiptPaths(order).length }} чека</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <div v-for="(path, i) in parseReceiptPaths(order)" :key="i" class="relative">
+                    <a :href="path" target="_blank" rel="noopener">
+                      <img :src="path" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-200 hover:opacity-80 transition"/>
+                    </a>
+                    <span v-if="parseReceiptPaths(order).length > 1" class="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{{ i+1 }}</span>
+                  </div>
+                </div>
               </div>
 
               <!-- BTS Cargo section -->
@@ -2338,6 +2347,17 @@ const historyOrders = computed(() => {
   if (historyStatus.value !== 'all') list = list.filter(o => o.status === historyStatus.value)
   return list.filter(inPeriod)
 })
+
+function parseReceiptPaths(order) {
+  if (order.receipt_paths) {
+    try {
+      const arr = JSON.parse(order.receipt_paths)
+      if (Array.isArray(arr) && arr.length > 0) return arr
+    } catch {}
+  }
+  if (order.receipt_path) return [order.receipt_path]
+  return []
+}
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price || 0))

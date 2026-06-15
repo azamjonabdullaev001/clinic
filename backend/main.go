@@ -121,6 +121,7 @@ func main() {
 			orders.POST("", handlers.CreateOrder)
 			orders.GET("", handlers.GetUserOrders)
 			orders.POST("/:id/receipt", handlers.UploadOrderReceipt)
+			orders.POST("/:id/receipts", handlers.AddOrderReceipt) // split-payment: add another receipt photo
 			orders.DELETE("/:id/hide", handlers.HideUserOrder)
 		}
 

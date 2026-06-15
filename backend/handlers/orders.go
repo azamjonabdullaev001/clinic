@@ -455,11 +455,17 @@ func UploadOrderReceipt(c *gin.Context) {
 		return
 	}
 
+	// Initialize receipt_paths array with this first receipt
+	pathsJSON, _ := json.Marshal([]string{filepath})
+	now := time.Now()
+
 	// CRITICAL: Update order: save receipt path and change status to "pending"
 	// This makes it visible to pickup points for the first time
 	if err := database.DB.Model(&order).Updates(map[string]interface{}{
-		"receipt_path": filepath,
-		"status":       "pending",
+		"receipt_path":   filepath,
+		"receipt_paths":  string(pathsJSON),
+		"last_receipt_at": now,
+		"status":         "pending",
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении заказа"})
 		return
@@ -469,7 +475,117 @@ func UploadOrderReceipt(c *gin.Context) {
 	BroadcastOrders()
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Чек успешно загружен",
-		"receipt_path": filepath,
+		"message":        "Чек успешно загружен",
+		"receipt_path":   filepath,
+		"receipt_paths":  []string{filepath},
+		"receipts_count": 1,
+	})
+}
+
+// AddOrderReceipt adds another payment receipt to an already-pending online order.
+// Supports split payment: customer pays from multiple bank accounts and uploads each receipt.
+// Rate-limited to one upload per 10 seconds to prevent abuse.
+func AddOrderReceipt(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	orderID := c.Param("id")
+
+	var order models.Order
+	if err := database.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+
+	if order.UserID == nil || *order.UserID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещён"})
+		return
+	}
+
+	if order.Status != "pending" && order.Status != "awaiting_payment" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя добавить чек к этому заказу"})
+		return
+	}
+
+	// Rate limit: 10 seconds between receipt uploads
+	if order.LastReceiptAt != nil {
+		elapsed := time.Since(*order.LastReceiptAt)
+		if elapsed < 10*time.Second {
+			remaining := int(10-elapsed.Seconds()) + 1
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error":       fmt.Sprintf("Подождите %d сек. перед отправкой следующего чека", remaining),
+				"retry_after": remaining,
+			})
+			return
+		}
+	}
+
+	file, err := c.FormFile("receipt")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл чека не найден"})
+		return
+	}
+	if file.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 5MB)"})
+		return
+	}
+	if !strings.Contains(file.Header.Get("Content-Type"), "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением"})
+		return
+	}
+
+	uploadsDir := "uploads/receipts"
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
+		return
+	}
+
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
+	ext := strings.ToLower(strings.Split(file.Filename, ".")[len(strings.Split(file.Filename, "."))-1])
+	if ext == "" || len(ext) > 5 {
+		ext = "jpg"
+	}
+	filename := fmt.Sprintf("%d-%s.%s", order.ID, timestamp, ext)
+	fpath := fmt.Sprintf("%s/%s", uploadsDir, filename)
+
+	if err := c.SaveUploadedFile(file, fpath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
+		return
+	}
+
+	// Parse existing receipt_paths or fall back to receipt_path
+	var paths []string
+	if order.ReceiptPaths != "" {
+		_ = json.Unmarshal([]byte(order.ReceiptPaths), &paths)
+	}
+	if len(paths) == 0 && order.ReceiptPath != "" {
+		paths = []string{order.ReceiptPath}
+	}
+	paths = append(paths, fpath)
+	pathsJSON, _ := json.Marshal(paths)
+
+	now := time.Now()
+	updates := map[string]interface{}{
+		"receipt_paths":   string(pathsJSON),
+		"last_receipt_at": now,
+	}
+	// If first receipt was missed somehow and order still awaiting — fix it
+	if order.Status == "awaiting_payment" {
+		updates["status"] = "pending"
+		if order.ReceiptPath == "" {
+			updates["receipt_path"] = fpath
+		}
+	}
+
+	if err := database.DB.Model(&order).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении заказа"})
+		return
+	}
+
+	BroadcastOrders()
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":        "Чек добавлен",
+		"receipt_path":   fpath,
+		"receipt_paths":  paths,
+		"receipts_count": len(paths),
 	})
 }

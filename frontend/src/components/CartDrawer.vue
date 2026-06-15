@@ -576,44 +576,82 @@
         <template v-if="paymentStage === 'pay'">
           <h3 class="text-xl font-bold text-stone-900 mb-1">{{ t.payment_title }}</h3>
           <p class="text-stone-500 mb-4 text-sm">{{ t.payment_subtitle }}</p>
-          
-          <!-- QR Code Display (static file) -->
-          <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center min-h-60">
-            <img
-              v-if="!successQrFailed"
-              src="/images/QRpayment.jpg"
-              :alt="t.payment_title"
-              class="w-60 h-60 object-contain"
-              @error="successQrFailed = true"
-            />
-            <div v-else class="w-60 h-60 flex flex-col items-center justify-center text-center px-3 gap-2">
-              <p class="text-stone-400 text-sm">{{ t.payment_qr_not_configured }}</p>
-              <button @click="successQrFailed = false" class="text-brand-600 hover:text-brand-700 text-sm font-medium">{{ t.qr_retry }}</button>
-            </div>
-          </div>
-          
-          <p class="text-xs text-stone-400 mb-4">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
 
-          <div class="mb-4 text-left">
-            <label class="text-sm font-medium text-stone-700 mb-2 block">{{ t.payment_upload_receipt }} <span class="text-red-400">*</span></label>
-            <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200" alt="Receipt preview" /></div>
-            <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition-colors">
-              {{ receiptFile ? t.payment_change_receipt : t.payment_select_receipt }}
+          <!-- QR Code — hide after first receipt sent -->
+          <template v-if="uploadedReceipts.length === 0">
+            <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 mb-3 flex items-center justify-center min-h-60">
+              <img
+                v-if="!successQrFailed"
+                src="/images/QRpayment.jpg"
+                :alt="t.payment_title"
+                class="w-60 h-60 object-contain"
+                @error="successQrFailed = true"
+              />
+              <div v-else class="w-60 h-60 flex flex-col items-center justify-center text-center px-3 gap-2">
+                <p class="text-stone-400 text-sm">{{ t.payment_qr_not_configured }}</p>
+                <button @click="successQrFailed = false" class="text-brand-600 hover:text-brand-700 text-sm font-medium">{{ t.qr_retry }}</button>
+              </div>
+            </div>
+            <p class="text-xs text-stone-400 mb-4">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
+
+            <!-- First receipt upload -->
+            <div class="mb-4 text-left">
+              <label class="text-sm font-medium text-stone-700 mb-2 block">{{ t.payment_upload_receipt }} <span class="text-red-400">*</span></label>
+              <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200" alt="Receipt preview" /></div>
+              <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition-colors">
+                {{ receiptFile ? t.payment_change_receipt : t.payment_select_receipt }}
+              </button>
+              <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect" />
+              <p v-if="receiptError" class="text-xs text-red-500 mt-2">{{ receiptError }}</p>
+            </div>
+            <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
+            <button @click="confirmOrderPayment" :disabled="!receiptFile || confirmingOrder" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+              {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
             </button>
-            <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect" />
-            <p v-if="receiptError" class="text-xs text-red-500 mt-2">{{ receiptError }}</p>
-          </div>
-          
-          <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
-          
-          <!-- Confirm Payment Button (ONLY way to proceed) -->
-          <button
-            @click="confirmOrderPayment"
-            :disabled="!receiptFile || confirmingOrder"
-            class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
-          </button>
+          </template>
+
+          <!-- After first receipt: split-payment section -->
+          <template v-else>
+            <p class="text-xs text-stone-400 mb-3">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
+
+            <!-- Uploaded receipts grid -->
+            <div class="mb-3 text-left">
+              <p class="text-xs font-semibold text-emerald-700 mb-2">{{ t.receipt_uploaded_count(uploadedReceipts.length) }}</p>
+              <div class="flex flex-wrap gap-2">
+                <div v-for="(path, i) in uploadedReceipts" :key="i" class="relative">
+                  <a :href="path" target="_blank" rel="noopener">
+                    <img :src="path" class="w-16 h-16 object-cover rounded-xl border-2 border-emerald-300 hover:opacity-80 transition" />
+                  </a>
+                  <span class="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ i+1 }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hint -->
+            <p class="text-xs text-stone-400 bg-stone-50 rounded-xl p-3 mb-3 text-left">{{ t.split_payment_hint }}</p>
+
+            <!-- Add another receipt -->
+            <div class="mb-4 text-left">
+              <div v-if="extraReceiptPreview" class="mb-2"><img :src="extraReceiptPreview" class="w-full max-h-36 object-contain rounded-xl border border-stone-200" /></div>
+              <button type="button" :disabled="receiptCooldown > 0 || addingReceipt" @click="$refs.extraReceiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                {{ extraReceiptFile ? t.payment_change_receipt : t.add_another_receipt }}
+              </button>
+              <input ref="extraReceiptInput" type="file" accept="image/*" class="hidden" @change="onExtraReceiptSelect" />
+              <p v-if="receiptCooldown > 0" class="text-xs text-amber-500 mt-1.5 text-center">{{ t.receipt_cooldown(receiptCooldown) }}</p>
+              <p v-if="extraReceiptError" class="text-xs text-red-500 mt-1.5">{{ extraReceiptError }}</p>
+            </div>
+            <p v-if="addReceiptError" class="text-sm text-red-500 mb-2">{{ addReceiptError }}</p>
+
+            <!-- Send extra receipt button -->
+            <button v-if="extraReceiptFile" @click="addAnotherReceipt" :disabled="addingReceipt || receiptCooldown > 0" class="w-full bg-amber-500 text-white py-3 rounded-xl text-sm font-semibold mb-3 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-amber-600 transition">
+              {{ addingReceipt ? t.adding_receipt : t.payment_confirm }}
+            </button>
+
+            <!-- Finish payment -->
+            <button @click="paymentStage = 'done'" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold">
+              {{ t.finish_payment }}
+            </button>
+          </template>
         </template>
 
         <!-- Stage 2: thank you -->
@@ -837,6 +875,61 @@ const receiptError = ref('')
 const confirmingOrder = ref(false)
 const paymentError = ref('')
 
+// Split-payment: additional receipts after first
+const uploadedReceipts = ref([])        // paths returned by server (all receipts)
+const extraReceiptFile = ref(null)
+const extraReceiptPreview = ref(null)
+const extraReceiptError = ref('')
+const addingReceipt = ref(false)
+const addReceiptError = ref('')
+const receiptCooldown = ref(0)
+let receiptCooldownTimer = null
+
+function startReceiptCooldown() {
+  receiptCooldown.value = 10
+  clearInterval(receiptCooldownTimer)
+  receiptCooldownTimer = setInterval(() => {
+    receiptCooldown.value--
+    if (receiptCooldown.value <= 0) clearInterval(receiptCooldownTimer)
+  }, 1000)
+}
+
+function onExtraReceiptSelect(e) {
+  const f = e.target.files[0]
+  if (!f) return
+  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  if (!validTypes.includes(f.type)) { extraReceiptError.value = t.value.receipt_type_error || 'Только изображения'; e.target.value = ''; return }
+  if (f.size > 10 * 1024 * 1024) { extraReceiptError.value = t.value.receipt_size_error || 'Максимум 10 МБ'; e.target.value = ''; return }
+  extraReceiptError.value = ''
+  extraReceiptFile.value = f
+  extraReceiptPreview.value = URL.createObjectURL(f)
+  e.target.value = ''
+}
+
+async function addAnotherReceipt() {
+  if (!extraReceiptFile.value || !currentOrderId.value) return
+  addReceiptError.value = ''
+  addingReceipt.value = true
+  try {
+    const fd = new FormData()
+    fd.append('receipt', extraReceiptFile.value)
+    const res = await api.post(`/orders/${currentOrderId.value}/receipts`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    uploadedReceipts.value = res.data.receipt_paths || uploadedReceipts.value
+    extraReceiptFile.value = null
+    extraReceiptPreview.value = null
+    startReceiptCooldown()
+  } catch (err) {
+    const data = err.response?.data
+    addReceiptError.value = data?.error || 'Ошибка при отправке чека'
+    if (data?.retry_after) {
+      receiptCooldown.value = data.retry_after
+      startReceiptCooldown()
+    }
+  } finally {
+    addingReceipt.value = false
+  }
+}
+
 // Validate receipt file
 function onReceiptSelect(e) {
   const f = e.target.files[0]
@@ -901,8 +994,10 @@ async function confirmOrderPayment() {
   try {
     const fd = new FormData()
     fd.append('receipt', receiptFile.value)
-    await api.post(`/orders/${currentOrderId.value}/receipt`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-    paymentStage.value = 'done'
+    const res = await api.post(`/orders/${currentOrderId.value}/receipt`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    // Stay on 'pay' stage to allow adding more receipts (split payment)
+    uploadedReceipts.value = res.data.receipt_paths || [res.data.receipt_path]
+    startReceiptCooldown()
   } catch (e) {
     paymentError.value = e.response?.data?.error || 'Ошибка при отправке чека'
   } finally {
@@ -1091,6 +1186,13 @@ function closeOrderSuccess() {
   receiptPreview.value = null
   receiptError.value = ''
   paymentStage.value = 'pay'
+  uploadedReceipts.value = []
+  extraReceiptFile.value = null
+  extraReceiptPreview.value = null
+  extraReceiptError.value = ''
+  addReceiptError.value = ''
+  receiptCooldown.value = 0
+  clearInterval(receiptCooldownTimer)
   switchTab('orders')
   loadOrders()
 }
