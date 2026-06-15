@@ -289,6 +289,12 @@ const translations = {
     receipt_cooldown: (s) => `Следующий чек через ${s} сек.`,
     receipt_sent_ok: 'Чек принят',
     split_payment_hint: 'Оплатили с нескольких карт? Загрузите каждый чек отдельно.',
+    change_location_btn: '✏️ Изменить точку доставки',
+    edit_location_title: 'Изменить адрес доставки',
+    edit_location_hint: 'Нажмите на карту чтобы выбрать новую точку',
+    save_location_btn: 'Сохранить',
+    save_location_saving: 'Сохраняем...',
+    unread_note_label: 'Сообщение от аптеки',
     delivery_map_link: '📍 Посмотреть точку доставки на карте',
 
     // Cart drawer hardcoded strings
@@ -586,6 +592,12 @@ const translations = {
     receipt_cooldown: (s) => `Keyingi chek ${s} son. dan so'ng`,
     receipt_sent_ok: "Chek qabul qilindi",
     split_payment_hint: "Bir nechta kartadan to'ladingizmi? Har bir chekni alohida yuklang.",
+    change_location_btn: "✏️ Yetkazib berish nuqtasini o'zgartirish",
+    edit_location_title: "Yetkazib berish manzilini o'zgartirish",
+    edit_location_hint: "Yangi nuqtani tanlash uchun xaritaga bosing",
+    save_location_btn: "Saqlash",
+    save_location_saving: "Saqlanmoqda...",
+    unread_note_label: "Dorixona xabari",
     delivery_map_link: "📍 Yetkazib berish nuqtasini xaritada ko'rish",
 
     // Cart drawer hardcoded strings

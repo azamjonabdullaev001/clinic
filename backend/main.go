@@ -122,6 +122,7 @@ func main() {
 			orders.GET("", handlers.GetUserOrders)
 			orders.POST("/:id/receipt", handlers.UploadOrderReceipt)
 			orders.POST("/:id/receipts", handlers.AddOrderReceipt) // split-payment: add another receipt photo
+			orders.PUT("/:id/location", handlers.UpdateOrderLocation) // correct delivery address while still pending
 			orders.DELETE("/:id/hide", handlers.HideUserOrder)
 		}
 

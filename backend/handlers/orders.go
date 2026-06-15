@@ -159,6 +159,53 @@ func GetUserOrders(c *gin.Context) {
 	c.JSON(http.StatusOK, orders)
 }
 
+// UpdateOrderLocation lets the customer correct the delivery address/coordinates
+// for orders that are still pending (not yet in transit or delivered).
+func UpdateOrderLocation(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	orderID := c.Param("id")
+
+	var order models.Order
+	if err := database.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	if order.UserID == nil || *order.UserID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещён"})
+		return
+	}
+	if order.Status != "pending" && order.Status != "awaiting_payment" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Нельзя изменить адрес: заказ уже передан в доставку"})
+		return
+	}
+
+	var input struct {
+		DeliveryAddress string  `json:"delivery_address"`
+		Latitude        float64 `json:"latitude"`
+		Longitude       float64 `json:"longitude"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
+	if input.Latitude == 0 && input.Longitude == 0 && input.DeliveryAddress == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите адрес или координаты"})
+		return
+	}
+
+	if err := database.DB.Model(&order).Updates(map[string]interface{}{
+		"delivery_address": input.DeliveryAddress,
+		"latitude":         input.Latitude,
+		"longitude":        input.Longitude,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении"})
+		return
+	}
+
+	BroadcastOrders()
+	c.JSON(http.StatusOK, gin.H{"message": "Адрес доставки обновлён"})
+}
+
 func HideUserOrder(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)

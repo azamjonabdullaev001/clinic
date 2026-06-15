@@ -34,13 +34,15 @@
           <button
             v-if="authStore.isLoggedIn"
             @click="switchTab('orders')"
-            class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all duration-200"
+            class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all duration-200 relative"
             :class="activeTab === 'orders' ? 'text-brand-700 border-b-2 border-brand-600 bg-white' : 'text-stone-400 hover:text-stone-600'"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v12a2 2 0 01-2 2h-2.5" />
             </svg>
             {{ t.orders_title }}
+            <!-- Unread worker note badge -->
+            <span v-if="hasUnreadNotes && activeTab !== 'orders'" class="absolute top-1.5 right-4 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
           </button>
         </div>
 
@@ -195,33 +197,59 @@
                 <span class="font-bold text-brand-700">{{ formatPrice(orderTotal(order)) }} {{ t.currency }}</span>
               </div>
 
+              <!-- Receipts + add more for pending online orders (split payment) -->
+              <div v-if="order.status === 'pending' && !order.is_offline && !order.is_vip" class="mx-4 mb-3 border border-emerald-100 rounded-xl bg-emerald-50/60 px-3 py-2.5">
+                <!-- Uploaded receipts thumbnails -->
+                <div v-if="parseOrderReceiptPaths(order).length > 0" class="mb-3">
+                  <p class="text-xs font-semibold text-emerald-700 mb-2">✓ {{ t.receipt_uploaded_count(parseOrderReceiptPaths(order).length) }}</p>
+                  <div class="flex flex-wrap gap-2">
+                    <div v-for="(path, i) in parseOrderReceiptPaths(order)" :key="i" class="relative">
+                      <a :href="path" target="_blank" rel="noopener"><img :src="path" class="w-14 h-14 object-cover rounded-xl border-2 border-emerald-300 hover:opacity-80 transition"/></a>
+                      <span v-if="parseOrderReceiptPaths(order).length > 1" class="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{{ i+1 }}</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Add another receipt -->
+                <p class="text-xs text-stone-500 mb-2">{{ t.split_payment_hint }}</p>
+                <input :ref="el => ordersTabExtraInputs[order.id] = el" type="file" accept="image/*" class="hidden" @change="e => onOrdersTabExtraSelect(order.id, e)"/>
+                <div v-if="ordersTabExtraPreviews[order.id]" class="mb-2"><img :src="ordersTabExtraPreviews[order.id]" class="w-full max-h-28 object-contain rounded-xl border border-stone-200"/></div>
+                <button @click="ordersTabExtraInputs[order.id]?.click()" :disabled="(ordersTabCooldowns[order.id] || 0) > 0 || ordersTabAddingId === order.id" class="w-full border-2 border-dashed border-emerald-300 rounded-xl py-2 text-xs text-emerald-700 hover:border-emerald-500 transition disabled:opacity-40 disabled:cursor-not-allowed mb-1.5">
+                  {{ t.add_another_receipt }}
+                </button>
+                <p v-if="(ordersTabCooldowns[order.id] || 0) > 0" class="text-xs text-amber-500 text-center mb-1.5">{{ t.receipt_cooldown(ordersTabCooldowns[order.id]) }}</p>
+                <button v-if="ordersTabExtraFiles[order.id]" @click="sendOrdersTabExtra(order.id)" :disabled="ordersTabAddingId === order.id" class="w-full bg-emerald-600 text-white text-xs py-2 rounded-xl font-semibold disabled:opacity-50 mb-1 hover:bg-emerald-700 transition">
+                  {{ ordersTabAddingId === order.id ? t.adding_receipt : t.payment_confirm }}
+                </button>
+                <p v-if="ordersTabExtraErrors[order.id]" class="text-xs text-red-500 text-center">{{ ordersTabExtraErrors[order.id] }}</p>
+              </div>
+
               <!-- Delivery address text (always visible) -->
               <div v-if="order.delivery_address" class="px-4 py-2 border-t border-stone-100 flex items-start gap-2">
                 <svg class="w-3.5 h-3.5 text-stone-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
                 <p class="text-xs text-stone-500 leading-relaxed">{{ order.delivery_address }}</p>
               </div>
 
-              <!-- Delivery location map button -->
-              <div v-if="order.latitude && order.longitude || order.delivery_address" class="px-4 py-3 border-t border-stone-100 bg-blue-50">
-                <button
-                  @click="openOrderMap(order)"
-                  class="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors w-full"
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+              <!-- Delivery location map + change location for pending orders -->
+              <div v-if="order.latitude && order.longitude || order.delivery_address" class="px-4 py-3 border-t border-stone-100 bg-blue-50 flex flex-col gap-1.5">
+                <button @click="openOrderMap(order)" class="flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors w-full">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   {{ t.delivery_map_link }}
+                </button>
+                <!-- Change location button — only for pending/awaiting orders -->
+                <button v-if="order.status === 'pending' || order.status === 'awaiting_payment'" @click="openEditLocation(order)" class="flex items-center gap-2 text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors w-full">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  {{ t.change_location_btn }}
                 </button>
               </div>
 
-              <!-- Worker notes (visible to customer) -->
-              <div v-if="order.worker_notes" class="mx-4 my-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2.5">
-                <p class="text-xs font-semibold text-indigo-700 mb-1 flex items-center gap-1">
+              <!-- Worker notes — highlighted when unread -->
+              <div v-if="order.worker_notes" class="mx-4 my-2 rounded-xl px-3 py-2.5 border" :class="isNoteUnread(order) ? 'bg-red-50 border-red-300 animate-pulse-once' : 'bg-indigo-50 border-indigo-200'">
+                <p class="text-xs font-semibold mb-1 flex items-center gap-1" :class="isNoteUnread(order) ? 'text-red-700' : 'text-indigo-700'">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                  {{ t.worker_msg_title }}
+                  {{ isNoteUnread(order) ? t.unread_note_label : t.worker_msg_title }}
+                  <span v-if="isNoteUnread(order)" class="ml-1 bg-red-500 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5">!</span>
                 </p>
-                <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
+                <p class="text-sm whitespace-pre-wrap leading-relaxed" :class="isNoteUnread(order) ? 'text-red-900 font-medium' : 'text-indigo-900'">{{ order.worker_notes }}</p>
               </div>
 
               <!-- BTS cargo info -->
@@ -672,6 +700,23 @@
         </template>
       </div>
     </div>
+
+    <!-- ===== EDIT DELIVERY LOCATION MODAL ===== -->
+    <div v-if="showEditLocationModal" class="fixed inset-0 z-[80] flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeEditLocation"></div>
+      <div class="relative bg-white rounded-3xl p-5 max-w-sm w-full mx-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+        <h3 class="text-base font-bold text-stone-900 mb-1">{{ t.edit_location_title }}</h3>
+        <p class="text-xs text-stone-400 mb-3">{{ t.edit_location_hint }}</p>
+        <div id="edit-location-map" class="w-full rounded-2xl overflow-hidden border border-stone-200 mb-3" style="height: 280px;"></div>
+        <p v-if="editLocError" class="text-xs text-red-500 mb-3">{{ editLocError }}</p>
+        <div class="flex gap-2">
+          <button @click="closeEditLocation" class="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-50 transition">{{ t.checkout_cancel || 'Отмена' }}</button>
+          <button @click="saveEditLocation" :disabled="editLocSaving || !editLocLat" class="flex-1 btn-primary py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+            {{ editLocSaving ? t.save_location_saving : t.save_location_btn }}
+          </button>
+        </div>
+      </div>
+    </div>
   </Teleport>
 </template>
 
@@ -698,6 +743,7 @@ function switchTab(tab) {
   if (tab === 'orders') {
     loadOrders()
     ordersTabQrFailed.value = false
+    setTimeout(markNotesSeen, 1500) // mark notes as seen after 1.5s of viewing
   }
 }
 
@@ -927,6 +973,142 @@ async function addAnotherReceipt() {
     }
   } finally {
     addingReceipt.value = false
+  }
+}
+
+// ===== PER-ORDER SPLIT PAYMENT IN ORDERS TAB =====
+const ordersTabExtraInputs = ref({})
+const ordersTabExtraFiles = ref({})
+const ordersTabExtraPreviews = ref({})
+const ordersTabExtraErrors = ref({})
+const ordersTabAddingId = ref(null)
+const ordersTabCooldowns = ref({})
+const ordersTabCooldownTimers = {}
+
+function startOrdersTabCooldown(orderId, seconds = 10) {
+  ordersTabCooldowns.value[orderId] = seconds
+  clearInterval(ordersTabCooldownTimers[orderId])
+  ordersTabCooldownTimers[orderId] = setInterval(() => {
+    ordersTabCooldowns.value[orderId]--
+    if (ordersTabCooldowns.value[orderId] <= 0) clearInterval(ordersTabCooldownTimers[orderId])
+  }, 1000)
+}
+
+function onOrdersTabExtraSelect(orderId, e) {
+  const f = e.target.files[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) { ordersTabExtraErrors.value[orderId] = 'Максимум 10 МБ'; e.target.value = ''; return }
+  ordersTabExtraErrors.value[orderId] = ''
+  ordersTabExtraFiles.value[orderId] = f
+  ordersTabExtraPreviews.value[orderId] = URL.createObjectURL(f)
+  e.target.value = ''
+}
+
+async function sendOrdersTabExtra(orderId) {
+  const f = ordersTabExtraFiles.value[orderId]
+  if (!f) return
+  ordersTabAddingId.value = orderId
+  ordersTabExtraErrors.value[orderId] = ''
+  try {
+    const fd = new FormData()
+    fd.append('receipt', f)
+    await api.post(`/orders/${orderId}/receipts`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    ordersTabExtraFiles.value[orderId] = null
+    ordersTabExtraPreviews.value[orderId] = null
+    startOrdersTabCooldown(orderId)
+    await loadOrders()
+  } catch (err) {
+    const data = err.response?.data
+    ordersTabExtraErrors.value[orderId] = data?.error || 'Ошибка при отправке чека'
+    if (data?.retry_after) startOrdersTabCooldown(orderId, data.retry_after)
+  } finally {
+    ordersTabAddingId.value = null
+  }
+}
+
+function parseOrderReceiptPaths(order) {
+  if (order.receipt_paths) {
+    try { const a = JSON.parse(order.receipt_paths); if (Array.isArray(a) && a.length > 0) return a } catch {}
+  }
+  if (order.receipt_path) return [order.receipt_path]
+  return []
+}
+
+// ===== WORKER NOTES NOTIFICATION =====
+const seenNoteKeys = ref(new Set(JSON.parse(localStorage.getItem('_seen_notes') || '[]')))
+
+function noteKey(order) { return `${order.id}:${(order.worker_notes || '').length}` }
+function isNoteUnread(order) { return order.worker_notes && !seenNoteKeys.value.has(noteKey(order)) }
+const hasUnreadNotes = computed(() => orders.value.some(o => isNoteUnread(o)))
+
+function markNotesSeen() {
+  orders.value.forEach(o => { if (o.worker_notes) seenNoteKeys.value.add(noteKey(o)) })
+  try { localStorage.setItem('_seen_notes', JSON.stringify([...seenNoteKeys.value])) } catch {}
+}
+
+// ===== EDIT DELIVERY LOCATION =====
+const showEditLocationModal = ref(false)
+const editLocationOrderId = ref(null)
+const editLocLat = ref(0)
+const editLocLng = ref(0)
+const editLocSaving = ref(false)
+const editLocError = ref('')
+let editLocMap = null
+let editLocMarker = null
+
+async function openEditLocation(order) {
+  editLocationOrderId.value = order.id
+  editLocLat.value = order.latitude || 0
+  editLocLng.value = order.longitude || 0
+  editLocError.value = ''
+  showEditLocationModal.value = true
+  await nextTick()
+  if (editLocMap) { editLocMap.remove(); editLocMap = null; editLocMarker = null }
+  const L = await import('leaflet')
+  await import('leaflet/dist/leaflet.css')
+  delete L.Icon.Default.prototype._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  })
+  const mapEl = document.getElementById('edit-location-map')
+  if (!mapEl) return
+  const lat = editLocLat.value || 40.9983
+  const lng = editLocLng.value || 71.6726
+  editLocMap = L.map('edit-location-map').setView([lat, lng], editLocLat.value ? 15 : 13)
+  L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    subdomains: ['0', '1', '2', '3'], maxZoom: 21, attribution: '© Google Maps'
+  }).addTo(editLocMap)
+  if (editLocLat.value && editLocLng.value) {
+    editLocMarker = L.marker([editLocLat.value, editLocLng.value]).addTo(editLocMap)
+  }
+  editLocMap.on('click', (e) => {
+    editLocLat.value = e.latlng.lat
+    editLocLng.value = e.latlng.lng
+    if (editLocMarker) editLocMarker.setLatLng([e.latlng.lat, e.latlng.lng])
+    else editLocMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(editLocMap)
+  })
+}
+
+function closeEditLocation() {
+  showEditLocationModal.value = false
+  editLocationOrderId.value = null
+  if (editLocMap) { editLocMap.remove(); editLocMap = null; editLocMarker = null }
+}
+
+async function saveEditLocation() {
+  if (!editLocLat.value || !editLocLng.value) { editLocError.value = t.value.checkout_no_location || 'Выберите точку на карте'; return }
+  editLocSaving.value = true
+  editLocError.value = ''
+  try {
+    await api.put(`/orders/${editLocationOrderId.value}/location`, { latitude: editLocLat.value, longitude: editLocLng.value })
+    closeEditLocation()
+    await loadOrders()
+  } catch (err) {
+    editLocError.value = err.response?.data?.error || 'Ошибка при сохранении'
+  } finally {
+    editLocSaving.value = false
   }
 }
 
