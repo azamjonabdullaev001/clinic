@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -461,71 +462,85 @@ func UploadOrderReceipt(c *gin.Context) {
 		return
 	}
 
-	// Parse receipt file
+	// Parse primary receipt file
 	file, err := c.FormFile("receipt")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл чека не найден"})
 		return
 	}
-
-	// Validate file size (max 5MB)
-	if file.Size > 5*1024*1024 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 5MB)"})
+	if file.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 10MB)"})
 		return
 	}
-
-	// Validate file type
 	if !strings.Contains(file.Header.Get("Content-Type"), "image/") {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением"})
 		return
 	}
 
-	// Create uploads directory if needed
 	uploadsDir := "uploads/receipts"
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
 		return
 	}
 
-	// Generate unique filename: order-id-timestamp.extension
-	timestamp := fmt.Sprintf("%d", time.Now().Unix())
-	ext := strings.ToLower(strings.Split(file.Filename, ".")[len(strings.Split(file.Filename, "."))-1])
-	if ext == "" {
-		ext = "jpg"
+	makeReceiptPath := func(f *multipart.FileHeader, idx int) (string, bool) {
+		ts := fmt.Sprintf("%d", time.Now().UnixNano())
+		rawExt := strings.ToLower(strings.Split(f.Filename, ".")[len(strings.Split(f.Filename, "."))-1])
+		if rawExt == "" || len(rawExt) > 5 {
+			rawExt = "jpg"
+		}
+		fname := fmt.Sprintf("%d-%s-%d.%s", order.ID, ts, idx, rawExt)
+		fpath := fmt.Sprintf("%s/%s", uploadsDir, fname)
+		if err := c.SaveUploadedFile(f, fpath); err != nil {
+			return "", false
+		}
+		return fpath, true
 	}
-	filename := fmt.Sprintf("%d-%s.%s", order.ID, timestamp, ext)
-	filepath := fmt.Sprintf("%s/%s", uploadsDir, filename)
 
-	// Save file
-	if err := c.SaveUploadedFile(file, filepath); err != nil {
+	firstPath, ok := makeReceiptPath(file, 0)
+	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла"})
 		return
 	}
 
-	// Initialize receipt_paths array with this first receipt
-	pathsJSON, _ := json.Marshal([]string{filepath})
+	allPaths := []string{firstPath}
+
+	// Also accept additional files sent as `receipts[]`
+	form, _ := c.MultipartForm()
+	if form != nil {
+		for i, extra := range form.File["receipts"] {
+			if extra.Size > 10*1024*1024 {
+				continue
+			}
+			if !strings.Contains(extra.Header.Get("Content-Type"), "image/") {
+				continue
+			}
+			if p, ok := makeReceiptPath(extra, i+1); ok {
+				allPaths = append(allPaths, p)
+			}
+		}
+	}
+
+	pathsJSON, _ := json.Marshal(allPaths)
 	now := time.Now()
 
-	// CRITICAL: Update order: save receipt path and change status to "pending"
-	// This makes it visible to pickup points for the first time
 	if err := database.DB.Model(&order).Updates(map[string]interface{}{
-		"receipt_path":   filepath,
-		"receipt_paths":  string(pathsJSON),
+		"receipt_path":    firstPath,
+		"receipt_paths":   string(pathsJSON),
 		"last_receipt_at": now,
-		"status":         "pending",
+		"status":          "pending",
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении заказа"})
 		return
 	}
 
-	// Broadcast order status change to all clients (pickup points will see the new order)
 	BroadcastOrders()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Чек успешно загружен",
-		"receipt_path":   filepath,
-		"receipt_paths":  []string{filepath},
-		"receipts_count": 1,
+		"receipt_path":   firstPath,
+		"receipt_paths":  allPaths,
+		"receipts_count": len(allPaths),
 	})
 }
 

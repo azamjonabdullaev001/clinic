@@ -619,20 +619,26 @@
                 <button @click="successQrFailed = false" class="text-brand-600 hover:text-brand-700 text-sm font-medium">{{ t.qr_retry }}</button>
               </div>
             </div>
+            <p class="text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 mb-3">{{ t.payment_qr_hint }}</p>
             <p class="text-xs text-stone-400 mb-4">{{ t.payment_order_code }}: <span class="font-bold text-brand-700 tracking-wider">{{ orderSuccessCode }}</span></p>
 
-            <!-- First receipt upload -->
+            <!-- Receipt upload (multiple) -->
             <div class="mb-4 text-left">
               <label class="text-sm font-medium text-stone-700 mb-2 block">{{ t.payment_upload_receipt }} <span class="text-red-400">*</span></label>
-              <div v-if="receiptPreview" class="mb-2"><img :src="receiptPreview" class="w-full max-h-40 object-contain rounded-xl border border-stone-200" alt="Receipt preview" /></div>
+              <div v-if="receiptPreviews.length" class="flex flex-wrap gap-2 mb-3">
+                <div v-for="(preview, i) in receiptPreviews" :key="i" class="relative">
+                  <img :src="preview" class="w-16 h-16 object-cover rounded-xl border border-stone-200" />
+                  <span class="absolute -top-1.5 -right-1.5 bg-brand-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ i+1 }}</span>
+                </div>
+              </div>
               <button type="button" @click="$refs.receiptInput.click()" class="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 text-sm text-stone-500 hover:border-brand-400 transition-colors">
-                {{ receiptFile ? t.payment_change_receipt : t.payment_select_receipt }}
+                {{ receiptFiles.length ? t.payment_change_receipt : t.payment_select_receipt }}
               </button>
-              <input ref="receiptInput" type="file" accept="image/*" class="hidden" @change="onReceiptSelect" />
+              <input ref="receiptInput" type="file" accept="image/*" multiple class="hidden" @change="onReceiptSelect" />
               <p v-if="receiptError" class="text-xs text-red-500 mt-2">{{ receiptError }}</p>
             </div>
             <p v-if="paymentError" class="text-sm text-red-500 mb-2">{{ paymentError }}</p>
-            <button @click="confirmOrderPayment" :disabled="!receiptFile || confirmingOrder" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
+            <button @click="confirmOrderPayment" :disabled="!receiptFiles.length || confirmingOrder" class="w-full btn-primary py-3.5 rounded-xl text-base font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
               {{ confirmingOrder ? t.payment_confirming : t.payment_confirm }}
             </button>
           </template>
@@ -914,8 +920,8 @@ const paymentQrUrl = ref('')
 const qrLoading = ref(false)
 const qrLoadingError = ref('')
 const currentOrderId = ref(null)
-const receiptFile = ref(null)
-const receiptPreview = ref(null)
+const receiptFiles = ref([])
+const receiptPreviews = ref([])
 const receiptError = ref('')
 const confirmingOrder = ref(false)
 const paymentError = ref('')
@@ -1113,30 +1119,19 @@ async function saveEditLocation() {
 
 // Validate receipt file
 function onReceiptSelect(e) {
-  const f = e.target.files[0]
-  if (!f) return
-  
-  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-  if (!validTypes.includes(f.type)) {
-    receiptError.value = 'Пожалуйста, загрузите только изображение'
-    receiptFile.value = null
-    receiptPreview.value = null
-    e.target.value = ''
-    return
-  }
-  
-  if (f.size > 10 * 1024 * 1024) {
-    receiptError.value = 'Размер файла не должен превышать 10 МБ'
-    receiptFile.value = null
-    receiptPreview.value = null
-    e.target.value = ''
-    return
-  }
-  
-  receiptError.value = ''
-  receiptFile.value = f
-  receiptPreview.value = URL.createObjectURL(f)
+  const files = [...e.target.files]
   e.target.value = ''
+  if (!files.length) return
+  const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  const valid = files.filter(f => validTypes.includes(f.type) && f.size <= 10 * 1024 * 1024)
+  if (valid.length !== files.length) {
+    receiptError.value = 'Некоторые файлы отклонены (только изображения, макс. 10 МБ)'
+  } else {
+    receiptError.value = ''
+  }
+  if (!valid.length) return
+  receiptFiles.value = [...receiptFiles.value, ...valid]
+  receiptPreviews.value = receiptFiles.value.map(f => URL.createObjectURL(f))
 }
 
 // Load QR with error handling
@@ -1169,14 +1164,16 @@ function retryLoadQR() {
 }
 
 async function confirmOrderPayment() {
-  if (!receiptFile.value || !currentOrderId.value) return
+  if (!receiptFiles.value.length || !currentOrderId.value) return
   paymentError.value = ''
   confirmingOrder.value = true
   try {
     const fd = new FormData()
-    fd.append('receipt', receiptFile.value)
+    fd.append('receipt', receiptFiles.value[0])
+    for (let i = 1; i < receiptFiles.value.length; i++) {
+      fd.append('receipts', receiptFiles.value[i])
+    }
     const res = await api.post(`/orders/${currentOrderId.value}/receipt`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-    // Stay on 'pay' stage to allow adding more receipts (split payment)
     uploadedReceipts.value = res.data.receipt_paths || [res.data.receipt_path]
     startReceiptCooldown()
   } catch (e) {
@@ -1363,8 +1360,8 @@ function closeOrderSuccess() {
   showOrderSuccess.value = false
   orderSuccessCode.value = ''
   currentOrderId.value = null
-  receiptFile.value = null
-  receiptPreview.value = null
+  receiptFiles.value = []
+  receiptPreviews.value = []
   receiptError.value = ''
   paymentStage.value = 'pay'
   uploadedReceipts.value = []
@@ -1418,8 +1415,8 @@ async function submitOrder() {
     destroyMap()
     currentOrderId.value = res.data?.id || null
     orderSuccessCode.value = res.data?.order_code || ''
-    receiptFile.value = null
-    receiptPreview.value = null
+    receiptFiles.value = []
+    receiptPreviews.value = []
     receiptError.value = ''
     paymentError.value = ''
     paymentStage.value = 'pay'
