@@ -8,11 +8,25 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+var newsAllowedExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true}
+
+// validateNewsImage checks the extension of a news upload; returns false and writes the
+// error response if the file should be rejected.
+func validateNewsExt(c *gin.Context, filename string) (string, bool) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	if !newsAllowedExts[ext] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неподдерживаемый формат изображения (.jpg/.jpeg/.png/.gif/.webp)"})
+		return "", false
+	}
+	return ext, true
+}
 
 func GetNewsPosts(c *gin.Context) {
 	var posts []models.NewsPost
@@ -40,7 +54,14 @@ func CreateNewsPost(c *gin.Context) {
 
 	file, err := c.FormFile("image")
 	if err == nil {
-		ext := filepath.Ext(file.Filename)
+		if file.Size > 10<<20 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (макс. 10MB)"})
+			return
+		}
+		ext, ok := validateNewsExt(c, file.Filename)
+		if !ok {
+			return
+		}
 		filename := fmt.Sprintf("news_%d%s", time.Now().UnixNano(), ext)
 		savePath := filepath.Join("uploads", filename)
 		if err := os.MkdirAll("uploads", 0755); err == nil {
@@ -60,7 +81,13 @@ func CreateNewsPost(c *gin.Context) {
 	if form != nil {
 		files := form.File["images"]
 		for i, imgFile := range files {
-			ext := filepath.Ext(imgFile.Filename)
+			if imgFile.Size > 10<<20 {
+				continue
+			}
+			ext, ok := validateNewsExt(c, imgFile.Filename)
+			if !ok {
+				continue
+			}
 			filename := fmt.Sprintf("news_%d_%d%s", time.Now().UnixNano(), i, ext)
 			savePath := filepath.Join("uploads", filename)
 			if err := c.SaveUploadedFile(imgFile, savePath); err == nil {
@@ -99,12 +126,13 @@ func UpdateNewsPost(c *gin.Context) {
 	post.VideoURL = c.PostForm("video_url")
 
 	file, err := c.FormFile("image")
-	if err == nil {
-		ext := filepath.Ext(file.Filename)
-		filename := fmt.Sprintf("news_%d%s", time.Now().UnixNano(), ext)
-		savePath := filepath.Join("uploads", filename)
-		if err := c.SaveUploadedFile(file, savePath); err == nil {
-			post.ImagePath = "/uploads/" + filename
+	if err == nil && file.Size <= 10<<20 {
+		if ext, ok := validateNewsExt(c, file.Filename); ok {
+			filename := fmt.Sprintf("news_%d%s", time.Now().UnixNano(), ext)
+			savePath := filepath.Join("uploads", filename)
+			if err := c.SaveUploadedFile(file, savePath); err == nil {
+				post.ImagePath = "/uploads/" + filename
+			}
 		}
 	}
 
@@ -115,7 +143,13 @@ func UpdateNewsPost(c *gin.Context) {
 	if form != nil {
 		files := form.File["images"]
 		for i, imgFile := range files {
-			ext := filepath.Ext(imgFile.Filename)
+			if imgFile.Size > 10<<20 {
+				continue
+			}
+			ext, ok := validateNewsExt(c, imgFile.Filename)
+			if !ok {
+				continue
+			}
 			filename := fmt.Sprintf("news_%d_%d%s", time.Now().UnixNano(), i, ext)
 			savePath := filepath.Join("uploads", filename)
 			if err := c.SaveUploadedFile(imgFile, savePath); err == nil {
