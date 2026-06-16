@@ -209,7 +209,7 @@
                 </div>
                 <div v-if="order.latitude && order.longitude" class="mt-1 flex items-center gap-2 flex-wrap">
                   <a
-                    :href="`https://www.openstreetmap.org/?mlat=${order.latitude}&mlon=${order.longitude}#map=15/${order.latitude}/${order.longitude}`"
+                    :href="`https://maps.google.com/maps?q=${order.latitude},${order.longitude}&z=15`"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
@@ -1682,14 +1682,9 @@
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <div v-if="routeLoading" class="flex items-center justify-center" style="height: 420px">
-          <div class="text-center text-gray-400">
-            <div class="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-            <p class="text-sm">Построение маршрута...</p>
-          </div>
-        </div>
-        <div v-show="!routeLoading" style="height: 420px">
-          <div id="admin-route-map" style="height: 100%; width: 100%;"></div>
+        <div style="height: 420px">
+          <iframe v-if="routeGoogleMapUrl" :src="routeGoogleMapUrl" style="height: 100%; width: 100%; border: 0;" allowfullscreen loading="lazy"></iframe>
+          <div v-else class="flex items-center justify-center h-full text-gray-400 text-sm">Нет данных для маршрута</div>
         </div>
         <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500 flex items-center gap-1">
           <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -1768,7 +1763,7 @@ async function openProductAnalytics(product) {
     const res = await api.get(`/admin/products/${product.id}/analytics`)
     productAnalyticsData.value = res.data
   } catch (e) {
-    console.error(e)
+    void e
   } finally {
     productAnalyticsLoading.value = false
   }
@@ -1944,7 +1939,7 @@ async function loadProducts() {
     const res = await api.get('/admin/products')
     products.value = res.data || []
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -1966,7 +1961,7 @@ async function loadOrders() {
     orders.value = res.data.orders || []
     ordersTotal.value = res.data.total || 0
   } catch (e) {
-    console.error(e)
+    void e
   } finally {
     ordersLoading.value = false
   }
@@ -1977,7 +1972,7 @@ async function loadProfile() {
     const res = await api.get('/admin/profile')
     settings.phone = res.data.phone.replace('998', '')
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -1986,7 +1981,7 @@ async function loadWorkers() {
     const res = await api.get('/admin/workers')
     workers.value = res.data || []
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -2009,7 +2004,7 @@ async function loadAnalytics() {
     await nextTick()
     renderAnalyticsChart(res.data)
   } catch (e) {
-    console.error(e)
+    void e
     analyticsLoading.value = false
   }
 }
@@ -2100,7 +2095,7 @@ async function loadFaqs() {
     const res = await api.get('/admin/faqs')
     faqs.value = res.data || []
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -2188,7 +2183,7 @@ async function loadSupportThreads() {
       await openSupportThread(supportThreads.value[0].id)
     }
   } catch (e) {
-    console.error(e)
+    void e
   } finally {
     supportLoading.value = false
   }
@@ -2199,7 +2194,7 @@ async function openSupportThread(id) {
     const res = await api.get(`/admin/support/threads/${id}`)
     selectedThread.value = res.data
   } catch (e) {
-    console.error(e)
+    void e
   }
 }
 
@@ -2742,125 +2737,31 @@ async function deleteNews(id) {
 // Route modal
 const showRouteModal = ref(false)
 const routeOrder = ref(null)
-const routeLoading = ref(false)
-let routeLeafletMap = null
+const routeGoogleMapUrl = ref('')
 
-async function openRouteModal(order) {
+// Andijan, ul. Khoja 27 — pharmacy starting point
+const PHARMACY_LAT = 40.7821
+const PHARMACY_LNG = 72.3442
+
+function openRouteModal(order) {
   routeOrder.value = order
   showRouteModal.value = true
-  routeLoading.value = true
-  await nextTick()
-  await buildRouteMap(order)
+  const destLat = order.latitude
+  const destLng = order.longitude
+  if (destLat && destLng) {
+    routeGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${PHARMACY_LAT},${PHARMACY_LNG}&daddr=${destLat},${destLng}&dirflg=d&output=embed`
+  } else if (order.delivery_address) {
+    routeGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${PHARMACY_LAT},${PHARMACY_LNG}&daddr=${encodeURIComponent(order.delivery_address)}&dirflg=d&output=embed`
+  } else {
+    routeGoogleMapUrl.value = ''
+  }
 }
 
 function closeRouteModal() {
   showRouteModal.value = false
   routeOrder.value = null
-  if (routeLeafletMap) {
-    routeLeafletMap.remove()
-    routeLeafletMap = null
-  }
+  routeGoogleMapUrl.value = ''
 }
-
-// Pharmacy coordinates cache (Andijan, Hodja 27)
-let pharmacyCoords = null
-
-async function getPharmacyCoords() {
-  if (pharmacyCoords) return pharmacyCoords
-  try {
-    const res = await fetch(
-      'https://nominatim.openstreetmap.org/search?q=%D1%83%D0%BB%D0%B8%D1%86%D0%B0+%D0%A5%D0%BE%D0%B4%D0%B6%D0%B0+27%2C+%D0%90%D0%BD%D0%B4%D0%B8%D0%B6%D0%B0%D0%BD%2C+%D0%A3%D0%B7%D0%B1%D0%B5%D0%BA%D0%B8%D1%81%D1%82%D0%B0%D0%BD&format=json&limit=1',
-      { headers: { 'Accept-Language': 'ru' } }
-    )
-    const data = await res.json()
-    if (data && data.length > 0) {
-      pharmacyCoords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-      return pharmacyCoords
-    }
-  } catch { /* ignore */ }
-  // Fallback: Andijan city center
-  pharmacyCoords = { lat: 40.7821, lng: 72.3442 }
-  return pharmacyCoords
-}
-
-async function buildRouteMap(order) {
-  const L = await import('leaflet')
-  await import('leaflet/dist/leaflet.css')
-
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  })
-
-  const mapEl = document.getElementById('admin-route-map')
-  if (!mapEl) { routeLoading.value = false; return }
-
-  // Pharmacy starting point: улица Ходжа 27, Андижан
-  const pharmacy = await getPharmacyCoords()
-  const startLat = pharmacy.lat
-  const startLng = pharmacy.lng
-  const destLat = order.latitude
-  const destLng = order.longitude
-
-  if (routeLeafletMap) {
-    routeLeafletMap.remove()
-    routeLeafletMap = null
-  }
-
-  routeLeafletMap = L.map('admin-route-map').setView(
-    [(startLat + destLat) / 2, (startLng + destLng) / 2], 13
-  )
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(routeLeafletMap)
-
-  // Pharmacy marker (green)
-  const pharmacyIcon = L.divIcon({
-    html: `<div style="background:#059669;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4)"></div>`,
-    className: '',
-    iconAnchor: [7, 7],
-  })
-  L.marker([startLat, startLng], { icon: pharmacyIcon })
-    .addTo(routeLeafletMap)
-    .bindPopup('<b>Аптека</b><br>ул. Ходжа 27, Андижан')
-
-  // Customer marker (red)
-  L.marker([destLat, destLng])
-    .addTo(routeLeafletMap)
-    .bindPopup(`<b>Адрес доставки</b><br>${order.delivery_address || ''}`)
-    .openPopup()
-
-  // Fetch road route from OSRM
-  try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${destLng},${destLat}?overview=full&geometries=geojson`
-    const res = await fetch(url)
-    const data = await res.json()
-    if (data.routes && data.routes.length > 0) {
-      const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]])
-      const polyline = L.polyline(coords, { color: '#0d9488', weight: 4, opacity: 0.85 }).addTo(routeLeafletMap)
-      routeLeafletMap.fitBounds(polyline.getBounds(), { padding: [30, 30] })
-    } else {
-      // Fallback: straight line
-      const line = L.polyline([[startLat, startLng], [destLat, destLng]], { color: '#6366f1', weight: 3, dashArray: '6 4' }).addTo(routeLeafletMap)
-      routeLeafletMap.fitBounds(line.getBounds(), { padding: [30, 30] })
-    }
-  } catch {
-    // Fallback: straight line
-    const line = L.polyline([[startLat, startLng], [destLat, destLng]], { color: '#6366f1', weight: 3, dashArray: '6 4' }).addTo(routeLeafletMap)
-    routeLeafletMap.fitBounds(line.getBounds(), { padding: [30, 30] })
-  }
-
-  routeLoading.value = false
-}
-
-onUnmounted(() => {
-  if (routeLeafletMap) {
-    routeLeafletMap.remove()
-    routeLeafletMap = null
-  }
-})
 
 watch(activeTab, async (tab) => {
   if (tab === 'analytics') {
@@ -2929,25 +2830,8 @@ function resetBtsForm() {
   btsFormError.value = ''
 }
 
-async function geocodeBtsAddress() {
-  if (!btsForm.address) return
-  btsGeocodingAddress.value = true
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(btsForm.address)}&limit=1`
-    const geoCtrl = new AbortController(); setTimeout(() => geoCtrl.abort(), 8000)
-    const res = await fetch(url, { signal: geoCtrl.signal })
-    const data = await res.json()
-    if (data?.[0]) {
-      btsForm.lat = parseFloat(data[0].lat).toFixed(6)
-      btsForm.lng = parseFloat(data[0].lon).toFixed(6)
-    } else {
-      btsFormError.value = 'Адрес не найден — попробуйте уточнить или введите координаты вручную'
-    }
-  } catch {
-    btsFormError.value = 'Ошибка геокодирования'
-  } finally {
-    btsGeocodingAddress.value = false
-  }
+function geocodeBtsAddress() {
+  btsFormError.value = 'Геокодирование недоступно — введите координаты вручную (найдите место на maps.google.com)'
 }
 
 async function saveBtsBranch() {

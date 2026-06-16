@@ -552,7 +552,7 @@ async function loadProducts() {
   try {
     const res = await axios.get('/api/products')
     products.value = res.data || []
-  } catch (e) { console.error(e) }
+  } catch { /* ignore network errors; products remain empty */ }
   finally { loading.value = false }
 }
 

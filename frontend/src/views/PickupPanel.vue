@@ -182,11 +182,20 @@
                   <span class="font-medium">{{ formatPrice(item.price) }} {{ txt.sum }}</span>
                 </div>
               </div>
-              <div v-if="order.receipt_path" class="mt-2 flex items-center gap-2">
-                <span class="text-xs text-emerald-600 font-medium">{{ txt.receipt_label }}</span>
-                <a :href="order.receipt_path" target="_blank" rel="noopener">
-                  <img :src="order.receipt_path" class="w-14 h-14 object-cover rounded-lg border border-emerald-200 hover:opacity-80 transition"/>
-                </a>
+              <!-- Receipt(s) display — supports split payment (multiple receipts) -->
+              <div v-if="parseReceiptPaths(order).length > 0" class="mt-2">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span class="text-xs text-emerald-600 font-semibold">{{ txt.receipt_label }}</span>
+                  <span v-if="parseReceiptPaths(order).length > 1" class="text-[10px] bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-bold">{{ parseReceiptPaths(order).length }} чека</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <div v-for="(path, i) in parseReceiptPaths(order)" :key="i" class="relative">
+                    <a :href="path" target="_blank" rel="noopener">
+                      <img :src="path" class="w-14 h-14 object-cover rounded-lg border-2 border-emerald-200 hover:opacity-80 transition"/>
+                    </a>
+                    <span v-if="parseReceiptPaths(order).length > 1" class="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{{ i+1 }}</span>
+                  </div>
+                </div>
               </div>
 
               <!-- BTS Cargo section -->
@@ -360,7 +369,7 @@
                   :class="offlineUnit===u.v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'"
                   class="border py-2.5 rounded-lg text-sm font-medium transition">{{ u.l }}</button>
               </div>
-              <p v-if="offlineIsPieceOnly" class="text-xs text-gray-400 mt-1">Только поштучно</p>
+              <p v-if="offlineIsPieceOnly" class="text-xs text-gray-400 mt-1">{{ txt.piece_only }}</p>
             </div>
 
             <!-- Bottom-left: Product -->
@@ -374,7 +383,7 @@
                 <input v-model="offlineProductSearch" @focus="offlineProductOpen = true" @input="offlineProductOpen = true; offlineProductId = ''"
                   @blur="closeProductListSoon" :placeholder="txt.select_product"
                   class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"/>
-                <button type="button" @mousedown.prevent="offlineProductOpen = !offlineProductOpen" class="absolute right-1 top-1 p-1.5 text-gray-400 hover:text-gray-600" title="Каталог">
+                <button type="button" @mousedown.prevent="offlineProductOpen = !offlineProductOpen" class="absolute right-1 top-1 p-1.5 text-gray-400 hover:text-gray-600" :title="txt.catalog_btn">
                   <svg class="w-4 h-4 transition-transform" :class="offlineProductOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div v-if="offlineProductOpen && offlineProductMatches.length" class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
@@ -474,7 +483,7 @@
                 </select>
               </div>
               <div v-if="saleType==='regular'">
-                <label class="text-xs font-medium text-gray-500 mb-1.5 block">Скидка, %</label>
+                <label class="text-xs font-medium text-gray-500 mb-1.5 block">{{ txt.discount_pct }}</label>
                 <div class="flex items-center gap-3">
                   <input v-model.number="offlineDiscount" type="number" min="0" max="100" step="1"
                     placeholder="0"
@@ -507,10 +516,10 @@
                       class="px-2 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-semibold hover:bg-emerald-200 transition flex-shrink-0">100%</button>
                   </div>
                 </div>
-                <p v-if="!offlinePaymentOk" class="text-xs text-rose-500 mt-1">Сумма оплат должна равняться итогу к оплате</p>
+                <p v-if="!offlinePaymentOk" class="text-xs text-rose-500 mt-1">{{ txt.pay_sum_error }}</p>
                 <div v-else-if="offlinePaymentDiscountTotal > 0" class="flex items-center justify-between mt-1.5 text-sm">
-                  <span class="text-gray-500">Скидка по способам: <span class="text-rose-600 font-medium">−{{ formatPrice(offlinePaymentDiscountTotal) }}</span></span>
-                  <span class="font-bold text-emerald-700">К оплате: {{ formatPrice(offlineFinalCollected) }} {{ txt.sum }}</span>
+                  <span class="text-gray-500">{{ txt.discount_methods }} <span class="text-rose-600 font-medium">−{{ formatPrice(offlinePaymentDiscountTotal) }}</span></span>
+                  <span class="font-bold text-emerald-700">{{ txt.to_pay_lbl }} {{ formatPrice(offlineFinalCollected) }} {{ txt.sum }}</span>
                 </div>
               </div>
             </div>
@@ -663,7 +672,7 @@
             <h2 class="font-semibold pp-text">{{ txt.product_list }}</h2>
             <button @click="openProdModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition text-sm font-medium flex items-center gap-1.5">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-              {{ lang === 'uz' ? 'Yangi dori' : 'Новый препарат' }}
+              {{ txt.new_product }}
             </button>
           </div>
           <div class="pp-divide">
@@ -685,10 +694,10 @@
                   </p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ txt.remainder }}</p>
                 </div>
-                <button @click="openProdModal(s.product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" title="Редактировать">
+                <button @click="openProdModal(s.product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" :title="txt.edit_items">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
-                <button @click="deleteProd(s.product?.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Удалить">
+                <button @click="deleteProd(s.product?.id)" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" :title="txt.delete_order">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               </div>
@@ -715,11 +724,11 @@
           <div class="ml-auto flex items-center gap-2 flex-wrap">
             <button @click="exportDoctorSalesExcel" class="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-              {{ lang === 'uz' ? 'Doktorlar eksporti' : 'Экспорт докторов' }}
+              {{ txt.excel_doctors }}
             </button>
             <button @click="exportClientProductExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-              {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
+              {{ txt.excel_main }}
             </button>
           </div>
         </div>
@@ -814,7 +823,7 @@
               <h3 class="font-semibold text-gray-800">{{ txt.by_payment_title }}</h3>
               <button @click="exportPaymentMethodsExcel" class="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                {{ lang === 'uz' ? 'Excel formatida eksport' : 'Экспорт в Excel формате' }}
+                {{ txt.excel_main }}
               </button>
             </div>
             <div class="overflow-x-auto">
@@ -846,17 +855,17 @@
         <!-- Marketolog debt & repayment (all-time, transfer only) -->
         <div class="pp-card rounded-xl shadow-sm p-6">
           <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
-            <h3 class="font-semibold text-gray-800">{{ lang === 'uz' ? 'Marketolog qarzi' : 'Долг маркетолога' }}</h3>
+            <h3 class="font-semibold text-gray-800">{{ txt.mkt_debt_title }}</h3>
             <select v-model="mktDebtId" @change="loadMktDebt" class="pp-input rounded-lg px-3 py-2 text-sm min-w-[200px]">
-              <option value="">{{ lang === 'uz' ? 'Marketologni tanlang' : 'Выберите маркетолога' }}</option>
+              <option value="">{{ txt.mkt_select_ph }}</option>
               <option v-for="m in marketologs" :key="m.id" :value="m.id">{{ m.name }}</option>
             </select>
           </div>
           <div v-if="mktDebt">
             <div class="grid grid-cols-3 gap-3 mb-4">
-              <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">Долг</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(mktDebt.debt) }} {{ txt.sum }}</p></div>
-              <div class="bg-emerald-50 rounded-xl p-4"><p class="text-xs text-emerald-600 mb-1">Оплачено</p><p class="text-lg font-bold text-emerald-700">{{ formatPrice(mktDebt.paid) }} {{ txt.sum }}</p></div>
-              <div class="bg-rose-50 rounded-xl p-4"><p class="text-xs text-rose-600 mb-1">Остаток долга</p><p class="text-lg font-bold text-rose-700">{{ formatPrice(mktDebt.remaining) }} {{ txt.sum }}</p></div>
+              <div class="bg-purple-50 rounded-xl p-4"><p class="text-xs text-purple-600 mb-1">{{ txt.mkt_debt_lbl }}</p><p class="text-lg font-bold text-purple-700">{{ formatPrice(mktDebt.debt) }} {{ txt.sum }}</p></div>
+              <div class="bg-emerald-50 rounded-xl p-4"><p class="text-xs text-emerald-600 mb-1">{{ txt.mkt_paid_lbl }}</p><p class="text-lg font-bold text-emerald-700">{{ formatPrice(mktDebt.paid) }} {{ txt.sum }}</p></div>
+              <div class="bg-rose-50 rounded-xl p-4"><p class="text-xs text-rose-600 mb-1">{{ txt.mkt_remaining_lbl }}</p><p class="text-lg font-bold text-rose-700">{{ formatPrice(mktDebt.remaining) }} {{ txt.sum }}</p></div>
             </div>
             <div v-if="mktDebt.products && mktDebt.products.length" class="overflow-x-auto rounded-xl border border-purple-100 mb-4">
               <table class="w-full text-sm">
@@ -878,18 +887,18 @@
             </div>
             <div class="flex items-end gap-3 flex-wrap">
               <div>
-                <label class="text-xs text-gray-500 mb-1 block">{{ lang === 'uz' ? "To'lov (Perechislenie XR)" : 'Оплата (Перечисление ХР)' }}</label>
+                <label class="text-xs text-gray-500 mb-1 block">{{ txt.mkt_pay_label }}</label>
                 <input v-model.number="mktPayAmount" type="number" min="0" placeholder="0" class="pp-input rounded-lg px-3 py-2 text-sm w-48"/>
               </div>
               <button @click="payMktDebt" :disabled="!mktPayAmount || mktPaying" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-40">
-                {{ mktPaying ? txt.saving : (lang === 'uz' ? "To'lash" : 'Оплатить долг') }}
+                {{ mktPaying ? txt.saving : txt.mkt_pay_btn }}
               </button>
             </div>
             <p v-if="mktDebt.payments && mktDebt.payments.length" class="text-xs text-gray-400 mt-2">
-              Последняя оплата: {{ formatPrice(mktDebt.payments[0].amount) }} {{ txt.sum }} · {{ new Date(mktDebt.payments[0].created_at).toLocaleDateString('ru-RU') }}
+              {{ txt.mkt_last_pay }} {{ formatPrice(mktDebt.payments[0].amount) }} {{ txt.sum }} · {{ new Date(mktDebt.payments[0].created_at).toLocaleDateString('ru-RU') }}
             </p>
           </div>
-          <div v-else class="text-center text-gray-400 text-sm py-6">{{ lang === 'uz' ? 'Marketologni tanlang' : 'Выберите маркетолога' }}</div>
+          <div v-else class="text-center text-gray-400 text-sm py-6">{{ txt.mkt_select_hint }}</div>
         </div>
       </div>
 
@@ -963,7 +972,7 @@
                 </div>
                 <div class="text-right flex-shrink-0">
                   <p class="font-bold pp-text">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
-                  <p v-if="order.discount_percent > 0" class="text-xs text-rose-500">{{ lang === 'uz' ? 'chegirma' : 'скидка' }} −{{ order.discount_percent }}%</p>
+                  <p v-if="order.discount_percent > 0" class="text-xs text-rose-500">{{ txt.discount_badge }} −{{ order.discount_percent }}%</p>
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
                 </div>
               </div>
@@ -1004,7 +1013,7 @@
                   <button @click="listEditAddItem(order.id)" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700">{{ txt.add }}</button>
                 </div>
                 <div class="flex gap-2 pt-1">
-                  <button @click="saveListEdit(order)" :disabled="listEdit[order.id].saving || !listEdit[order.id].items.length" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-40">{{ listEdit[order.id].saving ? txt.saving : (lang === 'uz' ? 'Saqlash' : 'Сохранить') }}</button>
+                  <button @click="saveListEdit(order)" :disabled="listEdit[order.id].saving || !listEdit[order.id].items.length" class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-40">{{ listEdit[order.id].saving ? txt.saving : txt.prod_save }}</button>
                   <button @click="cancelListEdit(order.id)" class="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-300">{{ txt.cancel }}</button>
                 </div>
               </div>
@@ -1020,7 +1029,7 @@
                   @click="togglePayEdit(order)"
                   :class="payEdit[order.id]?.open ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'"
                   class="border px-4 py-1.5 rounded-lg transition text-sm font-medium">
-                  {{ lang === 'uz' ? "To'lov usuli" : 'Способ оплаты' }}
+                  {{ txt.pay_method_btn }}
                 </button>
                 <button v-if="order.is_offline && !order.marketolog_id && order.status === 'delivered'"
                   @click="fullReturn(order)" class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium">
@@ -1031,11 +1040,11 @@
               <!-- Inline payment editor -->
               <div v-if="payEdit[order.id]?.open && !listEdit[order.id]?.editing" class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
                 <div class="flex items-center justify-between mb-1">
-                  <p class="text-xs font-semibold text-amber-800">{{ lang === 'uz' ? "To'lov usulini tanlang" : 'Выберите способ оплаты' }}</p>
+                  <p class="text-xs font-semibold text-amber-800">{{ txt.pay_select_method }}</p>
                   <button @click="payEditToggleSplit(order.id)"
                     :class="payEdit[order.id].mode==='split' ? 'bg-amber-600 text-white' : 'bg-white text-amber-700 border border-amber-300'"
                     class="text-xs px-2.5 py-1 rounded-full font-medium transition">
-                    {{ lang === 'uz' ? 'Kombinatsiya' : 'Комбинировать' }}
+                    {{ txt.pay_combine }}
                   </button>
                 </div>
 
@@ -1055,10 +1064,10 @@
                     <span :class="m.color" class="border rounded-md px-2 py-0.5 text-xs font-medium w-28 text-center flex-shrink-0">{{ m.label }}</span>
                     <input v-model.number="payEdit[order.id].amounts[m.key]" type="number" min="0" step="1000"
                       class="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
-                      :placeholder="lang === 'uz' ? 'Summa' : 'Сумма'"/>
+                      :placeholder="txt.pay_amount_ph"/>
                   </div>
                   <p class="text-xs text-amber-700">
-                    {{ lang === 'uz' ? 'Jami:' : 'Итого:' }}
+                    {{ txt.pay_total_inline }}
                     <span class="font-bold">{{ formatPrice(Object.values(payEdit[order.id].amounts).reduce((s,v)=>s+(Number(v)||0),0)) }} {{ txt.sum }}</span>
                   </p>
                 </div>
@@ -1067,11 +1076,11 @@
                   <button @click="savePayEdit(order)"
                     :disabled="payEdit[order.id].saving"
                     class="bg-amber-600 text-white px-5 py-1.5 rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-40 transition">
-                    {{ payEdit[order.id].saving ? (lang === 'uz' ? 'Saqlanmoqda...' : 'Сохранение...') : (lang === 'uz' ? 'Saqlash' : 'Сохранить') }}
+                    {{ payEdit[order.id].saving ? txt.pay_saving : txt.pay_save_btn }}
                   </button>
                   <button @click="togglePayEdit(order)"
                     class="bg-white border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
-                    {{ lang === 'uz' ? 'Bekor qilish' : 'Отмена' }}
+                    {{ txt.pay_cancel_btn }}
                   </button>
                 </div>
               </div>
@@ -1112,48 +1121,48 @@
   <div v-if="showProdModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="showProdModal=false">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
     <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-      <h3 class="text-lg font-bold text-gray-800 mb-4">{{ prodEditing ? 'Изменить препарат' : 'Новый препарат' }}</h3>
+      <h3 class="text-lg font-bold text-gray-800 mb-4">{{ prodEditing ? txt.prod_edit_title : txt.prod_new_title }}</h3>
       <form @submit.prevent="saveProd" class="space-y-3">
         <div class="flex items-center gap-3">
           <div class="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0">
             <img v-if="prodImagePreview || prodForm.image_path" :src="prodImagePreview || prodForm.image_path" class="w-full h-full object-cover"/>
             <svg v-else class="w-7 h-7 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>
-          <button type="button" @click="$refs.prodImageInput.click()" class="text-sm text-teal-600 hover:underline">Загрузить фото</button>
+          <button type="button" @click="$refs.prodImageInput.click()" class="text-sm text-teal-600 hover:underline">{{ txt.prod_upload_photo }}</button>
           <input ref="prodImageInput" type="file" accept="image/*" class="hidden" @change="onProdImage"/>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">Название <span class="text-red-400">*</span></label>
+          <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.prod_name_lbl }} <span class="text-red-400">*</span></label>
           <input v-model="prodForm.name" type="text" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">Описание</label>
+          <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.prod_desc_lbl }}</label>
           <textarea v-model="prodForm.description" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Кол-во в флаконе</label>
-            <input v-model.number="prodForm.quantity_per_pack" type="number" min="0" placeholder="нет (поштучно)" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
+            <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.prod_qty_per_pack_lbl }}</label>
+            <input v-model.number="prodForm.quantity_per_pack" type="number" min="0" :placeholder="txt.prod_qty_ph" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">Цена за штуку <span class="text-red-400">*</span></label>
+            <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.prod_price_pill_lbl }} <span class="text-red-400">*</span></label>
             <input v-model.number="prodForm.price_per_pill" type="number" min="0" step="100" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
           </div>
         </div>
-        <p class="text-xs text-gray-400">Оставьте «Кол-во в флаконе» пустым, если товар продаётся только поштучно (мазь, смесь, жидкость).</p>
+        <p class="text-xs text-gray-400">{{ txt.prod_hint }}</p>
         <div v-if="!prodEditing">
-          <label class="block text-xs font-medium text-gray-500 mb-1">Начальный остаток (штук)</label>
+          <label class="block text-xs font-medium text-gray-500 mb-1">{{ txt.prod_initial_stock_lbl }}</label>
           <input v-model.number="prodForm.stock_quantity" type="number" min="0" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"/>
-          <p v-if="prodForm.stock_quantity > 0 && prodForm.quantity_per_pack > 0" class="text-xs text-gray-400 mt-1">= {{ Math.floor(prodForm.stock_quantity / prodForm.quantity_per_pack) }} флакон на складе</p>
+          <p v-if="prodForm.stock_quantity > 0 && prodForm.quantity_per_pack > 0" class="text-xs text-gray-400 mt-1">= {{ Math.floor(prodForm.stock_quantity / prodForm.quantity_per_pack) }} {{ txt.prod_pack_stock }}</p>
         </div>
         <div v-if="prodForm.quantity_per_pack > 0 && prodForm.price_per_pill > 0" class="bg-teal-50 rounded-lg p-3 border border-teal-100 text-sm">
-          <span class="text-teal-600">Цена за флакон ({{ prodForm.quantity_per_pack }} шт):</span>
+          <span class="text-teal-600">{{ txt.prod_price_per_pack_lbl }} ({{ prodForm.quantity_per_pack }} шт):</span>
           <span class="font-bold text-teal-700 ml-1">{{ formatPrice(prodForm.quantity_per_pack * prodForm.price_per_pill) }} {{ txt.sum }}</span>
         </div>
         <p v-if="prodError" class="text-sm text-red-500">{{ prodError }}</p>
         <div class="flex gap-2 pt-1">
           <button type="button" @click="showProdModal=false" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium">{{ txt.cancel }}</button>
-          <button type="submit" :disabled="prodSaving" class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">{{ prodSaving ? txt.saving : (prodEditing ? 'Сохранить' : 'Добавить') }}</button>
+          <button type="submit" :disabled="prodSaving" class="flex-1 bg-teal-600 text-white py-2.5 rounded-lg hover:bg-teal-700 transition font-medium disabled:opacity-50">{{ prodSaving ? txt.saving : (prodEditing ? txt.prod_save : txt.prod_add_btn) }}</button>
         </div>
       </form>
     </div>
@@ -1182,7 +1191,7 @@
           class="w-full py-3 rounded-xl border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition disabled:opacity-40">
           {{ ct.label }}
         </button>
-        <button @click="payCardStep = false" :disabled="paySubmitting" class="w-full py-2 text-xs text-gray-500 hover:text-gray-700 transition">← Назад</button>
+        <button @click="payCardStep = false" :disabled="paySubmitting" class="w-full py-2 text-xs text-gray-500 hover:text-gray-700 transition">{{ txt.back_lbl }}</button>
       </div>
       <button @click="closePayModal" :disabled="paySubmitting" class="w-full mt-3 py-2 text-sm text-gray-400 hover:text-gray-600 transition">{{ txt.cancel }}</button>
     </div>
@@ -1550,8 +1559,51 @@ const texts = {
     note_buyer_label: 'Заметка для покупателя',
     note_ph: 'Например: БТС трек 123456789, ожидайте в пункте выдачи…',
     note_hide: 'Скрыть',
+    customer_location: 'Адрес клиента',
     note_edit: 'Редактировать',
     note_btn: 'Заметка',
+    piece_only: 'Только поштучно',
+    discount_pct: 'Скидка, %',
+    pay_sum_error: 'Сумма оплат должна равняться итогу к оплате',
+    discount_methods: 'Скидка по способам:',
+    to_pay_lbl: 'К оплате:',
+    mkt_debt_lbl: 'Долг',
+    mkt_paid_lbl: 'Оплачено',
+    mkt_remaining_lbl: 'Остаток долга',
+    mkt_last_pay: 'Последняя оплата:',
+    prod_edit_title: 'Изменить препарат',
+    prod_new_title: 'Новый препарат',
+    prod_upload_photo: 'Загрузить фото',
+    prod_name_lbl: 'Название',
+    prod_desc_lbl: 'Описание',
+    prod_qty_per_pack_lbl: 'Кол-во в флаконе',
+    prod_qty_ph: 'нет (поштучно)',
+    prod_price_pill_lbl: 'Цена за штуку',
+    prod_hint: 'Оставьте «Кол-во в флаконе» пустым, если товар продаётся только поштучно.',
+    prod_initial_stock_lbl: 'Начальный остаток (штук)',
+    prod_pack_stock: 'флакон на складе',
+    prod_price_per_pack_lbl: 'Цена за флакон',
+    prod_save: 'Сохранить',
+    prod_add_btn: 'Добавить',
+    back_lbl: '← Назад',
+    excel_doctors: 'Экспорт докторов',
+    excel_main: 'Экспорт в Excel формате',
+    new_product: 'Новый препарат',
+    pay_combine: 'Комбинировать',
+    pay_select_method: 'Выберите способ оплаты',
+    pay_amount_ph: 'Сумма',
+    pay_total_inline: 'Итого:',
+    pay_saving: 'Сохранение...',
+    pay_save_btn: 'Сохранить',
+    pay_cancel_btn: 'Отмена',
+    pay_method_btn: 'Способ оплаты',
+    discount_badge: 'скидка',
+    mkt_debt_title: 'Долг маркетолога',
+    mkt_select_ph: 'Выберите маркетолога',
+    mkt_pay_label: 'Оплата (Перечисление ХР)',
+    mkt_pay_btn: 'Оплатить долг',
+    mkt_select_hint: 'Выберите маркетолога',
+    catalog_btn: 'Каталог',
   },
   uz: {
     title: 'Berish punkti',
@@ -1746,8 +1798,51 @@ const texts = {
     note_buyer_label: "Xaridor uchun izoh",
     note_ph: "Masalan: BTS trek 123456789, yetkazib berish nuqtasida kuting…",
     note_hide: "Yashirish",
+    customer_location: 'Mijoz manzili',
     note_edit: "Tahrirlash",
     note_btn: "Izoh",
+    piece_only: 'Faqat donabay',
+    discount_pct: 'Chegirma, %',
+    pay_sum_error: "To'lovlar summasi jami to'lov summasiga teng bo'lishi kerak",
+    discount_methods: "Usullar bo'yicha chegirma:",
+    to_pay_lbl: "To'lash uchun:",
+    mkt_debt_lbl: 'Qarz',
+    mkt_paid_lbl: "To'langan",
+    mkt_remaining_lbl: 'Qarz qoldig\'i',
+    mkt_last_pay: "Oxirgi to'lov:",
+    prod_edit_title: 'Dorini tahrirlash',
+    prod_new_title: 'Yangi dori',
+    prod_upload_photo: 'Rasm yuklash',
+    prod_name_lbl: 'Nomi',
+    prod_desc_lbl: 'Tavsifi',
+    prod_qty_per_pack_lbl: 'Flakon tarkibidagi miqdor',
+    prod_qty_ph: "yo'q (donabay)",
+    prod_price_pill_lbl: 'Dona narxi',
+    prod_hint: "Agar mahsulot faqat donabay sotilsa, «Flakon tarkibidagi miqdor»ni bo'sh qoldiring.",
+    prod_initial_stock_lbl: 'Boshlang\'ich qoldiq (dona)',
+    prod_pack_stock: 'flakon omborda',
+    prod_price_per_pack_lbl: 'Flakon narxi',
+    prod_save: 'Saqlash',
+    prod_add_btn: "Qo'shish",
+    back_lbl: '← Orqaga',
+    excel_doctors: 'Shifokorlar eksporti',
+    excel_main: 'Excel formatida eksport',
+    new_product: 'Yangi dori',
+    pay_combine: 'Kombinatsiya',
+    pay_select_method: "To'lov usulini tanlang",
+    pay_amount_ph: 'Summa',
+    pay_total_inline: 'Jami:',
+    pay_saving: 'Saqlanmoqda...',
+    pay_save_btn: 'Saqlash',
+    pay_cancel_btn: 'Bekor qilish',
+    pay_method_btn: "To'lov usuli",
+    discount_badge: 'chegirma',
+    mkt_debt_title: 'Marketolog qarzi',
+    mkt_select_ph: 'Marketologni tanlang',
+    mkt_pay_label: "To'lov (Perechislenie XR)",
+    mkt_pay_btn: "To'lash",
+    mkt_select_hint: 'Marketologni tanlang',
+    catalog_btn: 'Katalog',
   }
 }
 
@@ -1926,6 +2021,23 @@ async function initBtsPickerMap(order) {
     attribution: '© Google Maps'
   }).addTo(btsPickerMapInstance)
 
+  // Customer delivery location marker (red pulsing dot)
+  if (order.latitude && order.longitude) {
+    const customerIcon = L.divIcon({
+      html: `<div style="position:relative;width:22px;height:22px">
+        <div style="position:absolute;inset:0;background:#ef4444;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.45)"></div>
+        <div style="position:absolute;inset:-5px;border:2px solid #ef4444;border-radius:50%;opacity:0.45"></div>
+      </div>`,
+      className: '',
+      iconAnchor: [11, 11],
+      iconSize: [22, 22],
+    })
+    L.marker([order.latitude, order.longitude], { icon: customerIcon, zIndexOffset: 1000 })
+      .addTo(btsPickerMapInstance)
+      .bindPopup(`<b>📍 ${txt.value.customer_location}</b><br><span style="font-size:12px">${order.delivery_address || `${order.latitude.toFixed(5)}, ${order.longitude.toFixed(5)}`}</span>`)
+      .openPopup()
+  }
+
   // If there's already a saved pin, show it
   if (btsPickedLat.value) {
     btsPickerMarker = L.marker([btsPickedLat.value, btsPickedLng.value], { draggable: true })
@@ -1983,12 +2095,14 @@ async function reverseGeocodeBts(lat, lng) {
   try {
     const ctrl = new AbortController()
     const tid = setTimeout(() => ctrl.abort(), 5000)
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ru`, { signal: ctrl.signal })
+    const res = await fetch(`https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}&lang=ru`, { signal: ctrl.signal })
     clearTimeout(tid)
-    const data = await res.json()
-    if (data?.display_name) {
-      const parts = data.display_name.split(',')
-      btsPickedLabel.value = parts.slice(0, 3).join(',').trim()
+    const gj = await res.json()
+    const feat = gj?.features?.[0]
+    if (feat) {
+      const p = feat.properties
+      const parts = [p.name, p.street && p.housenumber ? `${p.street} ${p.housenumber}` : (p.street || ''), p.city || p.town || p.village].filter(Boolean)
+      btsPickedLabel.value = parts.slice(0, 3).join(', ').trim() || `${lat.toFixed(5)}, ${lng.toFixed(5)}`
       if (btsPickerMarker) btsPickerMarker.bindPopup(btsPickedLabel.value).openPopup()
     } else {
       btsPickedLabel.value = `${lat.toFixed(5)}, ${lng.toFixed(5)}`
@@ -2050,7 +2164,7 @@ async function runBtsSearch() {
   btsSearchResults.value = []
   btsSearchError.value = ''
 
-  // Photon geocoder (komoot) — much better coverage of Uzbekistan than Nominatim
+  // Photon geocoder (komoot) — good coverage of Uzbekistan
   // Returns GeoJSON; we normalise to {lat, lon, display_name} for the dropdown
   function photonToResults(gj) {
     return (gj.features || []).map(f => {
@@ -2233,6 +2347,17 @@ const historyOrders = computed(() => {
   if (historyStatus.value !== 'all') list = list.filter(o => o.status === historyStatus.value)
   return list.filter(inPeriod)
 })
+
+function parseReceiptPaths(order) {
+  if (order.receipt_paths) {
+    try {
+      const arr = JSON.parse(order.receipt_paths)
+      if (Array.isArray(arr) && arr.length > 0) return arr
+    } catch {}
+  }
+  if (order.receipt_path) return [order.receipt_path]
+  return []
+}
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price || 0))

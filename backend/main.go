@@ -24,7 +24,15 @@ func main() {
 	}
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:  []string{"*"},
+		AllowOriginFunc: func(origin string) bool {
+			// Allow requests from the same host (HTTP and HTTPS) and from
+			// localhost variants used during development.
+			return origin == "" ||
+				origin == "http://localhost:5173" ||
+				origin == "http://localhost:3000" ||
+				origin == "http://127.0.0.1:5173" ||
+				origin == "http://127.0.0.1:3000"
+		},
 		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:  []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders: []string{"Content-Length"},
@@ -121,6 +129,8 @@ func main() {
 			orders.POST("", handlers.CreateOrder)
 			orders.GET("", handlers.GetUserOrders)
 			orders.POST("/:id/receipt", handlers.UploadOrderReceipt)
+			orders.POST("/:id/receipts", handlers.AddOrderReceipt) // split-payment: add another receipt photo
+			orders.PUT("/:id/location", handlers.UpdateOrderLocation) // correct delivery address while still pending
 			orders.DELETE("/:id/hide", handlers.HideUserOrder)
 		}
 

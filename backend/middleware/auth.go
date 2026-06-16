@@ -4,6 +4,7 @@ import (
 	"clinic-backend/config"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -14,6 +15,7 @@ func GenerateToken(id uint, role string) (string, error) {
 	claims := jwt.MapClaims{
 		"id":   id,
 		"role": role,
+		"exp":  time.Now().Add(30 * 24 * time.Hour).Unix(), // 30-day expiry
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(cfg.JWTSecret))

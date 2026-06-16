@@ -123,19 +123,6 @@ func DeleteProduct(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Препарат удален"})
 }
 
-func DeleteProductComment(c *gin.Context) {
-	id := c.Param("id")
-	var product models.Product
-	if err := database.DB.First(&product, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Препарат не найден"})
-		return
-	}
-	product.Description = ""
-	database.DB.Save(&product)
-	product.ComputePackPrice()
-	c.JSON(http.StatusOK, product)
-}
-
 func UploadProductImage(c *gin.Context) {
 	id := c.Param("id")
 	var product models.Product

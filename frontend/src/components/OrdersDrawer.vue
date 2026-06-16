@@ -208,20 +208,17 @@
             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <div v-if="btsMapLoading" class="flex-1 flex items-center justify-center gap-3 text-gray-500 text-sm min-h-[200px]">
-          <svg class="w-5 h-5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+        <iframe
+          v-if="btsGoogleMapUrl"
+          :src="btsGoogleMapUrl"
+          class="flex-1 min-h-0"
+          style="min-height:300px;width:100%;border:0"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
+        <div v-else class="flex-1 flex items-center justify-center text-gray-400 text-sm min-h-[200px]">
           {{ t.bts_route_building }}
-        </div>
-        <div v-else id="bts-route-map" class="flex-1 min-h-0" style="min-height:220px;width:100%"></div>
-        <div v-if="btsMapOrder && btsBranchFor(btsMapOrder)" class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-4 text-xs flex-shrink-0">
-          <div class="flex items-center gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-orange-500 flex-shrink-0"></span>
-            <span class="text-gray-600 font-medium">{{ t.bts_your_address }}</span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-blue-600 flex-shrink-0"></span>
-            <span class="text-gray-600 font-medium">{{ btsBranchFor(btsMapOrder)?.name }}</span>
-          </div>
         </div>
       </div>
     </div>
@@ -280,8 +277,7 @@ watch(() => ordersStore.isOpen, (val) => {
 // ===== BTS Route Map =====
 const btsMapOpen = ref(false)
 const btsMapOrder = ref(null)
-const btsMapLoading = ref(false)
-let btsMapInstance = null
+const btsGoogleMapUrl = ref('')
 
 function btsBranchFor(order) {
   // Prefer exact branch saved on order (has verified coordinates)
@@ -301,101 +297,25 @@ function btsBranchFor(order) {
 async function openBtsMap(order) {
   btsMapOrder.value = order
   btsMapOpen.value = true
-  btsMapLoading.value = true
-  await nextTick()
-  await initBtsMap(order)
+  const branch = btsBranchFor(order)
+  if (!branch) { btsGoogleMapUrl.value = ''; return }
+
+  const customerLat = order.latitude
+  const customerLng = order.longitude
+
+  if (customerLat && customerLng) {
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${customerLat},${customerLng}&daddr=${branch.lat},${branch.lng}&dirflg=d&output=embed`
+  } else if (order.delivery_address) {
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${encodeURIComponent(order.delivery_address)}&daddr=${branch.lat},${branch.lng}&dirflg=d&output=embed`
+  } else {
+    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${branch.lat},${branch.lng}&z=15&output=embed`
+  }
 }
 
 function closeBtsMap() {
   btsMapOpen.value = false
   btsMapOrder.value = null
-  btsMapLoading.value = false
-  if (btsMapInstance) { btsMapInstance.remove(); btsMapInstance = null }
-}
-
-async function initBtsMap(order) {
-  const branch = btsBranchFor(order)
-  if (!branch) { btsMapLoading.value = false; return }
-
-  // Get customer coordinates — use saved coords or geocode the address
-  let customerLat = order.latitude
-  let customerLng = order.longitude
-
-  if ((!customerLat || !customerLng) && order.delivery_address) {
-    try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(order.delivery_address)}&limit=1`
-      const geoCtrl = new AbortController(); setTimeout(() => geoCtrl.abort(), 8000)
-      const res = await fetch(url, { signal: geoCtrl.signal })
-      const data = await res.json()
-      if (data?.[0]) {
-        customerLat = parseFloat(data[0].lat)
-        customerLng = parseFloat(data[0].lon)
-      }
-    } catch { /* will show branch location only */ }
-  }
-
-  const L = await import('leaflet')
-  await import('leaflet/dist/leaflet.css')
-
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  })
-
-  btsMapLoading.value = false
-  await nextTick()
-
-  const mapEl = document.getElementById('bts-route-map')
-  if (!mapEl) return
-
-  // Center on BTS branch by default; if we have customer coords, center between them
-  const centerLat = customerLat ? (customerLat + branch.lat) / 2 : branch.lat
-  const centerLng = customerLng ? (customerLng + branch.lng) / 2 : branch.lng
-
-  btsMapInstance = L.map('bts-route-map').setView([centerLat, centerLng], customerLat ? 13 : 14)
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(btsMapInstance)
-
-  // Customer marker (orange) — where they are
-  if (customerLat && customerLng) {
-    const customerIcon = L.divIcon({
-      html: '<div style="background:#f97316;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #f97316"></div>',
-      className: '', iconSize: [14, 14], iconAnchor: [7, 7],
-    })
-    L.marker([customerLat, customerLng], { icon: customerIcon })
-      .addTo(btsMapInstance)
-      .bindPopup(`<b>Ваш адрес</b><br>${order.delivery_address || ''}`)
-  }
-
-  // BTS branch marker (blue) — where to go
-  const btsIcon = L.divIcon({
-    html: '<div style="background:#2563eb;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px #2563eb"></div>',
-    className: '', iconSize: [18, 18], iconAnchor: [9, 9],
-  })
-  L.marker([branch.lat, branch.lng], { icon: btsIcon })
-    .addTo(btsMapInstance)
-    .bindPopup(`<b>${branch.name}</b><br>${branch.address || ''}`)
-    .openPopup()
-
-  // OSRM road route: customer → BTS branch
-  if (customerLat && customerLng) {
-    try {
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${customerLng},${customerLat};${branch.lng},${branch.lat}?overview=full&geometries=geojson`
-      const osrmCtrl = new AbortController(); setTimeout(() => osrmCtrl.abort(), 8000)
-      const res = await fetch(osrmUrl, { signal: osrmCtrl.signal })
-      const data = await res.json()
-      if (data.code === 'Ok' && data.routes?.[0]) {
-        const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng])
-        L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(btsMapInstance)
-      } else throw new Error('no route')
-    } catch {
-      L.polyline([[customerLat, customerLng], [branch.lat, branch.lng]], { color: '#2563eb', weight: 3, dashArray: '8 5', opacity: 0.8 }).addTo(btsMapInstance)
-    }
-    btsMapInstance.fitBounds([[customerLat, customerLng], [branch.lat, branch.lng]], { padding: [40, 40] })
-  }
+  btsGoogleMapUrl.value = ''
 }
 
 async function confirmHide(order) {

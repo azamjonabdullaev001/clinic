@@ -93,7 +93,6 @@ func UpdateOrderItems(c *gin.Context) {
 		return
 	}
 
-
 	productCache := map[uint]models.Product{}
 	getProduct := func(tx *gorm.DB, id uint) (models.Product, bool) {
 		if p, ok := productCache[id]; ok {
@@ -471,7 +470,7 @@ func UpdateBtsInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "BTS информация обновлена"})
 }
 
-// UpdateOrderNotes saves a worker note on an order. The note is visible to the customer.
+// UpdateOrderPayment updates the payment method and card type on an order.
 func UpdateOrderPayment(c *gin.Context) {
 	id := c.Param("id")
 	var body struct {

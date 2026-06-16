@@ -384,7 +384,7 @@ async function loadOrders() {
   try {
     const res = await api.get('/nurse/orders')
     myOrders.value = res.data || []
-  } catch (e) { console.error(e) }
+  } catch { /* ignore network errors; UI shows stale data */ }
 }
 
 async function loadProducts() {
@@ -394,7 +394,7 @@ async function loadProducts() {
     for (const p of products.value) {
       p.price_per_pack = p.price_per_pill * p.quantity_per_pack
     }
-  } catch (e) { console.error(e) }
+  } catch { /* ignore network errors; UI shows stale data */ }
 }
 
 function logout() {
