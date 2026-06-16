@@ -150,6 +150,10 @@
               {{ txt.refresh }}
             </button>
           </div>
+          <div v-if="ordersLoadError" class="mx-4 mt-3 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 text-sm text-red-700 font-medium flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {{ ordersLoadError }}
+          </div>
           <div v-if="onlineOrders.length === 0" class="flex flex-col items-center justify-center py-16 text-gray-400">
             <svg class="w-14 h-14 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -1919,10 +1923,16 @@ async function saveBtsInfo(order) {
       branch_lat: state.pinLat,
       branch_lng: state.pinLng,
     })
-    order.bts_tracking_number = state.trackingNumber
-    order.bts_pickup_point = state.pinLabel
-    order.bts_branch_lat = state.pinLat
-    order.bts_branch_lng = state.pinLng
+    const idx = orders.value.findIndex(o => o.id === order.id)
+    if (idx !== -1) {
+      orders.value[idx] = {
+        ...orders.value[idx],
+        bts_tracking_number: state.trackingNumber,
+        bts_pickup_point: state.pinLabel,
+        bts_branch_lat: state.pinLat,
+        bts_branch_lng: state.pinLng,
+      }
+    }
     state.open = false
     // Persist the pickup point for future orders
     const newPt = { label: state.pinLabel, lat: state.pinLat, lng: state.pinLng }
@@ -2411,11 +2421,18 @@ function statusClass(status) {
   return m[status] || 'bg-gray-100 text-gray-700'
 }
 
+const ordersLoadError = ref('')
 async function loadOrders() {
+  ordersLoadError.value = ''
   try {
     const res = await api.get('/pickup/orders')
     orders.value = res.data || []
-  } catch (e) { console.error(e) }
+  } catch (e) {
+    ordersLoadError.value = lang.value === 'uz'
+      ? 'Buyurtmalarni yuklashda xatolik. Sahifani yangilang.'
+      : 'Ошибка загрузки заказов. Обновите страницу.'
+    console.error(e)
+  }
 }
 
 // ===== Nurse order (5-digit) =====

@@ -260,7 +260,7 @@ async function loadOrders() {
     const res = await api.get('/orders')
     orders.value = res.data || []
   } catch (e) {
-    orders.value = []
+    // keep existing orders visible; don't wipe list on network error
   } finally {
     loading.value = false
   }

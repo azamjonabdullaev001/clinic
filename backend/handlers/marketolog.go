@@ -92,6 +92,17 @@ func AddMarketologPayment(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Укажите сумму оплаты"})
 		return
 	}
+	// Verify target is actually a manager/marketolog worker
+	var target models.Worker
+	if err := database.DB.First(&target, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Маркетолог не найден"})
+		return
+	}
+	if target.Role != "manager" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Выплаты доступны только для менеджеров"})
+		return
+	}
+
 	var workerIDPtr *uint
 	if wid, ok := c.Get("workerID"); ok {
 		if w, ok := wid.(uint); ok {
