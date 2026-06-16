@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // decrementStockForOrder reduces product stock_quantity when an order is delivered.
@@ -20,13 +21,9 @@ func decrementStockForOrder(order models.Order) {
 			continue
 		}
 		pieces := pieceCount(product, item.Quantity, item.UnitType)
-		newStock := product.StockQuantity - pieces
-		if newStock < 0 {
-			newStock = 0
-		}
 		database.DB.Model(&models.Product{}).Where("id = ?", item.ProductID).
-			Update("stock_quantity", newStock)
-		BroadcastStock(item.ProductID, newStock)
+			UpdateColumn("stock_quantity", gorm.Expr("GREATEST(stock_quantity - ?, 0)", pieces))
+		broadcastProductStock(item.ProductID)
 	}
 }
 

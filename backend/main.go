@@ -14,6 +14,10 @@ import (
 func main() {
 	cfg := config.Load()
 
+	if cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET environment variable must be set")
+	}
+
 	database.Connect(cfg)
 	database.Migrate()
 	database.SeedAdmin(cfg)

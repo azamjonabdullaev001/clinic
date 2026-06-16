@@ -30,7 +30,7 @@ func GetGlobalStock(c *gin.Context) {
 
 type AddStockInput struct {
 	ProductID uint   `json:"product_id" binding:"required"`
-	Quantity  int    `json:"quantity" binding:"required"`
+	Quantity  int    `json:"quantity" binding:"required,min=1"`
 	UnitType  string `json:"unit_type"` // "pack" (capsules) or "piece"
 }
 
@@ -58,17 +58,15 @@ func AddProductStock(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Товар не найден"})
 		return
 	}
-	newQty := product.StockQuantity + pieceCount(product, input.Quantity, input.UnitType)
-	if newQty < 0 {
-		newQty = 0
-	}
+	pieces := pieceCount(product, input.Quantity, input.UnitType)
 	if err := database.DB.Model(&models.Product{}).Where("id = ?", product.ID).
-		Update("stock_quantity", newQty).Error; err != nil {
+		UpdateColumn("stock_quantity", gorm.Expr("stock_quantity + ?", pieces)).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении склада"})
 		return
 	}
-	BroadcastStock(product.ID, newQty)
-	c.JSON(http.StatusOK, gin.H{"product_id": product.ID, "quantity": newQty})
+	database.DB.First(&product, product.ID)
+	BroadcastStock(product.ID, product.StockQuantity)
+	c.JSON(http.StatusOK, gin.H{"product_id": product.ID, "quantity": product.StockQuantity})
 }
 
 // reserveProductStock checks the shared warehouse has enough pieces for each item

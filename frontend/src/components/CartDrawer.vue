@@ -409,13 +409,13 @@
 
     <!-- ===== CHECKOUT MODAL ===== -->
     <div v-if="showCheckout" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
-      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showCheckout = false"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeCheckout()"></div>
       <div class="relative bg-white w-full sm:max-w-lg sm:mx-4 rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
 
         <!-- Modal Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white rounded-t-3xl z-10">
           <h3 class="text-lg font-bold text-stone-900">{{ t.checkout_title }}</h3>
-          <button @click="showCheckout = false" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
+          <button @click="closeCheckout()" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
             <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -715,7 +715,7 @@
         <div id="edit-location-map" class="w-full rounded-2xl overflow-hidden border border-stone-200 mb-3" style="height: 280px;"></div>
         <p v-if="editLocError" class="text-xs text-red-500 mb-3">{{ editLocError }}</p>
         <div class="flex gap-2">
-          <button @click="closeEditLocation" class="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-50 transition">{{ t.checkout_cancel || 'Отмена' }}</button>
+          <button @click="closeEditLocation" class="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-50 transition">{{ t.checkout_cancel }}</button>
           <button @click="saveEditLocation" :disabled="editLocSaving || !editLocLat" class="flex-1 btn-primary py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
             {{ editLocSaving ? t.save_location_saving : t.save_location_btn }}
           </button>
@@ -743,12 +743,14 @@ const t = computed(() => langStore.t)
 // Tabs
 const activeTab = ref('cart')
 
+let markNotesSeenTimer = null
 function switchTab(tab) {
   activeTab.value = tab
   if (tab === 'orders') {
     loadOrders()
     ordersTabQrFailed.value = false
-    setTimeout(markNotesSeen, 1500) // mark notes as seen after 1.5s of viewing
+    clearTimeout(markNotesSeenTimer)
+    markNotesSeenTimer = setTimeout(markNotesSeen, 1500)
   }
 }
 
@@ -916,9 +918,6 @@ function closeOrderMap() {
 
 // Online payment (QR + receipt) flow
 const paymentStage = ref('pay')      // 'pay' -> 'done'
-const paymentQrUrl = ref('')
-const qrLoading = ref(false)
-const qrLoadingError = ref('')
 const currentOrderId = ref(null)
 const receiptFiles = ref([])
 const receiptPreviews = ref([])
@@ -1134,39 +1133,11 @@ function onReceiptSelect(e) {
   receiptPreviews.value = receiptFiles.value.map(f => URL.createObjectURL(f))
 }
 
-// Load QR with error handling
-async function loadPaymentQR() {
-  qrLoading.value = true
-  qrLoadingError.value = ''
-  try {
-    const res = await api.get('/settings/payment-qr')
-    if (res.data?.url) {
-      paymentQrUrl.value = res.data.url
-      qrLoadingError.value = ''
-    } else {
-      qrLoadingError.value = t.value.payment_qr_not_configured
-    }
-  } catch (e) {
-    qrLoadingError.value = 'Не удалось загрузить QR-код. Проверьте соединение.'
-    paymentQrUrl.value = ''
-  } finally {
-    qrLoading.value = false
-  }
-}
-
-function handleQRLoadError() {
-  qrLoadingError.value = 'Ошибка загрузки изображения QR-кода'
-  paymentQrUrl.value = ''
-}
-
-function retryLoadQR() {
-  loadPaymentQR()
-}
 
 async function confirmOrderPayment() {
   if (!receiptFiles.value.length || !currentOrderId.value) return
   paymentError.value = ''
-  confirmingOrder.value = true
+  confirmingOrder.value = true  // set before try so finally always resets it
   try {
     const fd = new FormData()
     fd.append('receipt', receiptFiles.value[0])
@@ -1294,6 +1265,11 @@ function destroyMap() {
     leafletMap = null
     leafletMarker = null
   }
+}
+
+function closeCheckout() {
+  destroyMap()
+  showCheckout.value = false
 }
 
 async function toggleMap() {
@@ -1431,6 +1407,10 @@ async function submitOrder() {
 
 onUnmounted(() => {
   destroyMap()
+  if (editLocMap) { editLocMap.remove(); editLocMap = null }
+  clearTimeout(markNotesSeenTimer)
+  clearInterval(receiptCooldownTimer)
+  Object.values(ordersTabCooldownTimers).forEach(clearInterval)
 })
 
 function showOrders() {

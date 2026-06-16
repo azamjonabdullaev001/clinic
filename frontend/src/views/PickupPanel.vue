@@ -1088,8 +1088,8 @@
           </div>
         </div>
 
-        <!-- Top-30 most recent orders (offline tab) — any type: online, offline, own patient -->
-        <div v-if="tab === 'offline'" class="mt-6 bg-white rounded-xl shadow-sm overflow-hidden">
+        <!-- Top-30 most recent orders — any type: online, offline, own patient -->
+        <div class="mt-6 bg-white rounded-xl shadow-sm overflow-hidden">
           <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
             <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <h3 class="font-semibold text-gray-800">{{ txt.recent_30 }}</h3>
@@ -1363,7 +1363,6 @@ const router = useRouter()
 const { night, toggle: toggleNight } = useNight()
 
 const lang = ref(localStorage.getItem('pickupLang') || 'ru')
-const watchLang = () => { localStorage.setItem('pickupLang', lang.value) }
 
 const texts = {
   ru: {
@@ -1846,7 +1845,8 @@ const texts = {
   }
 }
 
-const txt = computed(() => { watchLang(); return texts[lang.value] || texts.ru })
+const txt = computed(() => texts[lang.value] || texts.ru)
+watch(lang, (v) => localStorage.setItem('pickupLang', v), { immediate: true })
 
 const tabTitle = computed(() => {
   const t = txt.value

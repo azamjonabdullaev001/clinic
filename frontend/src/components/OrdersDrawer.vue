@@ -355,7 +355,7 @@ function orderTotal(order) {
 
 function statusLabel(status) {
   const map = {
-    awaiting_payment: 'Ожидает оплаты',
+    awaiting_payment: t.value.status_awaiting_payment,
     pending: t.value.status_pending,
     in_transit: t.value.status_in_transit,
     delivered: t.value.status_delivered,

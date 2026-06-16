@@ -395,6 +395,10 @@ func DeletePickupOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Заказ уже удалён"})
 		return
 	}
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
+		return
+	}
 
 	var input struct {
 		Reason string `json:"reason"`
@@ -457,6 +461,10 @@ func UpdateBtsInfo(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
 		return
 	}
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
+		return
+	}
 
 	updates := map[string]interface{}{
 		"bts_tracking_number": body.TrackingNumber,
@@ -487,6 +495,10 @@ func UpdateOrderPayment(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
 		return
 	}
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
+		return
+	}
 	database.DB.Model(&order).Updates(map[string]interface{}{
 		"payment_method": body.PaymentMethod,
 		"card_type":      body.CardType,
@@ -508,6 +520,10 @@ func UpdateOrderNotes(c *gin.Context) {
 	var order models.Order
 	if err := database.DB.First(&order, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+		return
+	}
+	if wid, ok := c.Get("workerID"); ok && order.WorkerID != nil && *order.WorkerID != wid.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Этот заказ оформил другой кассир"})
 		return
 	}
 	database.DB.Model(&order).Update("worker_notes", body.Notes)

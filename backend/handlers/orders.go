@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -472,8 +473,12 @@ func UploadOrderReceipt(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 10MB)"})
 		return
 	}
-	if !strings.Contains(file.Header.Get("Content-Type"), "image/") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением"})
+	allowedReceiptTypes := map[string]string{
+		"image/jpeg": ".jpg", "image/jpg": ".jpg",
+		"image/png": ".png", "image/gif": ".gif", "image/webp": ".webp",
+	}
+	if _, ok := allowedReceiptTypes[file.Header.Get("Content-Type")]; !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением (jpg/png/gif/webp)"})
 		return
 	}
 
@@ -485,11 +490,15 @@ func UploadOrderReceipt(c *gin.Context) {
 
 	makeReceiptPath := func(f *multipart.FileHeader, idx int) (string, bool) {
 		ts := fmt.Sprintf("%d", time.Now().UnixNano())
-		rawExt := strings.ToLower(strings.Split(f.Filename, ".")[len(strings.Split(f.Filename, "."))-1])
-		if rawExt == "" || len(rawExt) > 5 {
-			rawExt = "jpg"
+		ct := f.Header.Get("Content-Type")
+		ext := allowedReceiptTypes[ct]
+		if ext == "" {
+			ext = strings.ToLower(filepath.Ext(f.Filename))
+			if ext == "" || len(ext) > 6 {
+				ext = ".jpg"
+			}
 		}
-		fname := fmt.Sprintf("%d-%s-%d.%s", order.ID, ts, idx, rawExt)
+		fname := fmt.Sprintf("%d-%s-%d%s", order.ID, ts, idx, ext)
 		fpath := fmt.Sprintf("%s/%s", uploadsDir, fname)
 		if err := c.SaveUploadedFile(f, fpath); err != nil {
 			return "", false
@@ -585,13 +594,21 @@ func AddOrderReceipt(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл чека не найден"})
 		return
 	}
-	if file.Size > 5*1024*1024 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 5MB)"})
+	if file.Size > 10*1024*1024 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл слишком большой (максимум 10MB)"})
 		return
 	}
-	if !strings.Contains(file.Header.Get("Content-Type"), "image/") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением"})
-		return
+	addReceiptTypes := map[string]string{
+		"image/jpeg": ".jpg", "image/jpg": ".jpg",
+		"image/png": ".png", "image/gif": ".gif", "image/webp": ".webp",
+	}
+	addExt, typeOk := addReceiptTypes[file.Header.Get("Content-Type")]
+	if !typeOk {
+		addExt = strings.ToLower(filepath.Ext(file.Filename))
+		if addExt == "" || len(addExt) > 6 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Файл должен быть изображением (jpg/png/gif/webp)"})
+			return
+		}
 	}
 
 	uploadsDir := "uploads/receipts"
@@ -600,12 +617,7 @@ func AddOrderReceipt(c *gin.Context) {
 		return
 	}
 
-	timestamp := fmt.Sprintf("%d", time.Now().Unix())
-	ext := strings.ToLower(strings.Split(file.Filename, ".")[len(strings.Split(file.Filename, "."))-1])
-	if ext == "" || len(ext) > 5 {
-		ext = "jpg"
-	}
-	filename := fmt.Sprintf("%d-%s.%s", order.ID, timestamp, ext)
+	filename := fmt.Sprintf("%d-%d%s", order.ID, time.Now().UnixNano(), addExt)
 	fpath := fmt.Sprintf("%s/%s", uploadsDir, filename)
 
 	if err := c.SaveUploadedFile(file, fpath); err != nil {

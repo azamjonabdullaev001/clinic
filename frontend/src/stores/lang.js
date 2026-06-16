@@ -259,6 +259,7 @@ const translations = {
     checkout_confirming: 'Оформление...',
 
     // Payment stage
+    checkout_cancel: 'Отмена',
     payment_title: 'Оплата заказа',
     payment_subtitle: 'Отсканируйте QR-код и подтвердите оплату',
     payment_qr_hint: 'Для оплаты отсканируйте QR-код на платформе Click',
@@ -563,6 +564,7 @@ const translations = {
     checkout_confirming: "Rasmiylashtirish...",
 
     // Payment stage
+    checkout_cancel: 'Bekor qilish',
     payment_title: "Buyurtmani to'lash",
     payment_subtitle: "QR-kodni skanerlang va to'lovni tasdiqlang",
     payment_qr_hint: "To'lash uchun Click platformasida QR-kodni skanerlang",
