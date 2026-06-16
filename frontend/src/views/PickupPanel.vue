@@ -2323,10 +2323,8 @@ function inPeriod(order) {
   return true
 }
 
-// Top-30 most recent orders, excluding fully returned ones
 const recent30Orders = computed(() => {
   return [...orders.value]
-    .filter(o => !o.is_returned)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 30)
 })
@@ -2340,7 +2338,7 @@ const offlineOrders = computed(() =>
 )
 
 const historyOrders = computed(() => {
-  let list = orders.value.filter(o => !o.is_returned)
+  let list = [...orders.value]
   if (historyType.value === 'online') list = list.filter(o => !o.is_offline)
   else if (historyType.value === 'offline') list = list.filter(o => o.is_offline)
   else if (historyType.value === 'vip') list = list.filter(o => o.is_vip)
