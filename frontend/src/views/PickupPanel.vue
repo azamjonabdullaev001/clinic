@@ -2309,7 +2309,6 @@ const statusFilters = computed(() => [
   { label: txt.value.status_pending, value: 'pending' },
   { label: txt.value.status_in_transit, value: 'in_transit' },
   { label: txt.value.status_delivered, value: 'delivered' },
-  { label: txt.value.status_cancelled, value: 'cancelled' },
 ])
 
 function inPeriod(order) {
@@ -2325,6 +2324,7 @@ function inPeriod(order) {
 
 const recent30Orders = computed(() => {
   return [...orders.value]
+    .filter(o => o.status !== 'cancelled')
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 30)
 })
@@ -2338,7 +2338,7 @@ const offlineOrders = computed(() =>
 )
 
 const historyOrders = computed(() => {
-  let list = [...orders.value]
+  let list = orders.value.filter(o => o.status !== 'cancelled')
   if (historyType.value === 'online') list = list.filter(o => !o.is_offline)
   else if (historyType.value === 'offline') list = list.filter(o => o.is_offline)
   else if (historyType.value === 'vip') list = list.filter(o => o.is_vip)
