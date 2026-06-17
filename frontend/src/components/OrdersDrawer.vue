@@ -186,52 +186,14 @@
         </div>
       </div>
     </div>
-
-    <!-- BTS Route Map Modal -->
-    <div v-if="btsMapOpen" class="fixed inset-0 z-[300] flex items-center justify-center">
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeBtsMap"></div>
-      <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col" style="max-height:90vh">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-white flex-shrink-0">
-          <div>
-            <h3 class="text-base font-bold text-gray-900">{{ t.bts_route_title }}</h3>
-            <p v-if="btsMapOrder" class="text-xs text-gray-500 mt-0.5">{{ btsMapOrder.order_code }} → {{ btsMapOrder.bts_pickup_point || t.bts_pickup_point_label }}</p>
-          </div>
-          <button @click="closeBtsMap" class="p-2 hover:bg-gray-100 rounded-xl transition">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <iframe
-          v-if="btsGoogleMapUrl"
-          :src="btsGoogleMapUrl"
-          class="flex-1 min-h-0"
-          style="min-height:300px;width:100%;border:0"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          allowfullscreen
-        ></iframe>
-        <div v-else class="flex-1 flex items-center justify-center text-gray-400 text-sm min-h-[200px]">
-          {{ t.bts_route_building }}
-        </div>
-      </div>
-    </div>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useOrdersStore } from '../stores/orders'
 import { useLangStore } from '../stores/lang'
 import { api } from '../stores/auth'
-import { detectBtsBranch } from '../config/btsBranches'
-
-// BTS branches loaded from API
-const btsBranches = ref([])
-async function loadBtsBranches() {
-  try {
-    const res = await api.get('/bts-branches')
-    btsBranches.value = res.data || []
-  } catch { /* non-critical */ }
-}
 
 const ordersStore = useOrdersStore()
 const langStore = useLangStore()
@@ -261,54 +223,9 @@ async function loadOrders() {
 watch(() => ordersStore.isOpen, (val) => {
   if (val) {
     loadOrders()
-    loadBtsBranches()
     qrImgFailed.value = false
   }
 })
-
-// ===== BTS Route Map =====
-const btsMapOpen = ref(false)
-const btsMapOrder = ref(null)
-const btsGoogleMapUrl = ref('')
-
-function btsBranchFor(order) {
-  // Prefer exact branch saved on order (has verified coordinates)
-  if (order.bts_branch_lat && order.bts_branch_lng) {
-    return {
-      name: order.bts_pickup_point || 'БТС пункт выдачи',
-      address: '',
-      lat: order.bts_branch_lat,
-      lng: order.bts_branch_lng,
-      city: '',
-    }
-  }
-  // Fall back to API-configured branch matched by delivery address
-  return detectBtsBranch(order.delivery_address, btsBranches.value)
-}
-
-async function openBtsMap(order) {
-  btsMapOrder.value = order
-  btsMapOpen.value = true
-  const branch = btsBranchFor(order)
-  if (!branch) { btsGoogleMapUrl.value = ''; return }
-
-  const customerLat = order.latitude
-  const customerLng = order.longitude
-
-  if (customerLat && customerLng) {
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${customerLat},${customerLng}&daddr=${branch.lat},${branch.lng}&dirflg=d&output=embed`
-  } else if (order.delivery_address) {
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${encodeURIComponent(order.delivery_address)}&daddr=${branch.lat},${branch.lng}&dirflg=d&output=embed`
-  } else {
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${branch.lat},${branch.lng}&z=15&output=embed`
-  }
-}
-
-function closeBtsMap() {
-  btsMapOpen.value = false
-  btsMapOrder.value = null
-  btsGoogleMapUrl.value = ''
-}
 
 async function confirmHide(order) {
   if (!confirm(`Удалить заказ #${order.order_code} из истории?`)) return
