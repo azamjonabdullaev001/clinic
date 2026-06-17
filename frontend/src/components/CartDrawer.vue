@@ -230,7 +230,7 @@
               </div>
 
               <!-- Delivery location map + change location for pending orders -->
-              <div v-if="order.latitude && order.longitude || order.delivery_address" class="px-4 py-3 border-t border-stone-100 flex flex-col gap-2">
+              <div v-if="(order.status === 'pending' || order.status === 'awaiting_payment') && (order.latitude && order.longitude || order.delivery_address)" class="px-4 py-3 border-t border-stone-100 flex flex-col gap-2">
                 <button @click="openOrderMap(order)" class="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition">
                   <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   {{ t.delivery_map_link }}
@@ -251,31 +251,24 @@
                 <p class="text-sm whitespace-pre-wrap leading-relaxed" :class="isNoteUnread(order) ? 'text-red-900 font-medium' : 'text-indigo-900'">{{ order.worker_notes }}</p>
               </div>
 
-              <!-- BTS cargo info -->
-              <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 my-2 rounded-2xl overflow-hidden border border-blue-200 shadow-sm">
-                <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-3 py-2 flex items-center gap-2">
-                  <svg class="w-4 h-4 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                  <span class="text-xs font-bold text-white tracking-wide">{{ t.bts_cargo_label }}</span>
-                  <span class="ml-auto text-[10px] text-blue-200 font-medium">{{ t.bts_in_transit }}</span>
+              <!-- Status notification banners -->
+              <div v-if="order.status === 'in_transit'" class="mx-4 mb-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+                <div class="flex items-center gap-2 mb-1">
+                  <svg class="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
+                  </svg>
+                  <p class="text-sm font-semibold text-orange-800">{{ t.bts_cargo_label }}</p>
                 </div>
-                <div class="bg-blue-50 px-3 py-2.5 space-y-1.5">
-                  <div v-if="order.bts_pickup_point" class="flex items-start gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                    <p class="text-xs text-blue-900 font-semibold leading-snug">{{ order.bts_pickup_point }}</p>
-                  </div>
-                  <div v-if="order.bts_tracking_number" class="flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    <p class="text-xs text-blue-700 font-mono">{{ order.bts_tracking_number }}</p>
-                  </div>
-                  <button
-                    v-if="order.bts_branch_lat && order.bts_branch_lng"
-                    @click="openBtsMap(order)"
-                    class="w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-xl hover:bg-blue-700 transition mt-1"
-                  >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                    {{ t.bts_map_btn }}
-                  </button>
+                <p class="text-xs text-orange-600 leading-relaxed">{{ t.bts_sms_notify }}</p>
+              </div>
+              <div v-else-if="order.status === 'delivered'" class="mx-4 mb-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                <div class="flex items-center gap-2 mb-1">
+                  <svg class="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <p class="text-sm font-semibold text-green-800">{{ t.status_delivered }} 🎉</p>
                 </div>
+                <p class="text-xs text-green-600 leading-relaxed">{{ t.bts_arrived_notify }}</p>
               </div>
 
               <!-- Delete from history button (all orders) -->
@@ -320,19 +313,6 @@
                       <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
                     </div>
                   </div>
-                  <!-- BTS info visible even after cancellation -->
-                  <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mt-2 pt-2 border-t border-red-100">
-                    <div class="rounded-xl overflow-hidden border border-blue-200 opacity-80">
-                      <div class="bg-gradient-to-r from-blue-500 to-blue-400 px-3 py-1.5 flex items-center gap-2">
-                        <svg class="w-3.5 h-3.5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                        <span class="text-xs font-bold text-white">{{ t.bts_cargo_label }}</span>
-                      </div>
-                      <div class="bg-blue-50 px-3 py-2 space-y-1">
-                        <p v-if="order.bts_pickup_point" class="text-xs text-blue-900 font-medium">📍 {{ order.bts_pickup_point }}</p>
-                        <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 font-mono">{{ order.bts_tracking_number }}</p>
-                      </div>
-                    </div>
-                  </div>
                   <div v-if="order.cancellation_reason" class="mt-3 pt-3 border-t border-red-200">
                     <p class="text-xs font-semibold text-red-600">{{ t.cancellation_reason }}:</p>
                     <p class="text-xs text-red-500 mt-1">{{ order.cancellation_reason }}</p>
@@ -373,36 +353,6 @@
         <div v-else class="flex-1 flex items-center justify-center text-stone-400 text-sm min-h-[200px]">Адрес не указан</div>
         <div class="px-6 py-3 border-t border-stone-100 bg-stone-50 text-xs text-stone-500">
           <span v-if="selectedOrderForMap?.delivery_address">📍 {{ selectedOrderForMap.delivery_address }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== BTS MAP MODAL ===== -->
-    <div v-if="showBtsMap" class="fixed inset-0 z-[76] flex items-center justify-center">
-      <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeBtsMap"></div>
-      <div class="relative bg-white rounded-3xl p-0 max-w-2xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-white">
-          <div>
-            <h3 class="text-lg font-bold text-stone-900">{{ t.bts_cargo_label }}</h3>
-            <p class="text-xs text-stone-400 mt-0.5">{{ btsMapOrder?.order_code }}</p>
-          </div>
-          <button @click="closeBtsMap" class="p-2 hover:bg-stone-100 rounded-xl transition-colors">
-            <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <iframe
-          v-if="btsGoogleMapUrl"
-          :src="btsGoogleMapUrl"
-          class="flex-1 min-h-0"
-          style="min-height:220px;width:100%;border:0"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          allowfullscreen
-        ></iframe>
-        <div v-if="btsMapOrder" class="px-5 py-3 bg-blue-50 border-t border-blue-100 text-xs text-blue-800">
-          📍 {{ btsMapOrder.bts_pickup_point || t.bts_pickup_point_label }}<span v-if="btsMapOrder.bts_tracking_number"> · {{ t.bts_track_info }}: {{ btsMapOrder.bts_tracking_number }}</span>
         </div>
       </div>
     </div>
@@ -834,11 +784,6 @@ const showOrderMap = ref(false)
 const selectedOrderForMap = ref(null)
 const orderGoogleMapUrl = ref('')
 
-// BTS Map
-const showBtsMap = ref(false)
-const btsMapOrder = ref(null)
-const btsGoogleMapUrl = ref('')
-
 async function confirmHide(order) {
   if (!confirm('Удалить этот заказ из истории?')) return
   try {
@@ -848,31 +793,6 @@ async function confirmHide(order) {
     alert(err.response?.data?.error || 'Ошибка')
   }
 }
-
-function openBtsMap(order) {
-  btsMapOrder.value = order
-  const btsLat = order.bts_branch_lat
-  const btsLng = order.bts_branch_lng
-  const customerLat = order.latitude
-  const customerLng = order.longitude
-
-  if (btsLat && btsLng && customerLat && customerLng) {
-    // Route from customer delivery location → BTS pickup point
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?saddr=${customerLat},${customerLng}&daddr=${btsLat},${btsLng}&dirflg=d&output=embed`
-  } else if (btsLat && btsLng) {
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${btsLat},${btsLng}&z=16&output=embed`
-  } else {
-    btsGoogleMapUrl.value = `https://maps.google.com/maps?q=${encodeURIComponent(order.bts_pickup_point || 'Uzbekistan')}&output=embed`
-  }
-  showBtsMap.value = true
-}
-
-function closeBtsMap() {
-  showBtsMap.value = false
-  btsMapOrder.value = null
-  btsGoogleMapUrl.value = ''
-}
-
 
 // Receipt upload from orders tab
 const ordersTabReceiptInputs = ref({})
