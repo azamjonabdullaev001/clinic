@@ -2677,10 +2677,12 @@ async function savePayEdit(order) {
       cardType = paymentMethod
       paymentMethod = 'card'
     }
-    await api.put(`/pickup/orders/${order.id}/payment`, { payment_method: paymentMethod, card_type: cardType, payment_splits: paymentSplits })
+    const res = await api.put(`/pickup/orders/${order.id}/payment`, { payment_method: paymentMethod, card_type: cardType, payment_splits: paymentSplits })
+    const idx = orders.value.findIndex(o => o.id === order.id)
+    if (idx !== -1) orders.value[idx] = { ...orders.value[idx], ...res.data }
     delete payEdit.value[order.id]
   } catch (err) {
-    console.error(err)
+    alert(err.response?.data?.error || 'Ошибка при сохранении способа оплаты')
   } finally {
     if (payEdit.value[order.id]) payEdit.value[order.id].saving = false
   }

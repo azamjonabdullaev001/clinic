@@ -504,8 +504,10 @@ func UpdateOrderPayment(c *gin.Context) {
 		"card_type":      body.CardType,
 		"payment_splits": body.PaymentSplits,
 	})
+	// Re-fetch so the returned struct reflects the saved values
+	database.DB.Preload("Items.Product").Preload("User").First(&order, id)
 	BroadcastOrders()
-	c.JSON(http.StatusOK, gin.H{"message": "Способ оплаты обновлён"})
+	c.JSON(http.StatusOK, order)
 }
 
 func UpdateOrderNotes(c *gin.Context) {
