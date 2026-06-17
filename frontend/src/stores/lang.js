@@ -168,8 +168,8 @@ const translations = {
     orders_code: 'Код заказа',
     status_pending: 'Ожидает',
     status_awaiting_payment: 'Ожидает оплаты',
-    status_in_transit: 'В пути',
-    status_delivered: 'Выдано',
+    status_in_transit: 'Передан в BTS',
+    status_delivered: 'Доставлен',
     status_cancelled: 'Отменено',
     status_edited: 'Редактировано',
     status_deleted: 'Удалено',
@@ -301,7 +301,7 @@ const translations = {
 
     // Cart drawer hardcoded strings
     worker_msg_title: 'Сообщение от менеджера',
-    bts_in_transit: '● В пути',
+    bts_in_transit: '● Передан в BTS',
     bts_map_btn: 'Показать на карте',
     bts_cargo_label: 'БТС Карго',
     bts_pickup_point_label: 'Пункт выдачи БТС',
@@ -473,8 +473,8 @@ const translations = {
     orders_code: 'Buyurtma kodi',
     status_pending: 'Kutilmoqda',
     status_awaiting_payment: 'To\'lovni kutilmoqda',
-    status_in_transit: 'Yo\'lda',
-    status_delivered: 'Berildi',
+    status_in_transit: 'BTS ga topshirildi',
+    status_delivered: 'Yetkazildi',
     status_cancelled: 'Bekor qilindi',
     status_edited: 'Tahrirlangan',
     status_deleted: 'O\'chirilgan',
@@ -606,7 +606,7 @@ const translations = {
 
     // Cart drawer hardcoded strings
     worker_msg_title: "Menejer xabari",
-    bts_in_transit: '● Yetkazilmoqda',
+    bts_in_transit: '● BTS ga topshirildi',
     bts_map_btn: "Xaritada ko'rsatish",
     bts_cargo_label: 'BTS Kargo',
     bts_pickup_point_label: "BTS yetkazib berish nuqtasi",

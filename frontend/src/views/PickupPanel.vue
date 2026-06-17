@@ -1183,19 +1183,12 @@
         <h3 class="text-lg font-bold text-gray-800">{{ txt.choose_payment }}</h3>
         <p v-if="payOrder" class="text-emerald-700 font-bold mt-2">{{ formatPrice(orderTotal(payOrder)) }} {{ txt.sum }}</p>
       </div>
-      <div v-if="!payCardStep" class="grid gap-2">
+      <div class="grid gap-2">
         <button v-for="pm in paymentMethods" :key="pm.value"
-          @click="pm.value === 'card' ? (payCardStep = true) : confirmPayment(pm.value)" :disabled="paySubmitting"
+          @click="confirmPayment(pm.value)" :disabled="paySubmitting"
           class="w-full py-3 rounded-xl border-2 border-emerald-200 text-emerald-700 font-semibold hover:bg-emerald-50 transition disabled:opacity-40">
           {{ pm.label }}
         </button>
-      </div>
-      <div v-else class="grid gap-2">
-        <button v-for="ct in cardTypes" :key="ct.value" @click="confirmPayment('card', ct.value)" :disabled="paySubmitting"
-          class="w-full py-3 rounded-xl border-2 border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-50 transition disabled:opacity-40">
-          {{ ct.label }}
-        </button>
-        <button @click="payCardStep = false" :disabled="paySubmitting" class="w-full py-2 text-xs text-gray-500 hover:text-gray-700 transition">{{ txt.back_lbl }}</button>
       </div>
       <button @click="closePayModal" :disabled="paySubmitting" class="w-full mt-3 py-2 text-sm text-gray-400 hover:text-gray-600 transition">{{ txt.cancel }}</button>
     </div>
@@ -1404,8 +1397,8 @@ const texts = {
     saving: 'Запись...',
     record_sale: 'Записать продажу',
     confirm: 'Подтвердить',
-    in_transit: 'В пути',
-    deliver: 'Выдать',
+    in_transit: 'Передан в BTS',
+    deliver: 'Доставлен в пункт выдачи',
     cancel: 'Отменить',
     write: 'Написать',
     offline_badge: 'Офлайн',
@@ -1421,8 +1414,8 @@ const texts = {
     admin: 'Администратор',
     type_message: 'Введите сообщение...',
     status_pending: 'Ожидает',
-    status_in_transit: 'В пути',
-    status_delivered: 'Выдано',
+    status_in_transit: 'Передан в BTS',
+    status_delivered: 'Доставлен',
     status_cancelled: 'Отменено',
     status_edited: 'Редактировано',
     status_deleted: 'Удалено',
@@ -1643,8 +1636,8 @@ const texts = {
     saving: 'Saqlanmoqda...',
     record_sale: 'Sotuvni yozish',
     confirm: 'Tasdiqlash',
-    in_transit: "Yo'lda",
-    deliver: 'Berish',
+    in_transit: 'BTS ga topshirildi',
+    deliver: 'Yetkazib berish nuqtasiga yetdi',
     cancel: 'Bekor qilish',
     write: 'Yozish',
     offline_badge: 'Oflayn',
@@ -1660,8 +1653,8 @@ const texts = {
     admin: 'Administrator',
     type_message: 'Xabar kiriting...',
     status_pending: 'Kutilmoqda',
-    status_in_transit: "Yo'lda",
-    status_delivered: 'Berildi',
+    status_in_transit: 'BTS ga topshirildi',
+    status_delivered: 'Yetkazildi',
     status_cancelled: 'Bekor qilindi',
     status_edited: 'Tahrirlangan',
     status_deleted: "O'chirilgan",
@@ -2524,12 +2517,10 @@ const showPayModal = ref(false)
 const payOrder = ref(null)
 const payContext = ref('list')
 const paySubmitting = ref(false)
-const payCardStep = ref(false)
 
 function askPayment(order, context) {
   payOrder.value = order
   payContext.value = context || 'list'
-  payCardStep.value = false
   showPayModal.value = true
 }
 
@@ -2537,14 +2528,16 @@ function closePayModal() {
   if (paySubmitting.value) return
   showPayModal.value = false
   payOrder.value = null
-  payCardStep.value = false
 }
 
-async function confirmPayment(method, cardType = '') {
+async function confirmPayment(method) {
   if (!payOrder.value || paySubmitting.value) return
   paySubmitting.value = true
   try {
-    const res = await api.put(`/pickup/orders/${payOrder.value.id}/status`, { status: 'delivered', payment_method: method, card_type: cardType })
+    let pm = method
+    let ct = ''
+    if (['cassa1', 'click', 'transfer'].includes(method)) { pm = 'card'; ct = method }
+    const res = await api.put(`/pickup/orders/${payOrder.value.id}/status`, { status: 'delivered', payment_method: pm, card_type: ct })
     const idx = orders.value.findIndex(o => o.id === payOrder.value.id)
     if (idx !== -1) orders.value[idx] = res.data
     if (foundOrder.value?.id === payOrder.value.id) foundOrder.value = res.data
@@ -2836,16 +2829,15 @@ watch(tab, (newTab, oldTab) => {
 const paymentMethods = computed(() => [
   { value: 'cash', label: txt.value.pay_cash },
   { value: 'terminal', label: txt.value.pay_terminal },
-  { value: 'card', label: txt.value.pay_card },
-])
-
-// Sub-options shown once the cashier picks "Другое" (was "Карта").
-const cardTypes = computed(() => [
   { value: 'cassa1', label: txt.value.card_cassa1 },
   { value: 'click', label: txt.value.card_click },
   { value: 'transfer', label: txt.value.card_transfer },
 ])
-function cardTypeLabel(v) { return cardTypes.value.find(c => c.value === v)?.label || '' }
+
+function cardTypeLabel(v) {
+  const m = { cassa1: txt.value.card_cassa1, click: txt.value.card_click, transfer: txt.value.card_transfer }
+  return m[v] || ''
+}
 
 const offlineDiscount = ref(0)
 
