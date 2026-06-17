@@ -94,13 +94,19 @@
                 {{ receiptUploading === order.id ? t.uploading_text : t.upload_receipt_btn }}
               </button>
             </div>
-            <div v-else-if="order.status === 'in_transit'" class="mx-4 mb-3 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
-              <svg class="w-5 h-5 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-              <p class="text-sm font-medium text-orange-700">{{ t.bts_cargo_label }}: {{ t.status_in_transit }} — {{ t.bts_in_transit }}</p>
+            <div v-else-if="order.status === 'in_transit'" class="mx-4 mb-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+              <div class="flex items-center gap-2 mb-1">
+                <svg class="w-4 h-4 text-orange-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                <p class="text-sm font-semibold text-orange-800">{{ t.bts_cargo_label }}</p>
+              </div>
+              <p class="text-xs text-orange-600 leading-relaxed">{{ t.bts_sms_notify }}</p>
             </div>
-            <div v-else-if="order.status === 'delivered'" class="mx-4 mb-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
-              <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <p class="text-sm font-medium text-green-700">{{ t.status_delivered }} — {{ t.bts_pickup_point_label }} 🎉</p>
+            <div v-else-if="order.status === 'delivered'" class="mx-4 mb-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              <div class="flex items-center gap-2 mb-1">
+                <svg class="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <p class="text-sm font-semibold text-green-800">{{ t.status_delivered }} 🎉</p>
+              </div>
+              <p class="text-xs text-green-600 leading-relaxed">{{ t.bts_arrived_notify }}</p>
             </div>
 
             <!-- Worker note (visible to customer) -->
@@ -110,26 +116,6 @@
                 Сообщение от менеджера
               </p>
               <p class="text-sm text-indigo-900 whitespace-pre-wrap leading-relaxed">{{ order.worker_notes }}</p>
-            </div>
-
-            <!-- BTS cargo info -->
-            <div v-if="order.bts_pickup_point || order.bts_tracking_number" class="mx-4 mb-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
-              <p class="text-xs font-semibold text-blue-700 mb-1.5 flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                {{ t.bts_cargo_label }} —
-                <span v-if="order.status === 'delivered'">📦 {{ t.status_delivered }}</span>
-                <span v-else>{{ t.bts_in_transit }}</span>
-              </p>
-              <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium">📍 {{ order.bts_pickup_point }}</p>
-              <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 mt-0.5">{{ t.bts_track_info }}: {{ order.bts_tracking_number }}</p>
-              <button
-                v-if="order.bts_branch_lat && order.bts_branch_lng"
-                @click="openBtsMap(order)"
-                class="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                {{ t.bts_map_btn }}
-              </button>
             </div>
 
             <!-- Total -->

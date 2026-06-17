@@ -202,50 +202,6 @@
                 </div>
               </div>
 
-              <!-- BTS Cargo section -->
-              <div class="mt-3 border border-blue-200 rounded-xl bg-blue-50/60 p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-semibold text-blue-700 flex items-center gap-1">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    {{ txt.bts_cargo }}
-                  </span>
-                  <button @click="toggleBtsEdit(order.id, order)" class="text-xs text-blue-600 hover:underline">
-                    {{ btsEdit[order.id]?.open ? txt.bts_hide : (order.bts_tracking_number ? txt.bts_change : txt.bts_add_track) }}
-                  </button>
-                </div>
-                <div v-if="order.bts_tracking_number || order.bts_pickup_point" class="space-y-0.5 mb-1">
-                  <p v-if="order.bts_pickup_point" class="text-xs text-blue-800 font-medium flex items-center gap-1">
-                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                    {{ order.bts_pickup_point }}
-                  </p>
-                  <p v-if="order.bts_tracking_number" class="text-xs text-blue-600 font-mono">{{ order.bts_tracking_number }}</p>
-                </div>
-                <p v-else class="text-xs text-blue-400 mb-1 italic">{{ txt.bts_not_filled }}</p>
-                <div v-if="btsEdit[order.id]?.open" class="space-y-2 pt-2 border-t border-blue-200">
-                  <div>
-                    <label class="text-xs text-blue-700 font-medium mb-1 block">{{ txt.bts_track_label }}</label>
-                    <input v-model="btsEdit[order.id].trackingNumber" type="text" :placeholder="txt.bts_track_ph" class="w-full border border-blue-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"/>
-                  </div>
-                  <div>
-                    <label class="text-xs text-blue-700 font-medium mb-1 block">{{ txt.bts_pickup_label }}</label>
-                    <div v-if="btsEdit[order.id].pinLat" class="border border-green-300 bg-green-50 rounded-lg px-3 py-2 flex items-start justify-between gap-2 mb-1">
-                      <div>
-                        <p class="text-xs font-semibold text-green-800">📍 {{ btsEdit[order.id].pinLabel }}</p>
-                        <p class="text-xs text-green-600 font-mono mt-0.5">{{ btsEdit[order.id].pinLat?.toFixed(5) }}, {{ btsEdit[order.id].pinLng?.toFixed(5) }}</p>
-                      </div>
-                      <button @click="btsEdit[order.id].pinLat = null; btsEdit[order.id].pinLng = null; btsEdit[order.id].pinLabel = ''" class="text-green-400 hover:text-red-500 text-lg leading-none">×</button>
-                    </div>
-                    <button @click="openBtsMapPicker(order)" class="w-full flex items-center justify-center gap-2 border-2 border-dashed border-blue-300 text-blue-600 hover:border-blue-400 hover:bg-blue-50 rounded-lg py-2 text-sm transition">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><circle cx="12" cy="11" r="3"/></svg>
-                      {{ btsEdit[order.id].pinLat ? txt.bts_change_pin : txt.bts_set_pin }}
-                    </button>
-                  </div>
-                  <button @click="saveBtsInfo(order)" :disabled="btsEdit[order.id]?.saving || !btsEdit[order.id].trackingNumber || !btsEdit[order.id].pinLat" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50 w-full font-medium">
-                    {{ btsEdit[order.id]?.saving ? txt.bts_saving : txt.bts_save }}
-                  </button>
-                </div>
-              </div>
-
               <!-- Saved note display -->
               <div v-if="order.worker_notes && !noteEdit[order.id]?.open" class="mt-2 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
                 <p class="text-xs text-indigo-500 font-semibold mb-0.5">{{ txt.note_label }}</p>
@@ -1227,11 +1183,9 @@
     </div>
   </div>
 
-
-
-  <!-- ===== BTS MAP PICKER MODAL ===== -->
+  <!-- ===== DELIVERY MAP MODAL (placeholder removed BTS modal) ===== -->
   <Teleport to="body">
-    <div v-if="showBtsMapPicker" class="fixed inset-0 z-[250] flex items-center justify-center">
+    <div v-if="false" class="fixed inset-0 z-[250] flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeBtsMapPicker"></div>
       <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col" style="max-height:92vh">
         <div class="flex items-center justify-between px-5 py-4 border-b bg-white flex-shrink-0 rounded-t-2xl">
