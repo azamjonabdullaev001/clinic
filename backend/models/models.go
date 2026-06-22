@@ -46,6 +46,9 @@ type Product struct {
 	ImagePath       string    `json:"image_path"`
 	StockQuantity   int       `gorm:"default:0" json:"stock_quantity"` // total stock in PIECES
 	StockConverted  bool      `gorm:"default:false" json:"-"`          // migration marker: capsules -> pieces
+	// OnlineAvailable controls visibility on the public landing page and whether the product
+	// can be ordered online. Offline sales (pickup/manager/doctor/nurse) ALWAYS ignore this.
+	OnlineAvailable bool      `gorm:"default:true" json:"online_available"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 

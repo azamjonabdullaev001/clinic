@@ -103,6 +103,14 @@ func CreateOrder(c *gin.Context) {
 			return
 		}
 
+		// Online orders may only contain products marked available online. Offline sales
+		// go through a different handler and are never subject to this flag.
+		if !product.OnlineAvailable {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Препарат недоступен для онлайн-заказа: " + product.Name})
+			return
+		}
+
 		product.ComputePackPrice()
 
 		unitType := item.UnitType

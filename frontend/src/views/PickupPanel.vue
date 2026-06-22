@@ -648,6 +648,10 @@
                 </div>
               </div>
               <div class="flex items-center gap-3">
+                <label class="flex items-center gap-1.5 cursor-pointer select-none mr-1" :title="txt.online_hint">
+                  <input type="checkbox" :checked="s.product?.online_available" @change="toggleOnline(s)" class="w-4 h-4 accent-teal-600 cursor-pointer"/>
+                  <span class="text-xs font-medium" :class="s.product?.online_available ? 'text-teal-600' : 'text-gray-400'">{{ txt.online_label }}</span>
+                </label>
                 <div class="text-right">
                   <p class="text-sm font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700' : 'text-red-600'">
                     {{ capsulesOf(s.product_id) }} {{ txt.pack }} / {{ stockOf(s.product_id) }} {{ txt.piece }}
@@ -1457,6 +1461,8 @@ const texts = {
     stock_add: 'Пополнить',
     stock_empty: 'Склад пуст',
     stock_search: 'Поиск по складу...',
+    online_label: 'Онлайн',
+    online_hint: 'Показывать препарат на сайте и разрешить онлайн-заказ. На офлайн-продажи не влияет.',
     product_list: 'Список препаратов',
     price: 'Цена',
     remainder: 'Остаток',
@@ -1696,6 +1702,8 @@ const texts = {
     stock_add: "To'ldirish",
     stock_empty: "Ombor bo'sh",
     stock_search: "Omborda qidirish...",
+    online_label: 'Onlayn',
+    online_hint: "Dorini saytda ko'rsatish va onlayn buyurtmaga ruxsat berish. Oflayn savdoga ta'sir qilmaydi.",
     product_list: "Dorilar ro'yxati",
     price: 'Narx',
     remainder: 'Qoldiq',
@@ -2854,7 +2862,8 @@ const offlineCanSubmit = computed(() => {
 
 async function loadProducts() {
   try {
-    const res = await api.get('/products')
+    // Offline sales must always see the FULL catalogue, including products hidden online.
+    const res = await api.get('/pickup/all-products')
     allProducts.value = res.data || []
     for (const p of allProducts.value) p.price_per_pack = p.price_per_pill * p.quantity_per_pack
   } catch (e) { console.error(e) }
@@ -3028,6 +3037,16 @@ const filteredStock = computed(() => {
 
 async function loadStock() {
   try { stock.value = (await api.get('/pickup/stock')).data || [] } catch (e) { console.error(e) }
+}
+
+// Toggle whether a product is available online (landing page + online orders).
+// Offline sales are NEVER affected by this flag.
+async function toggleOnline(s) {
+  const next = !(s.product?.online_available)
+  try {
+    await api.put(`/pickup/products/${s.product_id}/online`, { online_available: next })
+    if (s.product) s.product.online_available = next
+  } catch (e) { alert(e.response?.data?.error || 'Ошибка') }
 }
 
 async function addStock() {

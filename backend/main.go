@@ -66,6 +66,7 @@ func main() {
 				protected.GET("/products", handlers.GetProducts)
 				protected.POST("/products", handlers.CreateProduct)
 				protected.PUT("/products/:id", handlers.UpdateProduct)
+				protected.PUT("/products/:id/online", handlers.SetProductOnlineAvailability)
 				protected.DELETE("/products/:id", handlers.DeleteProduct)
 				protected.POST("/products/:id/image", handlers.UploadProductImage)
 				protected.GET("/orders", handlers.GetOrders)
@@ -108,7 +109,7 @@ func main() {
 
 		products := api.Group("/products")
 		{
-			products.GET("", handlers.GetProducts)
+			products.GET("", handlers.GetPublicProducts)
 			products.GET("/:id", handlers.GetProduct)
 			products.GET("/:id/comments", handlers.GetProductComments)
 			products.POST("/:id/comments", middleware.UserAuth(), handlers.AddProductComment)
@@ -168,8 +169,11 @@ func main() {
 			pickup.GET("/stock", handlers.GetGlobalStock)
 			pickup.POST("/stock", handlers.AddProductStock)
 			// Product management from the pickup warehouse (same as the admin panel).
+			// all-products returns the FULL catalogue (incl. online-hidden) for offline sales.
+			pickup.GET("/all-products", handlers.GetProducts)
 			pickup.POST("/products", handlers.CreateProduct)
 			pickup.PUT("/products/:id", handlers.UpdateProduct)
+			pickup.PUT("/products/:id/online", handlers.SetProductOnlineAvailability)
 			pickup.DELETE("/products/:id", handlers.DeleteProduct)
 			pickup.POST("/products/:id/image", handlers.UploadProductImage)
 			pickup.GET("/marketologs", handlers.GetMarketologs)

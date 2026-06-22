@@ -21,11 +21,29 @@ type ProductInput struct {
 	QuantityPerPack int     `json:"quantity_per_pack" binding:"omitempty,min=1"`
 	PricePerPill    float64 `json:"price_per_pill" binding:"required,min=0"`
 	StockQuantity   int     `json:"stock_quantity"`
+	// OnlineAvailable is a pointer so an omitted field keeps the existing value (on update)
+	// or defaults to true (on create) instead of silently hiding the product.
+	OnlineAvailable *bool `json:"online_available"`
 }
 
+// GetProducts returns EVERY product. Used by admin/worker panels where offline sales must
+// always see the full catalogue, regardless of the online-availability flag.
 func GetProducts(c *gin.Context) {
 	var products []models.Product
 	database.DB.Order("created_at desc").Find(&products)
+
+	for i := range products {
+		products[i].ComputePackPrice()
+	}
+
+	c.JSON(http.StatusOK, products)
+}
+
+// GetPublicProducts returns only products flagged as available online. This backs the public
+// landing page so unchecked products are neither shown nor orderable online.
+func GetPublicProducts(c *gin.Context) {
+	var products []models.Product
+	database.DB.Where("online_available = ?", true).Order("created_at desc").Find(&products)
 
 	for i := range products {
 		products[i].ComputePackPrice()
@@ -59,6 +77,10 @@ func CreateProduct(c *gin.Context) {
 		QuantityPerPack: input.QuantityPerPack,
 		PricePerPill:    input.PricePerPill,
 		StockQuantity:   input.StockQuantity,
+		OnlineAvailable: true, // new products are visible online by default
+	}
+	if input.OnlineAvailable != nil {
+		product.OnlineAvailable = *input.OnlineAvailable
 	}
 
 	if err := database.DB.Create(&product).Error; err != nil {
@@ -91,6 +113,9 @@ func UpdateProduct(c *gin.Context) {
 	product.QuantityPerPack = input.QuantityPerPack
 	product.PricePerPill = input.PricePerPill
 	product.StockQuantity = input.StockQuantity
+	if input.OnlineAvailable != nil {
+		product.OnlineAvailable = *input.OnlineAvailable
+	}
 
 	if err := database.DB.Save(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})
@@ -100,6 +125,37 @@ func UpdateProduct(c *gin.Context) {
 	BroadcastStock(product.ID, product.StockQuantity)
 	BroadcastProducts()
 	product.ComputePackPrice()
+	c.JSON(http.StatusOK, product)
+}
+
+type OnlineAvailabilityInput struct {
+	OnlineAvailable bool `json:"online_available"`
+}
+
+// SetProductOnlineAvailability flips the single online-availability flag for a product.
+// This is the checkbox in the warehouse list — it changes nothing about offline sales.
+func SetProductOnlineAvailability(c *gin.Context) {
+	id := c.Param("id")
+	var product models.Product
+	if err := database.DB.First(&product, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Препарат не найден"})
+		return
+	}
+
+	var input OnlineAvailabilityInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
+
+	if err := database.DB.Model(&product).UpdateColumn("online_available", input.OnlineAvailable).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})
+		return
+	}
+
+	product.OnlineAvailable = input.OnlineAvailable
+	product.ComputePackPrice()
+	BroadcastProducts()
 	c.JSON(http.StatusOK, product)
 }
 
