@@ -5,7 +5,13 @@ import (
 	"clinic-backend/database"
 	"clinic-backend/handlers"
 	"clinic-backend/middleware"
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -44,6 +50,10 @@ func main() {
 
 	r.Static("/uploads", "./uploads")
 	r.MaxMultipartMemory = 10 << 20
+
+	// Throttle each client IP. Generous enough for real panels (which poll and
+	// open several requests per page) but enough to stop floods hitting Postgres.
+	r.Use(middleware.RateLimit(30, 60))
 
 	api := r.Group("/api")
 	{
@@ -214,8 +224,39 @@ func main() {
 		}
 	}
 
-	log.Printf("Server starting on :%s", cfg.Port)
-	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatal("Failed to start server:", err)
+	// Explicit http.Server so we can set timeouts and shut down gracefully.
+	// WriteTimeout is intentionally left at 0 — the stock WebSocket holds a long-lived
+	// connection that a write deadline would kill. ReadHeaderTimeout still guards against
+	// slow-loris clients holding sockets open.
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
+
+	go func() {
+		log.Printf("Server starting on :%s", cfg.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("Failed to start server:", err)
+		}
+	}()
+
+	// Graceful shutdown: stop accepting new requests, let in-flight ones finish, then
+	// close the DB pool. Prevents dropped requests and leaked connections on deploy.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
+	}
+	if sqlDB, err := database.DB.DB(); err == nil {
+		_ = sqlDB.Close()
+	}
+	log.Println("Server stopped")
 }

@@ -24,38 +24,47 @@ func GetMarketologDebt(c *gin.Context) {
 		return
 	}
 
-	var orders []models.Order
-	database.DB.Where("marketolog_id = ? AND status != ? AND is_deleted = ?", id, "cancelled", false).
-		Preload("Items.Product").Find(&orders)
+	// All-time debt aggregation. This MUST cover every order ever made under the
+	// marketolog (no LIMIT), so instead of loading them into Go memory — which OOMs at
+	// scale — we aggregate in SQL with a single GROUP BY that stays constant-memory.
+	type prodAgg struct {
+		ProductName string
+		Revenue     float64
+		Pieces      int
+		Capsules    int
+	}
+	var rows []prodAgg
+	database.DB.
+		Table("order_items AS oi").
+		Select(`p.name AS product_name,
+			COALESCE(SUM(oi.price), 0) AS revenue,
+			COALESCE(SUM(CASE WHEN oi.unit_type = 'piece' THEN oi.quantity ELSE 0 END), 0) AS pieces,
+			COALESCE(SUM(CASE WHEN oi.unit_type <> 'piece' THEN oi.quantity ELSE 0 END), 0) AS capsules`).
+		Joins("JOIN orders o ON o.id = oi.order_id").
+		Joins("LEFT JOIN products p ON p.id = oi.product_id").
+		Where("o.marketolog_id = ? AND o.status <> ? AND o.is_deleted = ? AND oi.quantity > 0", id, "cancelled", false).
+		Group("p.name").
+		Scan(&rows)
 
 	var debt float64
 	capsules, pieces := 0, 0
-	prodMap := map[uint]*MarketologProduct{}
-	for _, o := range orders {
-		for _, it := range o.Items {
-			if it.Quantity <= 0 {
-				continue
-			}
-			debt += it.Price
-			p, ok := prodMap[it.ProductID]
-			if !ok {
-				p = &MarketologProduct{ProductName: it.Product.Name}
-				prodMap[it.ProductID] = p
-			}
-			p.Revenue += it.Price
-			if it.UnitType == "piece" {
-				pieces += it.Quantity
-				p.Pieces += it.Quantity
-			} else {
-				capsules += it.Quantity
-				p.Capsules += it.Quantity
-			}
-		}
+	prods := make([]MarketologProduct, 0, len(rows))
+	for _, r := range rows {
+		debt += r.Revenue
+		capsules += r.Capsules
+		pieces += r.Pieces
+		prods = append(prods, MarketologProduct{
+			ProductName: r.ProductName,
+			Revenue:     r.Revenue,
+			Pieces:      r.Pieces,
+			Capsules:    r.Capsules,
+		})
 	}
-	prods := []MarketologProduct{}
-	for _, p := range prodMap {
-		prods = append(prods, *p)
-	}
+
+	var totalOrders int64
+	database.DB.Model(&models.Order{}).
+		Where("marketolog_id = ? AND status <> ? AND is_deleted = ?", id, "cancelled", false).
+		Count(&totalOrders)
 
 	var paid float64
 	database.DB.Model(&models.MarketologPayment{}).Where("marketolog_id = ?", id).
@@ -69,7 +78,7 @@ func GetMarketologDebt(c *gin.Context) {
 		"debt":           debt,
 		"paid":           paid,
 		"remaining":      debt - paid,
-		"total_orders":   len(orders),
+		"total_orders":   totalOrders,
 		"total_capsules": capsules,
 		"total_pieces":   pieces,
 		"products":       prods,

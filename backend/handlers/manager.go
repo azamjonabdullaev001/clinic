@@ -12,10 +12,12 @@ import (
 // both their own and the ones a cashier recorded on their behalf.
 func GetManagerOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
+	limit, offset := paginate(c, 500, 1000)
 	var orders []models.Order
 	database.DB.Where("marketolog_id = ? AND archived = ? AND is_deleted = ?", workerID, false, false).
 		Preload("Items.Product").
 		Order("created_at desc").
+		Limit(limit).Offset(offset).
 		Find(&orders)
 
 	for i := range orders {

@@ -110,6 +110,13 @@ func createPerformanceIndexes() {
 		// / WorkerDashboard (status + time range, and per-worker reports).
 		"CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders (status, created_at)",
 		"CREATE INDEX IF NOT EXISTS idx_orders_worker_status_created ON orders (worker_id, status, created_at)",
+		// Per-doctor pre-order lists (GetDoctorOrders / GetDoctorAnalytics).
+		"CREATE INDEX IF NOT EXISTS idx_orders_doctor_id ON orders (doctor_id)",
+		// Marketolog debt aggregation joins order_items back to orders by marketolog.
+		"CREATE INDEX IF NOT EXISTS idx_orders_marketolog_status ON orders (marketolog_id, status)",
+		// Partial index serving the pickup panel's hot list: only the live, non-archived
+		// rows are indexed, so the index stays tiny even as the history table grows to 1M+.
+		"CREATE INDEX IF NOT EXISTS idx_orders_active_created ON orders (created_at DESC) WHERE archived = false AND is_deleted = false",
 	}
 	for _, s := range stmts {
 		if err := DB.Exec(s).Error; err != nil {

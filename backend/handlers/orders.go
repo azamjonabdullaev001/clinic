@@ -154,10 +154,12 @@ func CreateOrder(c *gin.Context) {
 
 func GetUserOrders(c *gin.Context) {
 	userID, _ := c.Get("userID")
+	limit, offset := paginate(c, 100, 500)
 	var orders []models.Order
 	database.DB.Where("user_id = ? AND archived = ? AND is_deleted = ? AND hidden_by_user = ?", userID, false, false, false).
 		Preload("Items.Product").
 		Order("created_at desc").
+		Limit(limit).Offset(offset).
 		Find(&orders)
 
 	for i := range orders {

@@ -247,6 +247,11 @@ func UpdateOrderItems(c *gin.Context) {
 
 func GetPickupOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
+	// Bound the result set. Active (pending/in_transit) orders are always few; the part
+	// that grows without limit is this worker's delivered/cancelled history. Returning the
+	// 500 most recent keeps the panel instant even with 1M+ rows in the table, and the
+	// client can page further back with ?limit/?offset.
+	limit, offset := paginate(c, 500, 1000)
 	var orders []models.Order
 	// Incoming (not yet finalized) online customer orders and doctor/nurse pre-orders are
 	// shared with every pickup worker, so anyone can serve a walk-in. Everything that is
@@ -259,6 +264,7 @@ func GetPickupOrders(c *gin.Context) {
 		workerID,
 	).Preload("Items.Product").Preload("User").
 		Order("created_at desc").
+		Limit(limit).Offset(offset).
 		Find(&orders)
 
 	for i := range orders {

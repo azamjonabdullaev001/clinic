@@ -108,10 +108,12 @@ func CreateNurseOrder(c *gin.Context) {
 
 func GetNurseOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
+	limit, offset := paginate(c, 500, 1000)
 	var orders []models.Order
 	database.DB.Where("worker_id = ? AND is_nurse_order = true AND archived = ?", workerID, false).
 		Preload("Items.Product").
 		Order("created_at desc").
+		Limit(limit).Offset(offset).
 		Find(&orders)
 
 	for i := range orders {
