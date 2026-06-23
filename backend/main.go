@@ -87,7 +87,7 @@ func main() {
 				protected.POST("/workers", handlers.CreateWorker)
 				protected.PUT("/workers/:id", handlers.UpdateWorker)
 				protected.DELETE("/workers/:id", handlers.DeleteWorker)
-				protected.GET("/workers/:id/stats", handlers.GetWorkerStats)
+				protected.GET("/workers/:id/stats", handlers.CacheGET(15*time.Second), handlers.GetWorkerStats)
 				protected.GET("/faqs", handlers.GetFAQs)
 				protected.POST("/faqs", handlers.CreateFAQ)
 				protected.PUT("/faqs/:id", handlers.UpdateFAQ)
@@ -95,8 +95,8 @@ func main() {
 				protected.GET("/support/threads", handlers.GetSupportThreads)
 				protected.GET("/support/threads/:id", handlers.GetSupportThreadByID)
 				protected.POST("/support/threads/:id/reply", handlers.ReplySupportThread)
-				protected.GET("/analytics", handlers.GetAnalytics)
-				protected.GET("/products/:id/analytics", handlers.GetProductAnalytics)
+				protected.GET("/analytics", handlers.CacheGET(15*time.Second), handlers.GetAnalytics)
+				protected.GET("/products/:id/analytics", handlers.CacheGET(15*time.Second), handlers.GetProductAnalytics)
 				protected.GET("/news", handlers.GetNewsPosts)
 				protected.POST("/news", handlers.CreateNewsPost)
 				protected.PUT("/news/:id", handlers.UpdateNewsPost)
@@ -107,9 +107,9 @@ func main() {
 				protected.POST("/doctors", handlers.CreateDoctor)
 				protected.PUT("/doctors/:id", handlers.UpdateDoctor)
 				protected.DELETE("/doctors/:id", handlers.DeleteDoctor)
-				protected.GET("/doctors/:id/stats", handlers.GetDoctorStats)
+				protected.GET("/doctors/:id/stats", handlers.CacheGET(15*time.Second), handlers.GetDoctorStats)
 				protected.GET("/marketologs", handlers.GetMarketologs)
-				protected.GET("/marketologs/:id/stats", handlers.GetMarketologStatsAdmin)
+				protected.GET("/marketologs/:id/stats", handlers.CacheGET(15*time.Second), handlers.GetMarketologStatsAdmin)
 				protected.GET("/bts-branches", handlers.GetBtsBranches)
 				protected.POST("/bts-branches", handlers.CreateBtsBranch)
 				protected.PUT("/bts-branches/:id", handlers.UpdateBtsBranch)
@@ -175,7 +175,7 @@ func main() {
 			pickup.PUT("/bts-branches/:id", handlers.UpdateBtsBranch)
 			pickup.DELETE("/bts-branches/:id", handlers.DeleteBtsBranch)
 			pickup.POST("/offline-sale", handlers.CreateOfflineSale)
-			pickup.GET("/analytics", handlers.GetWorkerAnalytics)
+			pickup.GET("/analytics", handlers.CacheGET(15*time.Second), handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)
 			pickup.POST("/stock", handlers.AddProductStock)
 			// Product management from the pickup warehouse (same as the admin panel).
@@ -200,7 +200,7 @@ func main() {
 			manager.GET("/products", handlers.GetProducts)
 			manager.POST("/sale", handlers.CreateOfflineSale)
 			manager.GET("/orders", handlers.GetManagerOrders)
-			manager.GET("/analytics", handlers.GetMarketologOwnAnalytics)
+			manager.GET("/analytics", handlers.CacheGET(15*time.Second), handlers.GetMarketologOwnAnalytics)
 			manager.GET("/stock", handlers.GetGlobalStock)
 			manager.POST("/stock", handlers.AddProductStock)
 		}
@@ -220,7 +220,7 @@ func main() {
 			doctor.POST("/orders", handlers.CreateDoctorOrder)
 			doctor.GET("/orders", handlers.GetDoctorOrders)
 			doctor.GET("/products", handlers.GetProducts)
-			doctor.GET("/analytics", handlers.GetDoctorAnalytics)
+			doctor.GET("/analytics", handlers.CacheGET(15*time.Second), handlers.GetDoctorAnalytics)
 		}
 	}
 

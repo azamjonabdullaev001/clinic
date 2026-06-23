@@ -12,6 +12,33 @@ export const realtime = reactive({ ordersVersion: 0, productsVersion: 0 })
 let ws = null
 let started = false
 
+// Coalesce bursts of order/product events. A busy till can fire many "orders" messages
+// per second; without throttling every panel would reload its list + analytics on each
+// one. This fires the first bump immediately (instant feedback for a single sale) then
+// collapses any further bumps in the same ~1s window into one trailing bump — so the data
+// is always fresh within a second, but a burst costs one refresh instead of dozens.
+function makeBumper(key, interval = 1000) {
+  let last = 0
+  let pending = false
+  return () => {
+    const now = Date.now()
+    const since = now - last
+    if (since >= interval) {
+      last = now
+      realtime[key]++
+    } else if (!pending) {
+      pending = true
+      setTimeout(() => {
+        pending = false
+        last = Date.now()
+        realtime[key]++
+      }, interval - since)
+    }
+  }
+}
+const bumpOrders = makeBumper('ordersVersion')
+const bumpProducts = makeBumper('productsVersion')
+
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'
   try {
@@ -24,8 +51,8 @@ function connect() {
     try {
       const m = JSON.parse(e.data)
       if (m && m.type === 'stock') liveStock[m.product_id] = m.quantity
-      else if (m && m.type === 'orders') realtime.ordersVersion++
-      else if (m && m.type === 'products') realtime.productsVersion++
+      else if (m && m.type === 'orders') bumpOrders()
+      else if (m && m.type === 'products') bumpProducts()
     } catch { /* ignore */ }
   }
   ws.onclose = () => { ws = null; setTimeout(connect, 4000) }

@@ -82,11 +82,13 @@ func broadcastProductStock(productID uint) {
 // BroadcastOrders signals every client that orders changed, so panels can refresh
 // their order lists and analytics in real time.
 func BroadcastOrders() {
+	bumpDataVersion() // invalidate cached analytics so refreshes see the new sale
 	stockHub.broadcast(gin.H{"type": "orders"})
 }
 
 // BroadcastProducts signals every client that the product catalog changed (a product was
 // added / edited / deleted), so all panels refresh their product lists in real time.
 func BroadcastProducts() {
+	bumpDataVersion() // product names/prices feed analytics labels — refresh those too
 	stockHub.broadcast(gin.H{"type": "products"})
 }

@@ -65,6 +65,25 @@ first (instant) and shows a **"Показать ещё"** button that fetches th
 full history is always reachable, just lazily. Per-worker lists (manager/nurse/doctor) keep
 a generous 2000-row bound because ManagerPanel sums an all-time stat over its list.
 
+## Refetch-storm fixes (implemented, no numbers changed)
+
+At scale the felt lag came from the real-time refresh loop, not single queries (analytics
+is already date-range bounded on the `created_at` index, so daily/weekly stay fast even at
+500k rows). Two safe changes remove it:
+
+- **Debounced realtime signal** (`frontend/src/stores/stock.js`). A busy till fires many
+  `orders` WebSocket events per second; each one made every panel reload its list +
+  analytics. The version bump is now throttled: the first event fires immediately (instant
+  feedback for a single sale), further events in the same ~1s window collapse into one
+  trailing bump. A burst of 30 sales costs one refresh instead of 30. Live stock numbers
+  are untouched and still update instantly.
+- **Identity-scoped response cache** (`backend/handlers/cache.go`, `CacheGET`). Successful
+  analytics/stats GETs are cached for 15s, keyed per caller, and invalidated the instant
+  orders/products change (a `dataVersion` counter bumped by `BroadcastOrders`/`Products`).
+  Multiple admins, tab switches and re-renders are served from cache instead of re-scanning
+  the orders table. Because any real change bumps the version and forces recompute, **no
+  cached value can ever differ from a fresh one** — the computation code is unchanged.
+
 ## Recommended next (NOT yet implemented — need product/infra decision)
 
 These need your sign-off because they add infrastructure or are a larger change:
