@@ -5,6 +5,7 @@ import (
 	"clinic-backend/models"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -67,6 +68,44 @@ func AddProductStock(c *gin.Context) {
 	database.DB.First(&product, product.ID)
 	BroadcastStock(product.ID, product.StockQuantity)
 	c.JSON(http.StatusOK, gin.H{"product_id": product.ID, "quantity": product.StockQuantity})
+}
+
+type SetStockInput struct {
+	Quantity int    `json:"quantity"`   // exact amount to set (>= 0)
+	UnitType string `json:"unit_type"`  // "pack" (flacons/capsules) or "piece"
+}
+
+// SetProductStock OVERWRITES the shared warehouse quantity of a product to an exact value
+// (stored in pieces). Unlike AddProductStock (which increments), this is used to correct or
+// recount stock — e.g. after a physical inventory. The amount is given in packs or pieces.
+func SetProductStock(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID"})
+		return
+	}
+	var input SetStockInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверные данные"})
+		return
+	}
+	if input.Quantity < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Количество не может быть отрицательным"})
+		return
+	}
+	var product models.Product
+	if database.DB.First(&product, id).Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Товар не найден"})
+		return
+	}
+	pieces := pieceCount(product, input.Quantity, input.UnitType)
+	if err := database.DB.Model(&models.Product{}).Where("id = ?", product.ID).
+		UpdateColumn("stock_quantity", pieces).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении склада"})
+		return
+	}
+	BroadcastStock(product.ID, pieces)
+	c.JSON(http.StatusOK, gin.H{"product_id": product.ID, "quantity": pieces})
 }
 
 // reserveProductStock checks the shared warehouse has enough pieces for each item

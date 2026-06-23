@@ -178,6 +178,7 @@ func main() {
 			pickup.GET("/analytics", handlers.CacheGET(15*time.Second), handlers.GetWorkerAnalytics)
 			pickup.GET("/stock", handlers.GetGlobalStock)
 			pickup.POST("/stock", handlers.AddProductStock)
+			pickup.PUT("/stock/:id", handlers.SetProductStock) // overwrite exact warehouse quantity
 			// Product management from the pickup warehouse (same as the admin panel).
 			// all-products returns the FULL catalogue (incl. online-hidden) for offline sales.
 			pickup.GET("/all-products", handlers.GetProducts)

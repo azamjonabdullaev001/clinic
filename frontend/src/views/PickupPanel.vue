@@ -652,12 +652,30 @@
                   <input type="checkbox" :checked="s.product?.online_available" @change="toggleOnline(s)" class="w-4 h-4 accent-teal-600 cursor-pointer"/>
                   <span class="text-xs font-medium" :class="s.product?.online_available ? 'text-teal-600' : 'text-gray-400'">{{ txt.online_label }}</span>
                 </label>
-                <div class="text-right">
+                <div v-if="!stockEdit[s.product_id]" class="text-right">
                   <p class="text-sm font-bold" :class="stockOf(s.product_id) > 0 ? 'text-green-700' : 'text-red-600'">
                     {{ capsulesOf(s.product_id) }} {{ txt.pack }} / {{ stockOf(s.product_id) }} {{ txt.piece }}
                   </p>
                   <p class="text-xs text-gray-400 mt-0.5">{{ txt.remainder }}</p>
                 </div>
+                <!-- Inline stock-count editor (overwrites the exact quantity) -->
+                <div v-else class="flex items-center gap-1.5">
+                  <input v-model.number="stockEdit[s.product_id].qty" type="number" min="0" @keyup.enter="saveStockEdit(s)"
+                    class="w-20 pp-input rounded-lg px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                  <select v-model="stockEdit[s.product_id].unit" class="pp-input rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="pack">{{ txt.pack }}</option>
+                    <option value="piece">{{ txt.piece }}</option>
+                  </select>
+                  <button @click="saveStockEdit(s)" :disabled="stockEdit[s.product_id].saving" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-40" :title="txt.prod_save">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  </button>
+                  <button @click="cancelStockEdit(s.product_id)" class="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition" :title="txt.cancel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+                <button v-if="!stockEdit[s.product_id]" @click="openStockEdit(s)" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" :title="txt.stock_edit">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                </button>
                 <button @click="openProdModal(s.product)" class="p-2 text-teal-500 hover:bg-teal-50 rounded-lg transition" :title="txt.edit_items">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 </button>
@@ -1447,6 +1465,7 @@ const texts = {
     my_stock: 'Мой склад',
     stock_qty: 'Кол-во',
     stock_add: 'Пополнить',
+    stock_edit: 'Изменить остаток',
     stock_empty: 'Склад пуст',
     stock_search: 'Поиск по складу...',
     online_label: 'Онлайн',
@@ -1689,6 +1708,7 @@ const texts = {
     my_stock: 'Mening omborim',
     stock_qty: 'Soni',
     stock_add: "To'ldirish",
+    stock_edit: "Qoldiqni o'zgartirish",
     stock_empty: "Ombor bo'sh",
     stock_search: "Omborda qidirish...",
     online_label: 'Onlayn',
@@ -3064,6 +3084,31 @@ async function addStock() {
     stockUnit.value = 'pack'
     loadStock()
   } catch (e) { alert(e.response?.data?.error || 'Ошибка') } finally { addingStock.value = false }
+}
+
+// ===== Edit (overwrite) the exact stock count of a product =====
+// Unlike "Пополнить" (add), this SETS the warehouse quantity to an exact value — used to
+// correct the count after a physical recount. Defaults to pieces so opening + saving with
+// no change never alters the stored amount.
+const stockEdit = ref({}) // product_id -> { qty, unit, saving }
+function openStockEdit(s) {
+  stockEdit.value[s.product_id] = { qty: stockOf(s.product_id), unit: 'piece', saving: false }
+}
+function cancelStockEdit(pid) { delete stockEdit.value[pid] }
+async function saveStockEdit(s) {
+  const pid = s.product_id
+  const e = stockEdit.value[pid]
+  if (!e || e.saving) return
+  if (e.qty == null || e.qty < 0) return
+  e.saving = true
+  try {
+    await api.put(`/pickup/stock/${pid}`, { quantity: Number(e.qty), unit_type: e.unit })
+    delete stockEdit.value[pid]
+    loadStock()
+  } catch (err) {
+    alert(err.response?.data?.error || 'Ошибка')
+    if (stockEdit.value[pid]) stockEdit.value[pid].saving = false
+  }
 }
 
 // ===== Product management from the warehouse (same as the admin panel) =====
