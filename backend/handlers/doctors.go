@@ -281,7 +281,8 @@ func CreateDoctorOrder(c *gin.Context) {
 
 func GetDoctorOrders(c *gin.Context) {
 	doctorID, _ := c.Get("doctorID")
-	limit, offset := paginate(c, 500, 1000)
+	// Per-doctor list grows slowly; keep the bound generous but never unbounded.
+	limit, offset := paginate(c, 2000, 5000)
 	var orders []models.Order
 	database.DB.Where("doctor_id = ? AND is_nurse_order = true AND archived = ?", doctorID, false).
 		Preload("Items.Product").

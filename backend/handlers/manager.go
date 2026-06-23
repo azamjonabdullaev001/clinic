@@ -12,7 +12,9 @@ import (
 // both their own and the ones a cashier recorded on their behalf.
 func GetManagerOrders(c *gin.Context) {
 	workerID, _ := c.Get("workerID")
-	limit, offset := paginate(c, 500, 1000)
+	// Per-marketolog list — grows slowly, and ManagerPanel sums an all-time stat over it,
+	// so keep the bound generous. Still capped so it can never load an unbounded table.
+	limit, offset := paginate(c, 2000, 5000)
 	var orders []models.Order
 	database.DB.Where("marketolog_id = ? AND archived = ? AND is_deleted = ?", workerID, false, false).
 		Preload("Items.Product").

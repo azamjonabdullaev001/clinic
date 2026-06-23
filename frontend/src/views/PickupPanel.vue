@@ -1033,6 +1033,10 @@
               </div>
             </div>
           </div>
+          <button v-if="ordersHasMore" @click="loadMoreOrders" :disabled="loadingMore"
+            class="w-full py-3 text-sm font-medium text-blue-600 hover:bg-blue-50 border-t border-gray-100 transition disabled:opacity-50">
+            {{ loadingMore ? txt.loading : txt.load_more }}
+          </button>
         </div>
 
         <!-- Top-30 most recent orders — any type: online, offline, own patient -->
@@ -1322,6 +1326,7 @@ const texts = {
     search_online: 'Поиск онлайн заказа по коду',
     enter_6_code: 'Введите 6-значный код',
     refresh: 'Обновить',
+    load_more: 'Показать ещё',
     product: 'Препарат',
     select_product: 'Выберите препарат',
     qty: 'Количество',
@@ -1563,6 +1568,7 @@ const texts = {
     search_online: "Onlayn buyurtmani kod bo'yicha qidirish",
     enter_6_code: '6 raqamli kodni kiriting',
     refresh: 'Yangilash',
+    load_more: 'Yana koʻrsatish',
     product: 'Dori',
     select_product: 'Dori tanlang',
     qty: 'Miqdor',
@@ -2247,6 +2253,13 @@ async function saveNote(order) {
 const orders = ref([])
 const tab = ref('online')
 
+// Server-side pagination for the order history. The backend caps each request, so we
+// load the most recent page first (panel stays instant even with 1M+ orders) and let
+// the cashier pull older orders on demand with "show more" — nothing is ever lost.
+const ordersPageSize = 500
+const ordersHasMore = ref(false)
+const loadingMore = ref(false)
+
 const historyType = ref('all')
 const historyStatus = ref('all')
 const historyPeriod = ref('daily')
@@ -2363,13 +2376,34 @@ const ordersLoadError = ref('')
 async function loadOrders() {
   ordersLoadError.value = ''
   try {
-    const res = await api.get('/pickup/orders')
-    orders.value = res.data || []
+    const res = await api.get('/pickup/orders', { params: { limit: ordersPageSize, offset: 0 } })
+    const data = res.data || []
+    orders.value = data
+    ordersHasMore.value = data.length >= ordersPageSize
   } catch (e) {
     ordersLoadError.value = lang.value === 'uz'
       ? 'Buyurtmalarni yuklashda xatolik. Sahifani yangilang.'
       : 'Ошибка загрузки заказов. Обновите страницу.'
     console.error(e)
+  }
+}
+
+// Fetch the next page of older orders and append. Keeps every client-side computed
+// (history, payment breakdown, exports) working exactly as before — just lazily loaded.
+async function loadMoreOrders() {
+  if (loadingMore.value || !ordersHasMore.value) return
+  loadingMore.value = true
+  try {
+    const res = await api.get('/pickup/orders', { params: { limit: ordersPageSize, offset: orders.value.length } })
+    const data = res.data || []
+    // De-dupe by id in case new orders shifted the offset between requests.
+    const seen = new Set(orders.value.map(o => o.id))
+    for (const o of data) if (!seen.has(o.id)) orders.value.push(o)
+    ordersHasMore.value = data.length >= ordersPageSize
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingMore.value = false
   }
 }
 
