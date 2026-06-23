@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // parsePaymentSplits decodes the order's stored JSON payment breakdown (empty when the
@@ -168,99 +169,10 @@ func GetAnalytics(c *gin.Context) {
 		}
 	}
 
-	// Fetch all delivered/completed orders in range
-	var allOrders []models.Order
-	database.DB.Where("created_at >= ? AND created_at < ? AND status != ? AND is_deleted = ?", startTime, endTime, "cancelled", false).
-		Preload("Items.Product").
-		Find(&allOrders)
-
-	// Marketolog (marketplace) sales are treated as a separate "debt" and are kept
-	// out of the main revenue/top-products figures.
-	var orders []models.Order
-	var mktOrders []models.Order
-	for _, o := range allOrders {
-		if o.MarketologID != nil {
-			mktOrders = append(mktOrders, o)
-		} else {
-			orders = append(orders, o)
-		}
-	}
-
-	// Aggregate the marketolog debt section.
-	var marketolog MarketologStat
-	marketolog.TotalOrders = len(mktOrders)
-	mktMap := make(map[uint]*MarketologProduct)
-	for _, order := range mktOrders {
-		for _, item := range order.Items {
-			if item.Quantity <= 0 {
-				continue
-			}
-			marketolog.TotalRevenue += item.Price
-			m, ok := mktMap[item.ProductID]
-			if !ok {
-				m = &MarketologProduct{ProductName: item.Product.Name}
-				mktMap[item.ProductID] = m
-			}
-			m.Revenue += item.Price
-			if item.UnitType == "piece" {
-				marketolog.TotalPieces += item.Quantity
-				m.Pieces += item.Quantity
-			} else {
-				marketolog.TotalCapsules += item.Quantity
-				m.Capsules += item.Quantity
-			}
-		}
-	}
-	for _, m := range mktMap {
-		marketolog.Products = append(marketolog.Products, *m)
-	}
-
-	// Fill points with revenue/order counts
-	for _, order := range orders {
-		orderTime := order.CreatedAt.In(loc)
-		var revenue float64
-		for _, item := range order.Items {
-			revenue += item.Price
-		}
-
-		switch period {
-		case "weekly":
-			for pi := range points {
-				slotStart := startTime.Add(time.Duration(pi) * 12 * time.Hour)
-				slotEnd := slotStart.Add(12 * time.Hour)
-				if !orderTime.Before(slotStart) && orderTime.Before(slotEnd) {
-					points[pi].Revenue += revenue
-					points[pi].Orders++
-					break
-				}
-			}
-		case "monthly":
-			for pi := range points {
-				slotStart := startTime.AddDate(0, 0, pi)
-				slotEnd := slotStart.AddDate(0, 0, 1)
-				if !orderTime.Before(slotStart) && orderTime.Before(slotEnd) {
-					points[pi].Revenue += revenue
-					points[pi].Orders++
-					break
-				}
-			}
-		case "yearly":
-			monthIndex := (orderTime.Year()-startTime.Year())*12 + int(orderTime.Month()) - int(startTime.Month())
-			if monthIndex >= 0 && monthIndex < len(points) {
-				points[monthIndex].Revenue += revenue
-				points[monthIndex].Orders++
-			}
-		default:
-			// hourly (daily or custom)
-			hour := orderTime.Hour()
-			if hour >= 0 && hour < len(points) {
-				points[hour].Revenue += revenue
-				points[hour].Orders++
-			}
-		}
-	}
-
-	// Top 10 products
+	// Stream all in-range orders in batches and aggregate in a single pass, so peak
+	// memory stays bounded no matter how many orders exist (100k / 500k / 1M+). Every
+	// figure below is computed exactly as the previous load-everything version did —
+	// only the iteration is batched instead of materialising the whole table at once.
 	type ProductStat struct {
 		ProductID   uint
 		ProductName string
@@ -268,31 +180,228 @@ func GetAnalytics(c *gin.Context) {
 		TotalPacks  int
 		Revenue     float64
 	}
+
+	var marketolog MarketologStat
+	mktMap := make(map[uint]*MarketologProduct)
 	statsMap := make(map[uint]*ProductStat)
-	for _, order := range orders {
-		for _, item := range order.Items {
-			if item.Quantity <= 0 {
-				continue // skip items removed at the till
-			}
-			s, ok := statsMap[item.ProductID]
-			if !ok {
-				s = &ProductStat{
-					ProductID:   item.ProductID,
-					ProductName: item.Product.Name,
+	// Own patient > doctor referral > regular; marketolog mirrored in after the pass.
+	breakdown := map[string]*CategoryStat{
+		"vip":     {},
+		"doctor":  {},
+		"regular": {},
+	}
+	var vip MarketologStat
+	vipMap := make(map[uint]*MarketologProduct)
+	doctorMap := make(map[string]*DoctorReferral)
+	var disc DiscountSummary
+	sumPct := 0.0
+	nonMktOrders := 0
+
+	var batch []models.Order
+	database.DB.Where("created_at >= ? AND created_at < ? AND status != ? AND is_deleted = ?", startTime, endTime, "cancelled", false).
+		Preload("Items.Product").
+		FindInBatches(&batch, 1000, func(tx *gorm.DB, _ int) error {
+			for bi := range batch {
+				order := batch[bi]
+
+				// Cashier-typed discount stats across every order in range (including marketolog).
+				if order.DiscountPercent > 0 {
+					var orderRevenue float64
+					for _, it := range order.Items {
+						orderRevenue += it.Price
+					}
+					// orderRevenue already reflects the discount, so the original was revenue / (1 - pct/100).
+					originalTotal := orderRevenue
+					if order.DiscountPercent < 100 {
+						originalTotal = orderRevenue / (1 - order.DiscountPercent/100)
+					}
+					disc.OrderCount++
+					sumPct += order.DiscountPercent
+					if disc.MinPercent == 0 || order.DiscountPercent < disc.MinPercent {
+						disc.MinPercent = order.DiscountPercent
+					}
+					if order.DiscountPercent > disc.MaxPercent {
+						disc.MaxPercent = order.DiscountPercent
+					}
+					disc.TotalDiscount += originalTotal - orderRevenue
 				}
-				statsMap[item.ProductID] = s
+
+				// Marketolog (marketplace) sales are a separate "debt", kept out of the main
+				// revenue / top-products / breakdown figures.
+				if order.MarketologID != nil {
+					marketolog.TotalOrders++
+					for _, item := range order.Items {
+						if item.Quantity <= 0 {
+							continue
+						}
+						marketolog.TotalRevenue += item.Price
+						m, ok := mktMap[item.ProductID]
+						if !ok {
+							m = &MarketologProduct{ProductName: item.Product.Name}
+							mktMap[item.ProductID] = m
+						}
+						m.Revenue += item.Price
+						if item.UnitType == "piece" {
+							marketolog.TotalPieces += item.Quantity
+							m.Pieces += item.Quantity
+						} else {
+							marketolog.TotalCapsules += item.Quantity
+							m.Capsules += item.Quantity
+						}
+					}
+					continue
+				}
+
+				nonMktOrders++
+
+				orderTime := order.CreatedAt.In(loc)
+				// revenueAll counts every line (incl. items zeroed-out at the till) — used for
+				// the chart points/total, exactly as the original points loop did. revenueActive
+				// counts only kept (qty>0) lines — used for the category/doctor breakdown.
+				var revenueAll, revenueActive float64
+				caps, pcs := 0, 0
+				for _, item := range order.Items {
+					revenueAll += item.Price
+					if item.Quantity <= 0 {
+						continue
+					}
+					revenueActive += item.Price
+					if item.UnitType == "piece" {
+						pcs += item.Quantity
+					} else {
+						caps += item.Quantity
+					}
+				}
+
+				// Chart points: add revenue/order count to the matching time bucket.
+				switch period {
+				case "weekly":
+					for pi := range points {
+						slotStart := startTime.Add(time.Duration(pi) * 12 * time.Hour)
+						slotEnd := slotStart.Add(12 * time.Hour)
+						if !orderTime.Before(slotStart) && orderTime.Before(slotEnd) {
+							points[pi].Revenue += revenueAll
+							points[pi].Orders++
+							break
+						}
+					}
+				case "monthly":
+					for pi := range points {
+						slotStart := startTime.AddDate(0, 0, pi)
+						slotEnd := slotStart.AddDate(0, 0, 1)
+						if !orderTime.Before(slotStart) && orderTime.Before(slotEnd) {
+							points[pi].Revenue += revenueAll
+							points[pi].Orders++
+							break
+						}
+					}
+				case "yearly":
+					monthIndex := (orderTime.Year()-startTime.Year())*12 + int(orderTime.Month()) - int(startTime.Month())
+					if monthIndex >= 0 && monthIndex < len(points) {
+						points[monthIndex].Revenue += revenueAll
+						points[monthIndex].Orders++
+					}
+				default:
+					// hourly (daily or custom)
+					hour := orderTime.Hour()
+					if hour >= 0 && hour < len(points) {
+						points[hour].Revenue += revenueAll
+						points[hour].Orders++
+					}
+				}
+
+				// Top products (kept lines only).
+				for _, item := range order.Items {
+					if item.Quantity <= 0 {
+						continue // skip items removed at the till
+					}
+					s, ok := statsMap[item.ProductID]
+					if !ok {
+						s = &ProductStat{ProductID: item.ProductID, ProductName: item.Product.Name}
+						statsMap[item.ProductID] = s
+					}
+					s.Revenue += item.Price
+					if item.UnitType == "piece" {
+						s.TotalQty += item.Quantity
+					} else {
+						s.TotalPacks += item.Quantity
+						s.TotalQty += item.Quantity * item.Product.QuantityPerPack
+					}
+				}
+
+				// Category breakdown + VIP retail value + doctor referrals.
+				cat := "regular"
+				if order.IsVIP {
+					cat = "vip"
+				} else if strings.TrimSpace(order.ReferredBy) != "" {
+					cat = "doctor"
+				}
+				b := breakdown[cat]
+				b.Orders++
+				b.Capsules += caps
+				b.Pieces += pcs
+				b.Revenue += revenueActive
+
+				switch cat {
+				case "vip":
+					// Own-patient sales are free (item price 0), so report the retail value
+					// of the medicine handed out rather than the recorded 0.
+					vip.TotalOrders++
+					vip.TotalCapsules += caps
+					vip.TotalPieces += pcs
+					vipValue := 0.0
+					for _, item := range order.Items {
+						if item.Quantity <= 0 {
+							continue
+						}
+						item.Product.ComputePackPrice()
+						v := item.Product.PricePerPack * float64(item.Quantity)
+						if item.UnitType == "piece" {
+							v = item.Product.PricePerPill * float64(item.Quantity)
+						}
+						vipValue += v
+						m, ok := vipMap[item.ProductID]
+						if !ok {
+							m = &MarketologProduct{ProductName: item.Product.Name}
+							vipMap[item.ProductID] = m
+						}
+						m.Revenue += v
+						if item.UnitType == "piece" {
+							m.Pieces += item.Quantity
+						} else {
+							m.Capsules += item.Quantity
+						}
+					}
+					vip.TotalRevenue += vipValue
+					b.Revenue += vipValue
+				case "doctor":
+					d, ok := doctorMap[order.ReferredBy]
+					if !ok {
+						d = &DoctorReferral{DoctorName: order.ReferredBy}
+						doctorMap[order.ReferredBy] = d
+					}
+					d.OrderCount++
+					d.Capsules += caps
+					d.Pieces += pcs
+					d.TotalRevenue += revenueActive
+				}
 			}
-			s.Revenue += item.Price
-			if item.UnitType == "piece" {
-				s.TotalQty += item.Quantity
-			} else {
-				s.TotalPacks += item.Quantity
-				s.TotalQty += item.Quantity * item.Product.QuantityPerPack
-			}
-		}
+			return nil
+		})
+
+	// ---- finalize the streamed aggregates ----
+	for _, m := range mktMap {
+		marketolog.Products = append(marketolog.Products, *m)
+	}
+	// Mirror the marketolog debt into the summary so the admin sees every channel separately.
+	breakdown["marketolog"] = &CategoryStat{
+		Orders:   marketolog.TotalOrders,
+		Capsules: marketolog.TotalCapsules,
+		Pieces:   marketolog.TotalPieces,
+		Revenue:  marketolog.TotalRevenue,
 	}
 
-	// Sort by revenue descending, take top 10
+	// Sort products by revenue descending, take top 10.
 	var topSlice []TopProduct
 	for _, s := range statsMap {
 		topSlice = append(topSlice, TopProduct{
@@ -303,7 +412,6 @@ func GetAnalytics(c *gin.Context) {
 			Revenue:     s.Revenue,
 		})
 	}
-	// Simple sort (bubble sort for up to 10 products, enough here)
 	for i := 0; i < len(topSlice)-1; i++ {
 		for j := i + 1; j < len(topSlice); j++ {
 			if topSlice[j].Revenue > topSlice[i].Revenue {
@@ -320,96 +428,6 @@ func GetAnalytics(c *gin.Context) {
 		totalRevenue += p.Revenue
 	}
 
-	// Classify every non-marketolog order into exactly one bucket (priority:
-	// own patient > doctor referral > regular) and aggregate capsule/piece counts.
-	// Own-patient (свои пациенты) sales get a product-level breakdown, doctor
-	// referrals get per-doctor tablet counts, and the marketolog debt is mirrored
-	// into the summary so the admin sees every channel separately.
-	breakdown := map[string]*CategoryStat{
-		"vip":     {},
-		"doctor":  {},
-		"regular": {},
-		"marketolog": {
-			Orders:   marketolog.TotalOrders,
-			Capsules: marketolog.TotalCapsules,
-			Pieces:   marketolog.TotalPieces,
-			Revenue:  marketolog.TotalRevenue,
-		},
-	}
-	var vip MarketologStat
-	vipMap := make(map[uint]*MarketologProduct)
-	doctorMap := make(map[string]*DoctorReferral)
-	for _, order := range orders {
-		var revenue float64
-		caps, pcs := 0, 0
-		for _, item := range order.Items {
-			if item.Quantity <= 0 {
-				continue
-			}
-			revenue += item.Price
-			if item.UnitType == "piece" {
-				pcs += item.Quantity
-			} else {
-				caps += item.Quantity
-			}
-		}
-
-		cat := "regular"
-		if order.IsVIP {
-			cat = "vip"
-		} else if strings.TrimSpace(order.ReferredBy) != "" {
-			cat = "doctor"
-		}
-		b := breakdown[cat]
-		b.Orders++
-		b.Capsules += caps
-		b.Pieces += pcs
-		b.Revenue += revenue
-
-		switch cat {
-		case "vip":
-			// Own-patient sales are free (item price 0), so report the retail value
-			// of the medicine handed out rather than the recorded 0.
-			vip.TotalOrders++
-			vip.TotalCapsules += caps
-			vip.TotalPieces += pcs
-			vipValue := 0.0
-			for _, item := range order.Items {
-				if item.Quantity <= 0 {
-					continue
-				}
-				item.Product.ComputePackPrice()
-				v := item.Product.PricePerPack * float64(item.Quantity)
-				if item.UnitType == "piece" {
-					v = item.Product.PricePerPill * float64(item.Quantity)
-				}
-				vipValue += v
-				m, ok := vipMap[item.ProductID]
-				if !ok {
-					m = &MarketologProduct{ProductName: item.Product.Name}
-					vipMap[item.ProductID] = m
-				}
-				m.Revenue += v
-				if item.UnitType == "piece" {
-					m.Pieces += item.Quantity
-				} else {
-					m.Capsules += item.Quantity
-				}
-			}
-			vip.TotalRevenue += vipValue
-			b.Revenue += vipValue
-		case "doctor":
-			d, ok := doctorMap[order.ReferredBy]
-			if !ok {
-				d = &DoctorReferral{DoctorName: order.ReferredBy}
-				doctorMap[order.ReferredBy] = d
-			}
-			d.OrderCount++
-			d.Capsules += caps
-			d.Pieces += pcs
-			d.TotalRevenue += revenue
-		}
-	}
 	for _, m := range vipMap {
 		vip.Products = append(vip.Products, *m)
 	}
@@ -425,32 +443,6 @@ func GetAnalytics(c *gin.Context) {
 		}
 	}
 
-	// Cashier-typed discount stats across every order in range (including marketolog).
-	var disc DiscountSummary
-	sumPct := 0.0
-	for _, o := range allOrders {
-		if o.DiscountPercent <= 0 {
-			continue
-		}
-		var orderRevenue float64
-		for _, it := range o.Items {
-			orderRevenue += it.Price
-		}
-		// orderRevenue already reflects the discount, so the original was revenue / (1 - pct/100).
-		originalTotal := orderRevenue
-		if o.DiscountPercent < 100 {
-			originalTotal = orderRevenue / (1 - o.DiscountPercent/100)
-		}
-		disc.OrderCount++
-		sumPct += o.DiscountPercent
-		if disc.MinPercent == 0 || o.DiscountPercent < disc.MinPercent {
-			disc.MinPercent = o.DiscountPercent
-		}
-		if o.DiscountPercent > disc.MaxPercent {
-			disc.MaxPercent = o.DiscountPercent
-		}
-		disc.TotalDiscount += originalTotal - orderRevenue
-	}
 	if disc.OrderCount > 0 {
 		disc.AvgPercent = sumPct / float64(disc.OrderCount)
 	}
@@ -460,7 +452,7 @@ func GetAnalytics(c *gin.Context) {
 		TopProducts:     topSlice,
 		DoctorReferrals: doctorSlice,
 		TotalRevenue:    totalRevenue,
-		TotalOrders:     len(orders),
+		TotalOrders:     nonMktOrders,
 		Marketolog:      marketolog,
 		VIP:             vip,
 		Breakdown:       breakdown,
