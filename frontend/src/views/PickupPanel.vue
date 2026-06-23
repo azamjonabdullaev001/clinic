@@ -1003,27 +1003,10 @@
 
               <!-- Inline payment editor -->
               <div v-if="payEdit[order.id]?.open && !listEdit[order.id]?.editing" class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-                <div class="flex items-center justify-between mb-1">
-                  <p class="text-xs font-semibold text-amber-800">{{ txt.pay_select_method }}</p>
-                  <button @click="payEditToggleSplit(order.id)"
-                    :class="payEdit[order.id].mode==='split' ? 'bg-amber-600 text-white' : 'bg-white text-amber-700 border border-amber-300'"
-                    class="text-xs px-2.5 py-1 rounded-full font-medium transition">
-                    {{ txt.pay_combine }}
-                  </button>
-                </div>
+                <p class="text-xs font-semibold text-amber-800 mb-1">{{ txt.pay_select_method }}</p>
 
-                <!-- Single method: 5 quick-pick buttons -->
-                <div v-if="payEdit[order.id].mode === 'single'" class="flex gap-2 flex-wrap">
-                  <button v-for="m in histPayMethods" :key="m.key"
-                    @click="payEditPickSingle(order.id, m.key)"
-                    :class="payEdit[order.id].method === m.key ? m.color + ' ring-2 ring-offset-1 ring-amber-400 font-bold' : 'bg-white text-gray-600 border-gray-200'"
-                    class="border px-3 py-1.5 rounded-lg text-sm transition">
-                    {{ m.label }}
-                  </button>
-                </div>
-
-                <!-- Split method: amount per method -->
-                <div v-else class="space-y-2">
+                <!-- All 5 methods always editable: type an amount per method, combine freely -->
+                <div class="space-y-2">
                   <div v-for="m in histPayMethods" :key="m.key" class="flex items-center gap-2">
                     <span :class="m.color" class="border rounded-md px-2 py-0.5 text-xs font-medium w-28 text-center flex-shrink-0">{{ m.label }}</span>
                     <input v-model.number="payEdit[order.id].amounts[m.key]" type="number" min="0" step="1000"
@@ -2582,34 +2565,25 @@ function togglePayEdit(order) {
     delete payEdit.value[order.id]
     return
   }
-  let mode = 'single'
-  let method = order.payment_method || 'cash'
+  // Always show all 5 method inputs prefilled — no need to toggle a "combine" mode.
   const amounts = { cash: 0, terminal: 0, cassa1: 0, click: 0, transfer: 0 }
+  let filled = false
   if (order.payment_splits) {
     try {
       const splits = JSON.parse(order.payment_splits).filter(s => s.amount > 0)
-      if (splits.length > 1) {
-        mode = 'split'
-        splits.forEach(s => { amounts[s.method] = s.amount })
-      } else if (splits.length === 1) {
-        method = splits[0].method
+      if (splits.length) {
+        splits.forEach(s => { if (s.method in amounts) amounts[s.method] = s.amount })
+        filled = true
       }
     } catch (e) { /* ignore */ }
   }
-  payEdit.value[order.id] = { open: true, mode, method, amounts, saving: false }
-}
-
-function payEditPickSingle(orderId, key) {
-  const e = payEdit.value[orderId]
-  if (!e) return
-  e.mode = 'single'
-  e.method = key
-}
-
-function payEditToggleSplit(orderId) {
-  const e = payEdit.value[orderId]
-  if (!e) return
-  e.mode = e.mode === 'split' ? 'single' : 'split'
+  if (!filled) {
+    // Single payment method → prefill its input with the order total so it's ready to edit.
+    let key = order.payment_method || 'cash'
+    if (key === 'card') key = order.card_type || 'cassa1'
+    if (key in amounts) amounts[key] = orderTotal(order)
+  }
+  payEdit.value[order.id] = { open: true, amounts, saving: false }
 }
 
 async function savePayEdit(order) {
@@ -2617,22 +2591,19 @@ async function savePayEdit(order) {
   if (!e || e.saving) return
   e.saving = true
   try {
-    let paymentMethod = e.method
+    let paymentMethod = ''
     let cardType = ''
     let paymentSplits = ''
-    if (e.mode === 'split') {
-      const splits = histPayMethods.value
-        .map(m => ({ method: m.key, amount: Number(e.amounts[m.key]) || 0 }))
-        .filter(s => s.amount > 0)
-      if (splits.length === 1) {
-        paymentMethod = splits[0].method
-        paymentSplits = ''
-      } else if (splits.length > 1) {
-        paymentMethod = 'mixed'
-        paymentSplits = JSON.stringify(splits)
-      } else {
-        return
-      }
+    const splits = histPayMethods.value
+      .map(m => ({ method: m.key, amount: Number(e.amounts[m.key]) || 0 }))
+      .filter(s => s.amount > 0)
+    if (splits.length === 0) {
+      return
+    } else if (splits.length === 1) {
+      paymentMethod = splits[0].method
+    } else {
+      paymentMethod = 'mixed'
+      paymentSplits = JSON.stringify(splits)
     }
     // Map legacy card subtypes
     if (['cassa1', 'click', 'transfer'].includes(paymentMethod)) {
