@@ -179,7 +179,31 @@
           </div>
         </div>
 
-        <div class="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <!-- ===== Legal + payment row ===== -->
+        <div class="mt-10 grid gap-8 md:grid-cols-2 items-start">
+          <!-- Legal links + email -->
+          <div>
+            <h4 class="text-xs font-semibold tracking-widest uppercase text-white/60 mb-4">{{ t.footer_legal }}</h4>
+            <div class="flex flex-col gap-2 text-sm text-white/40">
+              <router-link to="/offer" class="hover:text-white transition-colors duration-200">{{ t.footer_offer }}</router-link>
+              <router-link to="/terms" class="hover:text-white transition-colors duration-200">{{ t.footer_terms }}</router-link>
+              <router-link to="/privacy" class="hover:text-white transition-colors duration-200">{{ t.footer_privacy }}</router-link>
+              <a :href="`mailto:${org.email}`" class="flex items-center gap-2 hover:text-white transition-colors duration-200 mt-1">
+                <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+                {{ org.email }}
+              </a>
+            </div>
+          </div>
+          <!-- Payment systems -->
+          <div class="md:text-right">
+            <h4 class="text-xs font-semibold tracking-widest uppercase text-white/60 mb-4">{{ t.footer_payment_accept }}</h4>
+            <div class="md:flex md:justify-end">
+              <PaymentLogos />
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p class="text-xs text-white/30">{{ t.footer_copy }}</p>
           <router-link to="/admin/login" class="text-xs text-white/20 hover:text-white/40 transition-colors duration-300">
             {{ t.footer_admin }}
@@ -193,7 +217,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useLangStore } from '../stores/lang'
+import PaymentLogos from './PaymentLogos.vue'
+import { ORG } from '../config/org'
 
 const langStore = useLangStore()
 const t = computed(() => langStore.t)
+const org = ORG
 </script>

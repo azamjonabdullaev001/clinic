@@ -55,7 +55,18 @@
         </div>
       </div>
 
-      <div class="border-t border-white/10 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+      <!-- Legal + payment -->
+      <div class="border-t border-white/10 mt-8 pt-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+        <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/40">
+          <router-link to="/offer" class="hover:text-white transition-colors duration-200">{{ t.footer_offer }}</router-link>
+          <router-link to="/terms" class="hover:text-white transition-colors duration-200">{{ t.footer_terms }}</router-link>
+          <router-link to="/privacy" class="hover:text-white transition-colors duration-200">{{ t.footer_privacy }}</router-link>
+          <a :href="`mailto:${org.email}`" class="hover:text-white transition-colors duration-200">{{ org.email }}</a>
+        </div>
+        <PaymentLogos />
+      </div>
+
+      <div class="border-t border-white/10 mt-6 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
         <p class="text-xs text-white/30">{{ t.footer_copy }}</p>
         <router-link to="/admin/login" class="text-xs text-white/20 hover:text-white/40 transition-colors duration-300">
           {{ t.footer_admin }}
@@ -68,7 +79,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useLangStore } from '../stores/lang'
+import PaymentLogos from './PaymentLogos.vue'
+import { ORG } from '../config/org'
 
 const langStore = useLangStore()
 const t = computed(() => langStore.t)
+const org = ORG
 </script>

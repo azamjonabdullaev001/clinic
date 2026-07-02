@@ -10,6 +10,9 @@ import ManagerPanel from '../views/ManagerPanel.vue'
 import DoctorPanel from '../views/DoctorPanel.vue'
 import Support from '../views/Support.vue'
 import News from '../views/News.vue'
+import Offer from '../views/Offer.vue'
+import Terms from '../views/Terms.vue'
+import Privacy from '../views/Privacy.vue'
 
 const routes = [
   { path: '/', name: 'Landing', component: Landing },
@@ -23,6 +26,9 @@ const routes = [
   { path: '/manager', name: 'ManagerPanel', component: ManagerPanel, meta: { requiresWorker: true } },
   { path: '/doctor', name: 'DoctorPanel', component: DoctorPanel, meta: { requiresDoctor: true } },
   { path: '/support', name: 'Support', component: Support },
+  { path: '/offer', name: 'Offer', component: Offer },
+  { path: '/terms', name: 'Terms', component: Terms },
+  { path: '/privacy', name: 'Privacy', component: Privacy },
 ]
 
 const router = createRouter({

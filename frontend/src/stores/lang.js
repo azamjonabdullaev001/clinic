@@ -160,6 +160,12 @@ const translations = {
     footer_faq_empty: 'Вопросы скоро появятся',
     footer_support_title: 'Поддержка',
     footer_support_desc: 'Есть вопрос по лечению или заказу? Откройте поддержку и напишите нам в чат.',
+    footer_legal: 'Документы',
+    footer_offer: 'Публичная оферта',
+    footer_terms: 'Пользовательское соглашение',
+    footer_privacy: 'Политика конфиденциальности',
+    footer_email_label: 'Email',
+    footer_payment_accept: 'Мы принимаем к оплате',
 
     // My orders drawer
     orders_title: 'Мои заказы',
@@ -464,6 +470,12 @@ const translations = {
     footer_faq_empty: 'Savollar tez orada qo\'shiladi',
     footer_support_title: 'Yordam',
     footer_support_desc: 'Davolanish yoki buyurtma bo\'yicha savol bormi? Yordam chatiga yozing.',
+    footer_legal: 'Hujjatlar',
+    footer_offer: 'Ommaviy oferta',
+    footer_terms: 'Foydalanuvchi shartnomasi',
+    footer_privacy: 'Maxfiylik siyosati',
+    footer_email_label: 'Email',
+    footer_payment_accept: 'To\'lovni qabul qilamiz',
 
     // My orders drawer
     orders_title: 'Mening buyurtmalarim',
