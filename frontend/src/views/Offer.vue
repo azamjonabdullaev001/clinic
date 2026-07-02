@@ -49,24 +49,12 @@ const ru = {
       ]},
       { t: 'p', text: 'Сроки и стоимость доставки зависят от региона и рассчитываются при оформлении заказа. Точную информацию сообщает менеджер при подтверждении.' },
     ]},
-    { h: 'Правила возврата товара', blocks: [
-      { t: 'p', text: 'Покупатель вправе вернуть товар надлежащего качества в течение 10 (десяти) календарных дней с момента получения, если товар не был в употреблении, сохранены его товарный вид, потребительские свойства, упаковка и документ, подтверждающий покупку.' },
-      { t: 'p', text: 'Товар ненадлежащего качества (брак, повреждение, несоответствие) принимается к возврату или замене. Обратите внимание: отдельные категории товаров (лекарственные препараты, средства личной гигиены) возврату и обмену не подлежат в соответствии с законодательством Республики Узбекистан.' },
-      { t: 'ul', items: [
-        'Для оформления возврата свяжитесь с нами по телефону или email, указанным в разделе «Контакты».',
-        'Возврат согласовывается с менеджером; товар передаётся в пункт выдачи или службе доставки.',
-      ]},
-    ]},
-    { h: 'Правила возврата денежных средств', blocks: [
-      { t: 'p', text: 'При возврате товара или отмене оплаченного заказа денежные средства возвращаются тем же способом, которым была произведена оплата.' },
-      { t: 'ul', items: [
-        'Возврат средств на банковскую карту осуществляется в срок до 10 (десяти) рабочих дней после согласования возврата.',
-        'Срок зачисления зависит от банка-эмитента карты Покупателя.',
-        'Возвращается стоимость товара; стоимость уже оказанной услуги доставки может не возвращаться.',
-      ]},
+    { h: 'Возврат товара', blocks: [
+      { t: 'p', text: 'Приобретённые товары возврату и обмену не подлежат. Продаваемая продукция относится к категориям товаров, не подлежащих возврату и обмену в соответствии с законодательством Республики Узбекистан.' },
+      { t: 'p', text: 'Исключение составляет товар ненадлежащего качества (брак, повреждение при получении или несоответствие заказу). В этом случае свяжитесь с нами по телефону или email в день получения — товар будет заменён.' },
     ]},
     { h: 'Отмена заказа', blocks: [
-      { t: 'p', text: 'Покупатель может отменить заказ до момента его передачи в доставку или выдачи, связавшись с менеджером. Если заказ был оплачен, денежные средства возвращаются в соответствии с правилами возврата денежных средств выше.' },
+      { t: 'p', text: 'Покупатель может отменить заказ до момента его передачи в доставку или выдачи, связавшись с менеджером. Если оплаченный заказ отменён до передачи в доставку или выдачи, денежные средства возвращаются на карту, с которой производилась оплата, в срок до 10 (десяти) рабочих дней; срок зачисления зависит от банка-эмитента карты.' },
     ]},
     { h: 'Реквизиты Продавца', blocks: [
       { t: 'kv', rows: [
@@ -122,24 +110,12 @@ const uz = {
       ]},
       { t: 'p', text: 'Yetkazib berish muddati va narxi hududga bog‘liq va buyurtma rasmiylashtirishda hisoblanadi. Aniq ma’lumotni menejer tasdiqlash paytida bildiradi.' },
     ]},
-    { h: 'Tovarni qaytarish qoidalari', blocks: [
-      { t: 'p', text: 'Xaridor sifatli tovarni olgan kundan boshlab 10 (o‘n) kalendar kun ichida qaytarishga haqli, agar tovar ishlatilmagan, tovar ko‘rinishi, iste’mol xususiyatlari, qadoq va xarid hujjati saqlangan bo‘lsa.' },
-      { t: 'p', text: 'Sifatsiz tovar (nuqson, shikast, nomuvofiqlik) qaytarish yoki almashtirish uchun qabul qilinadi. Diqqat: ayrim toifadagi tovarlar (dori vositalari, shaxsiy gigiyena vositalari) O‘zbekiston Respublikasi qonunchiligiga muvofiq qaytarilmaydi va almashtirilmaydi.' },
-      { t: 'ul', items: [
-        'Qaytarish uchun «Kontaktlar» bo‘limidagi telefon yoki email orqali biz bilan bog‘laning.',
-        'Qaytarish menejer bilan kelishiladi; tovar punktga yoki yetkazib berish xizmatiga topshiriladi.',
-      ]},
-    ]},
-    { h: 'Pul mablag‘larini qaytarish qoidalari', blocks: [
-      { t: 'p', text: 'Tovar qaytarilganda yoki to‘langan buyurtma bekor qilinganda pul mablag‘lari to‘lov amalga oshirilgan usul bilan qaytariladi.' },
-      { t: 'ul', items: [
-        'Bank kartasiga pul qaytarish kelishilgandan so‘ng 10 (o‘n) ish kuni ichida amalga oshiriladi.',
-        'Hisobga o‘tish muddati Xaridor kartasini chiqargan bankka bog‘liq.',
-        'Tovar qiymati qaytariladi; ko‘rsatilgan yetkazib berish xizmati qiymati qaytarilmasligi mumkin.',
-      ]},
+    { h: 'Tovarni qaytarish', blocks: [
+      { t: 'p', text: 'Sotib olingan tovarlar qaytarilmaydi va almashtirilmaydi. Sotiladigan mahsulotlar O‘zbekiston Respublikasi qonunchiligiga muvofiq qaytarilmaydigan va almashtirilmaydigan toifadagi tovarlarga kiradi.' },
+      { t: 'p', text: 'Istisno — sifatsiz tovar (nuqson, olayotganda shikastlangan yoki buyurtmaga nomuvofiq). Bunday holatda tovarni olgan kuningizda telefon yoki email orqali biz bilan bog‘laning — tovar almashtiriladi.' },
     ]},
     { h: 'Buyurtmani bekor qilish', blocks: [
-      { t: 'p', text: 'Xaridor buyurtma yetkazib berishga topshirilgunga yoki berilgunga qadar menejer bilan bog‘lanib uni bekor qilishi mumkin. Buyurtma to‘langan bo‘lsa, pul yuqoridagi qaytarish qoidalariga muvofiq qaytariladi.' },
+      { t: 'p', text: 'Xaridor buyurtma yetkazib berishga topshirilgunga yoki berilgunga qadar menejer bilan bog‘lanib uni bekor qilishi mumkin. Agar to‘langan buyurtma yetkazishga topshirilgunga qadar bekor qilinsa, pul to‘lov amalga oshirilgan kartaga 10 (o‘n) ish kuni ichida qaytariladi; hisobga o‘tish muddati kartani chiqargan bankka bog‘liq.' },
     ]},
     { h: 'Sotuvchi rekvizitlari', blocks: [
       { t: 'kv', rows: [
