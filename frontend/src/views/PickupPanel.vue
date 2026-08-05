@@ -985,6 +985,18 @@
               </select>
             </div>
             <input v-if="historyPeriod==='custom'" v-model="historyDate" type="date" class="pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-gray-500">{{ txt.person_label }}:</label>
+              <select v-model="historyPerson" class="pp-input rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[170px]">
+                <option value="">{{ txt.person_all }}</option>
+                <optgroup :label="txt.staff_doctors">
+                  <option v-for="d in allDoctors" :key="'hd'+d.id" :value="'doctor:'+d.id">{{ d.name }}</option>
+                </optgroup>
+                <optgroup :label="txt.staff_marketologs">
+                  <option v-for="m in marketologs" :key="'hm'+m.id" :value="'marketolog:'+m.id">{{ m.name }}</option>
+                </optgroup>
+              </select>
+            </div>
             <button @click="loadOrders" class="flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               {{ txt.refresh }}
@@ -993,6 +1005,24 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
               {{ txt.export_excel }}
             </button>
+          </div>
+        </div>
+
+        <!-- Selected-person summary (revenue over the current filters) -->
+        <div v-if="historyPerson" class="pp-card rounded-xl shadow-sm px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p class="text-xs text-gray-500">{{ selectedPersonLabel }}</p>
+            <p class="font-semibold pp-text">{{ historyPersonName }}</p>
+          </div>
+          <div class="flex gap-6">
+            <div class="text-right">
+              <p class="text-xs text-gray-500">{{ txt.staff_orders_count }}</p>
+              <p class="font-bold text-blue-700">{{ historyOrders.length }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-gray-500">{{ txt.staff_revenue }}</p>
+              <p class="font-bold text-emerald-700">{{ formatPrice(historyPersonRevenue) }} {{ txt.sum }}</p>
+            </div>
           </div>
         </div>
 
@@ -1022,7 +1052,9 @@
                   <p v-if="order.referred_by" class="text-xs text-purple-700 mt-0.5">{{ txt.referred_by }}: {{ order.referred_by }}</p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                  <p v-if="order.marketolog_id" class="text-xs font-bold text-purple-700 mb-0.5 uppercase tracking-wide">{{ txt.cat_marketolog }}</p>
+                  <p v-if="order.marketolog_id" class="text-xs font-bold text-purple-700 mb-0.5">
+                    {{ txt.cat_marketolog }}<span v-if="marketologName(order.marketolog_id)"> · {{ marketologName(order.marketolog_id) }}</span>
+                  </p>
                   <p class="font-bold pp-text">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
                   <p v-if="order.discount_percent > 0" class="text-xs text-rose-500">{{ txt.discount_badge }} −{{ order.discount_percent }}%</p>
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
@@ -1522,6 +1554,8 @@ const texts = {
     staff_orders_count: 'Всего заказов',
     staff_revenue: 'Сумма',
     staff_no_orders: 'Нет заказов за выбранный период',
+    person_label: 'Доктор/Маркетолог',
+    person_all: 'Все',
     nav_bts: 'БТС пункты',
     bts_cargo: 'БТС Карго',
     bts_title: 'Пункты выдачи БТС Карго',
@@ -1775,6 +1809,8 @@ const texts = {
     staff_orders_count: 'Jami buyurtmalar',
     staff_revenue: 'Summa',
     staff_no_orders: "Tanlangan davrda buyurtmalar yo'q",
+    person_label: 'Doktor/Marketolog',
+    person_all: 'Barchasi',
     nav_bts: 'BTS nuqtalar',
     bts_cargo: 'BTS Kargo',
     bts_title: 'BTS Kargo berish nuqtalari',
@@ -2374,6 +2410,42 @@ const historyType = ref('all')
 const historyStatus = ref('all')
 const historyPeriod = ref('daily')
 const historyDate = ref('')
+// 4th history filter: focus on ONE person. '' = everyone, else 'doctor:<id>' | 'marketolog:<id>'.
+const historyPerson = ref('')
+
+function marketologName(id) {
+  const m = marketologs.value.find(x => x.id === id)
+  return m ? m.name : ''
+}
+
+// True when the order belongs to the person chosen in the 4th filter. Doctors are matched by
+// doctor_id OR their name appearing in referred_by (same rule as the backend); marketologs by id.
+function matchesPerson(o) {
+  if (!historyPerson.value) return true
+  const [type, idStr] = historyPerson.value.split(':')
+  const id = Number(idStr)
+  if (type === 'marketolog') return o.marketolog_id === id
+  if (type === 'doctor') {
+    if (o.doctor_id === id) return true
+    const d = allDoctors.value.find(x => x.id === id)
+    return !!(d && o.referred_by && o.referred_by.includes(d.name))
+  }
+  return true
+}
+
+const historyPersonName = computed(() => {
+  if (!historyPerson.value) return ''
+  const [type, idStr] = historyPerson.value.split(':')
+  const id = Number(idStr)
+  if (type === 'marketolog') return marketologName(id)
+  return allDoctors.value.find(x => x.id === id)?.name || ''
+})
+const selectedPersonLabel = computed(() =>
+  historyPerson.value.startsWith('marketolog:') ? txt.value.cat_marketolog : txt.value.staff_doctors
+)
+const historyPersonRevenue = computed(() =>
+  historyOrders.value.reduce((s, o) => s + orderTotal(o), 0)
+)
 
 const statusFilters = computed(() => [
   { label: txt.value.type_all, value: 'all' },
@@ -2414,6 +2486,7 @@ const historyOrders = computed(() => {
   else if (historyType.value === 'offline') list = list.filter(o => o.is_offline)
   else if (historyType.value === 'vip') list = list.filter(o => o.is_vip)
   if (historyStatus.value !== 'all') list = list.filter(o => o.status === historyStatus.value)
+  if (historyPerson.value) list = list.filter(matchesPerson)
   return list.filter(inPeriod)
 })
 
