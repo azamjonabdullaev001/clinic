@@ -1022,6 +1022,7 @@
                   <p v-if="order.referred_by" class="text-xs text-purple-700 mt-0.5">{{ txt.referred_by }}: {{ order.referred_by }}</p>
                 </div>
                 <div class="text-right flex-shrink-0">
+                  <p v-if="order.marketolog_id" class="text-xs font-bold text-purple-700 mb-0.5 uppercase tracking-wide">{{ txt.cat_marketolog }}</p>
                   <p class="font-bold pp-text">{{ formatPrice(orderTotal(order)) }} {{ txt.sum }}</p>
                   <p v-if="order.discount_percent > 0" class="text-xs text-rose-500">{{ txt.discount_badge }} −{{ order.discount_percent }}%</p>
                   <p class="text-xs text-gray-400">{{ order.items?.length }} {{ txt.positions }}</p>
@@ -1071,18 +1072,18 @@
 
               <!-- Actions: Редактировать, Способ оплаты, Полный возврат -->
               <div v-if="!listEdit[order.id]?.editing" class="mt-3 flex gap-2 flex-wrap">
-                <button v-if="order.is_offline && !order.marketolog_id && order.status !== 'cancelled'"
+                <button v-if="order.is_offline && order.status !== 'cancelled'"
                   @click="startListEdit(order)"
                   class="bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 px-4 py-1.5 rounded-lg transition text-sm font-medium">
                   {{ txt.edit_items }}
                 </button>
-                <button v-if="!order.is_vip"
+                <button v-if="!order.is_vip && !order.marketolog_id"
                   @click="togglePayEdit(order)"
                   :class="payEdit[order.id]?.open ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'"
                   class="border px-4 py-1.5 rounded-lg transition text-sm font-medium">
                   {{ txt.pay_method_btn }}
                 </button>
-                <button v-if="order.is_offline && !order.marketolog_id && order.status === 'delivered'"
+                <button v-if="order.is_offline && order.status === 'delivered'"
                   @click="fullReturn(order)" class="bg-red-600 text-white border border-red-600 px-4 py-1.5 rounded-lg hover:bg-red-700 transition text-sm font-medium">
                   {{ txt.full_return }}
                 </button>
