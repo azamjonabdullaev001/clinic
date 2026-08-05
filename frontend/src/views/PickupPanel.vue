@@ -22,6 +22,7 @@
             {k:'online',    l:txt.nav_online,    icon:'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064'},
             {k:'offline',   l:txt.nav_offline,   icon:'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'},
             {k:'stock',     l:txt.nav_stock,     icon:'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'},
+            {k:'staff',     l:txt.nav_staff,     icon:'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a3 3 0 10-2.83-4'},
             {k:'analytics', l:txt.nav_analytics, icon:'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
             {k:'history',   l:txt.nav_history,   icon:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}
           ]"
@@ -849,24 +850,8 @@
               <div class="bg-emerald-50 rounded-xl p-4"><p class="text-xs text-emerald-600 mb-1">{{ txt.mkt_paid_lbl }}</p><p class="text-lg font-bold text-emerald-700">{{ formatPrice(mktDebt.paid) }} {{ txt.sum }}</p></div>
               <div class="bg-rose-50 rounded-xl p-4"><p class="text-xs text-rose-600 mb-1">{{ txt.mkt_remaining_lbl }}</p><p class="text-lg font-bold text-rose-700">{{ formatPrice(mktDebt.remaining) }} {{ txt.sum }}</p></div>
             </div>
-            <div v-if="mktDebt.products && mktDebt.products.length" class="overflow-x-auto rounded-xl border border-purple-100 mb-4">
-              <table class="w-full text-sm">
-                <thead class="bg-purple-50"><tr>
-                  <th class="text-left px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.product }}</th>
-                  <th class="text-right px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.pack }}</th>
-                  <th class="text-right px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.piece }}</th>
-                  <th class="text-right px-3 py-2 text-xs font-semibold text-purple-700">{{ txt.sum }}</th>
-                </tr></thead>
-                <tbody class="divide-y divide-purple-50">
-                  <tr v-for="(p, i) in mktDebt.products" :key="i">
-                    <td class="px-3 py-2 text-gray-800">{{ p.product_name }}</td>
-                    <td class="px-3 py-2 text-right text-gray-600">{{ p.capsules }}</td>
-                    <td class="px-3 py-2 text-right text-gray-600">{{ p.pieces }}</td>
-                    <td class="px-3 py-2 text-right font-bold text-purple-700">{{ formatPrice(p.revenue) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <!-- Product breakdown intentionally hidden: the cashier settles debt by SUM only,
+                 not by which medicines were taken. Paying reduces the remaining balance. -->
             <div class="flex items-end gap-3 flex-wrap">
               <div>
                 <label class="text-xs text-gray-500 mb-1 block">{{ txt.mkt_pay_label }}</label>
@@ -881,6 +866,90 @@
             </p>
           </div>
           <div v-else class="text-center text-gray-400 text-sm py-6">{{ txt.mkt_select_hint }}</div>
+        </div>
+      </div>
+
+      <!-- ===== STAFF (doctor / marketolog) PER-PERSON HISTORY TAB ===== -->
+      <div v-show="tab === 'staff'" class="flex-1 p-6 space-y-5">
+        <!-- Date range -->
+        <div class="pp-card rounded-xl shadow-sm px-6 py-4">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h2 class="font-semibold text-gray-800 mr-2">{{ txt.staff_title }}</h2>
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-gray-500">{{ txt.staff_from }}:</label>
+              <input type="date" v-model="staffFrom" @change="loadStaffHistory" class="pp-input rounded-lg px-3 py-2 text-sm"/>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-gray-500">{{ txt.staff_to }}:</label>
+              <input type="date" v-model="staffTo" @change="loadStaffHistory" class="pp-input rounded-lg px-3 py-2 text-sm"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <!-- People picker: choose ONE doctor OR ONE marketolog -->
+          <div class="pp-card rounded-xl shadow-sm p-4 space-y-4 lg:max-h-[70vh] lg:overflow-y-auto">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-2">{{ txt.staff_doctors }}</p>
+              <div class="space-y-1">
+                <button v-for="d in allDoctors" :key="'d'+d.id"
+                  @click="selectPerson('doctor', d)"
+                  :class="staffSel && staffSel.type==='doctor' && staffSel.id===d.id ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 text-gray-700'"
+                  class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition">
+                  {{ d.name }}<span v-if="d.specialty" class="text-xs opacity-70"> · {{ d.specialty }}</span>
+                </button>
+                <p v-if="!allDoctors.length" class="text-xs text-gray-400 px-3 py-2">—</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-purple-600 mb-2">{{ txt.staff_marketologs }}</p>
+              <div class="space-y-1">
+                <button v-for="m in marketologs" :key="'m'+m.id"
+                  @click="selectPerson('marketolog', m)"
+                  :class="staffSel && staffSel.type==='marketolog' && staffSel.id===m.id ? 'bg-purple-600 text-white' : 'hover:bg-gray-100 text-gray-700'"
+                  class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition">
+                  {{ m.name }}
+                </button>
+                <p v-if="!marketologs.length" class="text-xs text-gray-400 px-3 py-2">{{ txt.no_marketologs }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selected person's history -->
+          <div class="lg:col-span-2 space-y-4">
+            <div v-if="!staffSel" class="pp-card rounded-xl shadow-sm p-10 text-center text-gray-400 text-sm">
+              {{ txt.staff_pick_hint }}
+            </div>
+            <template v-else>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-blue-50 rounded-xl p-4"><p class="text-xs text-blue-600 mb-1">{{ txt.staff_orders_count }}</p><p class="text-lg font-bold text-blue-700">{{ staffHistory ? staffHistory.total_orders : 0 }}</p></div>
+                <div class="bg-emerald-50 rounded-xl p-4"><p class="text-xs text-emerald-600 mb-1">{{ txt.staff_revenue }}</p><p class="text-lg font-bold text-emerald-700">{{ formatPrice(staffHistory ? staffHistory.revenue : 0) }} {{ txt.sum }}</p></div>
+              </div>
+              <div class="pp-card rounded-xl shadow-sm p-4">
+                <p class="font-semibold text-gray-800 mb-3">{{ staffSel.name }}</p>
+                <div v-if="staffLoading" class="text-center text-gray-400 text-sm py-6">…</div>
+                <div v-else-if="staffHistory && staffHistory.orders && staffHistory.orders.length" class="space-y-2">
+                  <div v-for="o in staffHistory.orders" :key="o.id" class="border border-gray-100 rounded-xl p-3">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm font-bold text-gray-700">{{ o.order_code || ('#'+o.id) }}</span>
+                      <span class="text-xs text-gray-400">{{ new Date(o.created_at).toLocaleDateString('ru-RU') }}</span>
+                    </div>
+                    <div class="text-xs text-gray-500 space-y-0.5">
+                      <div v-for="it in boughtItems(o)" :key="it.id" class="flex justify-between gap-2">
+                        <span class="truncate">{{ it.product?.name }} × {{ it.quantity }} {{ it.unit_type==='piece' ? txt.piece : txt.pack }}</span>
+                        <span class="text-gray-600 flex-shrink-0">{{ formatPrice(it.price) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex justify-between mt-1 pt-1 border-t border-gray-50 text-sm">
+                      <span class="text-gray-400">{{ txt.total_sum }}</span>
+                      <span class="font-bold text-gray-800">{{ formatPrice(orderTotal(o)) }} {{ txt.sum }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center text-gray-400 text-sm py-6">{{ txt.staff_no_orders }}</div>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -1442,6 +1511,16 @@ const texts = {
     nav_analytics: 'Аналитика',
     nav_history: 'История',
     nav_stock: 'Склад',
+    nav_staff: 'Доктора/Маркет.',
+    staff_title: 'История по человеку',
+    staff_from: 'С',
+    staff_to: 'По',
+    staff_doctors: 'Доктора',
+    staff_marketologs: 'Маркетологи',
+    staff_pick_hint: 'Выберите доктора или маркетолога слева, чтобы увидеть его историю',
+    staff_orders_count: 'Всего заказов',
+    staff_revenue: 'Сумма',
+    staff_no_orders: 'Нет заказов за выбранный период',
     nav_bts: 'БТС пункты',
     bts_cargo: 'БТС Карго',
     bts_title: 'Пункты выдачи БТС Карго',
@@ -1685,6 +1764,16 @@ const texts = {
     nav_analytics: 'Tahlil',
     nav_history: 'Tarix',
     nav_stock: 'Ombor',
+    nav_staff: 'Doktor/Marketolog',
+    staff_title: "Shaxs bo'yicha tarix",
+    staff_from: 'Dan',
+    staff_to: 'Gacha',
+    staff_doctors: 'Doktorlar',
+    staff_marketologs: 'Marketologlar',
+    staff_pick_hint: "Tarixini ko'rish uchun chapdan doktor yoki marketologni tanlang",
+    staff_orders_count: 'Jami buyurtmalar',
+    staff_revenue: 'Summa',
+    staff_no_orders: "Tanlangan davrda buyurtmalar yo'q",
     nav_bts: 'BTS nuqtalar',
     bts_cargo: 'BTS Kargo',
     bts_title: 'BTS Kargo berish nuqtalari',
@@ -2772,6 +2861,40 @@ const allDoctors = ref([])
 
 async function loadMarketologs() {
   try { marketologs.value = (await api.get('/pickup/marketologs')).data || [] } catch (e) { console.error(e) }
+}
+
+// ===== Per-person (doctor / marketolog) history =====
+// The cashier picks ONE person (a doctor OR a marketolog) plus a date range and sees only
+// that person's orders. Selecting someone else replaces the view — one person at a time.
+function isoDaysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n)
+  return d.toISOString().slice(0, 10)
+}
+const staffFrom = ref(isoDaysAgo(30))
+const staffTo = ref(new Date().toISOString().slice(0, 10))
+const staffSel = ref(null)          // { type: 'doctor' | 'marketolog', id, name }
+const staffHistory = ref(null)
+const staffLoading = ref(false)
+
+function selectPerson(type, person) {
+  staffSel.value = { type, id: person.id, name: person.name }
+  loadStaffHistory()
+}
+
+async function loadStaffHistory() {
+  if (!staffSel.value) return
+  staffLoading.value = true
+  try {
+    const base = staffSel.value.type === 'doctor' ? 'doctors' : 'marketologs'
+    const res = await api.get(`/pickup/${base}/${staffSel.value.id}/history`, {
+      params: { from: staffFrom.value, to: staffTo.value },
+    })
+    staffHistory.value = res.data
+  } catch (e) {
+    console.error(e); staffHistory.value = null
+  } finally {
+    staffLoading.value = false
+  }
 }
 
 // ===== Marketolog debt & repayment =====

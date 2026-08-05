@@ -190,6 +190,10 @@ func main() {
 			pickup.GET("/marketologs", handlers.GetMarketologs)
 			pickup.GET("/marketologs/:id/debt", handlers.GetMarketologDebt)
 			pickup.POST("/marketologs/:id/payment", handlers.AddMarketologPayment)
+			// Per-person (doctor / marketolog) sales history, filtered by date range.
+			pickup.GET("/doctors", handlers.GetDoctors)
+			pickup.GET("/doctors/:id/history", handlers.GetDoctorHistoryPickup)
+			pickup.GET("/marketologs/:id/history", handlers.GetMarketologHistoryPickup)
 			pickup.GET("/support/threads", handlers.GetWorkerSupportThreads)
 			pickup.GET("/support/threads/:id", handlers.GetWorkerSupportThreadByID)
 			pickup.POST("/support/threads/:id/reply", handlers.ReplyWorkerSupportThread)
