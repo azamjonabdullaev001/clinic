@@ -618,6 +618,37 @@
           </div>
         </div>
 
+        <!-- Money received per payment method; a split payment is divided across its methods -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5" v-if="analyticsData && adminPaymentRows.length">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="font-semibold text-gray-800">По способам оплаты</h3>
+            <p class="text-xs text-gray-400 mt-0.5">Выданные заказы. Если оплата была несколькими способами, сумма делится между ними.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-100 bg-gray-50">
+                  <th class="text-left px-5 py-2 font-semibold text-gray-500">Способ оплаты</th>
+                  <th class="text-right px-5 py-2 font-semibold text-gray-500">Заказов</th>
+                  <th class="text-right px-5 py-2 font-semibold text-gray-500">Сумма</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-50">
+                <tr v-for="row in adminPaymentRows" :key="row.key" class="hover:bg-gray-50 transition">
+                  <td class="px-5 py-3 font-semibold text-gray-800">{{ row.label }}</td>
+                  <td class="px-5 py-3 text-right text-gray-700">{{ row.orders }}</td>
+                  <td class="px-5 py-3 text-right font-bold text-emerald-600">{{ formatPrice(row.revenue) }} сўм</td>
+                </tr>
+                <tr class="border-t-2 border-gray-200 bg-gray-50">
+                  <td class="px-5 py-3 font-bold text-gray-800">Итого</td>
+                  <td class="px-5 py-3 text-right font-bold text-gray-800">{{ analyticsData.by_payment_orders || 0 }}</td>
+                  <td class="px-5 py-3 text-right font-bold text-emerald-700">{{ formatPrice(adminPaymentRows.reduce((s, r) => s + r.revenue, 0)) }} сўм</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Category breakdown (separate, non-overlapping) -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden mt-5" v-if="analyticsData && analyticsData.breakdown">
           <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -1872,8 +1903,34 @@ function orderTotal(order) {
   return order.items?.reduce((sum, item) => sum + item.price, 0) || 0
 }
 
+const payMethodNames = {
+  cash: 'Наличные',
+  terminal: 'Терминал',
+  cassa1: 'Касса 1',
+  click: 'Click',
+  transfer: 'Перечисление (ХР)',
+  card: 'Другое',
+  online: 'Онлайн (карта)',
+}
+
+// Analytics rows: money received via each payment method (split payments divided).
+const adminPaymentRows = computed(() => {
+  const by = analyticsData.value?.by_payment || {}
+  return ['cash', 'terminal', 'cassa1', 'click', 'transfer', 'card', 'online']
+    .filter(k => by[k] && by[k].orders)
+    .map(k => ({ key: k, label: payMethodNames[k], orders: by[k].orders, revenue: by[k].revenue }))
+})
+
 function paymentLabel(order) {
   if (order.is_vip) return 'Свой пациент · Бесплатно'
+  // Split payment: show the amount paid via each method ("Наличные 300 000 · Касса 1 600 000").
+  if (order.payment_splits) {
+    try {
+      const splits = JSON.parse(order.payment_splits).filter(s => s.amount > 0)
+      if (splits.length === 1) return payMethodNames[splits[0].method] || splits[0].method
+      if (splits.length) return splits.map(s => `${payMethodNames[s.method] || s.method} ${formatPrice(s.amount)}`).join(' · ')
+    } catch (e) { /* ignore */ }
+  }
   const m = {
     cash: 'Наличные',
     terminal: 'Терминал',

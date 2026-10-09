@@ -3218,7 +3218,9 @@ const paymentBreakdownRows = computed(() => {
     .filter(o => by[o.key] && by[o.key].orders)
     .map(o => ({ key: o.key, label: o.label, orders: by[o.key].orders, revenue: by[o.key].revenue }))
 })
-const paymentBreakdownTotalOrders = computed(() => paymentBreakdownRows.value.reduce((s, r) => s + r.orders, 0))
+// A split-paid order appears in several method rows, so the total counts each order once.
+const paymentBreakdownTotalOrders = computed(() =>
+  analyticsData.value?.by_payment_orders ?? paymentBreakdownRows.value.reduce((s, r) => s + r.orders, 0))
 const paymentBreakdownTotalRevenue = computed(() => paymentBreakdownRows.value.reduce((s, r) => s + r.revenue, 0))
 
 async function loadAnalytics() {
@@ -3700,6 +3702,7 @@ function exportPaymentMethodsExcel() {
     totalRevenue += revenue
     return [m.label, orders, Math.round(revenue)]
   })
+  if (analyticsData.value?.by_payment_orders != null) totalOrders = analyticsData.value.by_payment_orders
   gridXls(`оплаты_${cashier}_${periodSlug()}.xls`, 'По способам оплаты',
     [`Кассир: ${cashier}`, `Период: ${periodLabel()}`],
     ['Способ оплаты', 'Заказов', 'Сумма (сум)'], dataRows,

@@ -64,6 +64,48 @@ func reconcileSplits(splits []PaymentSplit, total float64) []PaymentSplit {
 	return valid
 }
 
+// addPaymentBreakdown adds one paid order to the per-method money breakdown. A sale paid
+// via several methods (e.g. 300 000 cash + 600 000 card + 100 000 Click) puts each part
+// into its own method; a single-method sale keeps the legacy card-subtype breakout.
+// Returns false when the order carries no payment (free / own-patient sale).
+func addPaymentBreakdown(by map[string]*CategoryStat, order models.Order, revenue float64, caps, pcs int) bool {
+	get := func(key string) *CategoryStat {
+		p, ok := by[key]
+		if !ok {
+			p = &CategoryStat{}
+			by[key] = p
+		}
+		return p
+	}
+	if splits := reconcileSplits(parsePaymentSplits(order.PaymentSplits), revenue); len(splits) > 0 {
+		for _, s := range splits {
+			if s.Amount == 0 || s.Method == "" {
+				continue
+			}
+			p := get(s.Method)
+			p.Orders++
+			p.Revenue += s.Amount
+		}
+		return true
+	}
+	payKey := order.PaymentMethod
+	if payKey == "card" && order.CardType != "" {
+		payKey = order.CardType
+	}
+	if payKey == "" && !order.IsOffline && !order.IsVIP {
+		payKey = "online"
+	}
+	if payKey == "" {
+		payKey = "free"
+	}
+	p := get(payKey)
+	p.Orders++
+	p.Capsules += caps
+	p.Pieces += pcs
+	p.Revenue += revenue
+	return payKey != "free"
+}
+
 type AnalyticsPoint struct {
 	Label   string  `json:"label"`
 	Revenue float64 `json:"revenue"`
@@ -129,6 +171,10 @@ type AnalyticsResponse struct {
 	VIP             MarketologStat           `json:"vip"`
 	Breakdown       map[string]*CategoryStat `json:"breakdown"`
 	Discounts       DiscountSummary          `json:"discounts"`
+	// Money actually received (delivered orders) per payment method; split payments are
+	// divided across their methods. ByPaymentOrders counts each paid order once.
+	ByPayment       map[string]*CategoryStat `json:"by_payment"`
+	ByPaymentOrders int                      `json:"by_payment_orders"`
 }
 
 func GetAnalytics(c *gin.Context) {
@@ -232,6 +278,8 @@ func GetAnalytics(c *gin.Context) {
 	vipMap := make(map[uint]*MarketologProduct)
 	doctorMap := make(map[string]*DoctorReferral)
 	var disc DiscountSummary
+	byPayment := map[string]*CategoryStat{}
+	byPaymentOrders := 0
 	sumPct := 0.0
 	nonMktOrders := 0
 
@@ -309,6 +357,11 @@ func GetAnalytics(c *gin.Context) {
 					} else {
 						caps += item.Quantity
 					}
+				}
+
+				// Payment-method breakdown: only money actually received (delivered orders).
+				if order.Status == "delivered" && addPaymentBreakdown(byPayment, order, revenueActive, caps, pcs) {
+					byPaymentOrders++
 				}
 
 				// Chart points: add revenue/order count to the matching time bucket.
@@ -495,6 +548,8 @@ func GetAnalytics(c *gin.Context) {
 		VIP:             vip,
 		Breakdown:       breakdown,
 		Discounts:       disc,
+		ByPayment:       byPayment,
+		ByPaymentOrders: byPaymentOrders,
 	})
 }
 
@@ -710,7 +765,8 @@ func GetWorkerAnalytics(c *gin.Context) {
 	byDoctor := map[string]*catAgg{}
 	byMarketolog := map[string]*catAgg{}
 	// Payment-method breakdown. Key is `card_type` when payment is "card", otherwise the method name.
-	byPayment := map[string]*catAgg{}
+	byPayment := map[string]*CategoryStat{}
+	paidOrders := 0 // each paid order once, even when split across several methods
 
 	mainOrders := 0
 	for _, order := range orders {
@@ -747,38 +803,9 @@ func GetWorkerAnalytics(c *gin.Context) {
 			} else {
 				confirmedCount++
 			}
-			// Bucket by payment method. Split payments distribute their amount across the
-			// methods used; single-method sales keep the legacy card-subtype breakout.
-			if splits := reconcileSplits(parsePaymentSplits(order.PaymentSplits), revenue); len(splits) > 0 {
-				for _, s := range splits {
-					if s.Amount == 0 || s.Method == "" {
-						continue
-					}
-					p, ok := byPayment[s.Method]
-					if !ok {
-						p = &catAgg{}
-						byPayment[s.Method] = p
-					}
-					p.Orders++
-					p.Revenue += s.Amount
-				}
-			} else {
-				payKey := order.PaymentMethod
-				if payKey == "card" && order.CardType != "" {
-					payKey = order.CardType
-				}
-				if payKey == "" {
-					payKey = "free"
-				}
-				p, ok := byPayment[payKey]
-				if !ok {
-					p = &catAgg{}
-					byPayment[payKey] = p
-				}
-				p.Orders++
-				p.Capsules += caps
-				p.Pieces += pcs
-				p.Revenue += revenue
+			// Bucket by payment method; a split payment is divided across its methods.
+			if addPaymentBreakdown(byPayment, order, revenue, caps, pcs) {
+				paidOrders++
 			}
 		}
 		c := cats[cat]
@@ -889,6 +916,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 		"by_doctor":       doctorList,
 		"by_marketolog":   marketologList,
 		"by_payment":      byPayment,
+		"by_payment_orders": paidOrders,
 		"top_products":    topProducts,
 	})
 }
