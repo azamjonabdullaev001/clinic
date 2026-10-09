@@ -3,6 +3,7 @@ package handlers
 import (
 	"clinic-backend/database"
 	"clinic-backend/models"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -195,6 +196,21 @@ func UpdateOrderItems(c *gin.Context) {
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении"})
 				return
+			}
+		}
+	}
+
+	// Keep the stored payment breakdown in line with the new total, so the per-method
+	// analytics (cash especially) report the money actually taken after the edit.
+	if order.PaymentSplits != "" {
+		newTotal := 0.0
+		if err := tx.Model(&models.OrderItem{}).Where("order_id = ?", order.ID).
+			Select("COALESCE(SUM(price), 0)").Scan(&newTotal).Error; err == nil {
+			if splits := reconcileSplits(parsePaymentSplits(order.PaymentSplits), newTotal); len(splits) > 0 {
+				if b, err := json.Marshal(splits); err == nil {
+					order.PaymentSplits = string(b)
+					tx.Model(&models.Order{}).Where("id = ?", order.ID).Update("payment_splits", order.PaymentSplits)
+				}
 			}
 		}
 	}

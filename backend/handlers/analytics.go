@@ -4,6 +4,7 @@ import (
 	"clinic-backend/database"
 	"clinic-backend/models"
 	"encoding/json"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,6 +25,43 @@ func parsePaymentSplits(raw string) []PaymentSplit {
 		return nil
 	}
 	return splits
+}
+
+// reconcileSplits makes an order's payment breakdown add up to the money the order is
+// actually worth right now. The split amounts are typed by the cashier at the till and
+// stored once, but the order's items can be edited afterwards (an item added, a quantity
+// changed, a return). Without this, a cash sale of 100 that later grew to 110 kept
+// reporting 100 in cash, so the cashier ended up holding money the analytics never showed.
+// A single-method sale takes the full order total; a mixed one is rescaled proportionally.
+func reconcileSplits(splits []PaymentSplit, total float64) []PaymentSplit {
+	var valid []PaymentSplit
+	sum := 0.0
+	for _, s := range splits {
+		if s.Amount > 0 && s.Method != "" {
+			valid = append(valid, s)
+			sum += s.Amount
+		}
+	}
+	if len(valid) == 0 {
+		return nil
+	}
+	if len(valid) == 1 {
+		valid[0].Amount = total
+		return valid
+	}
+	if sum == total {
+		return valid
+	}
+	// Scale every part but the last; the last takes the remainder so the parts always sum
+	// to the order total exactly.
+	factor := total / sum
+	rest := total
+	for i := 0; i < len(valid)-1; i++ {
+		valid[i].Amount = math.Round(valid[i].Amount * factor)
+		rest -= valid[i].Amount
+	}
+	valid[len(valid)-1].Amount = rest
+	return valid
 }
 
 type AnalyticsPoint struct {
@@ -711,7 +749,7 @@ func GetWorkerAnalytics(c *gin.Context) {
 			}
 			// Bucket by payment method. Split payments distribute their amount across the
 			// methods used; single-method sales keep the legacy card-subtype breakout.
-			if splits := parsePaymentSplits(order.PaymentSplits); len(splits) > 0 {
+			if splits := reconcileSplits(parsePaymentSplits(order.PaymentSplits), revenue); len(splits) > 0 {
 				for _, s := range splits {
 					if s.Amount == 0 || s.Method == "" {
 						continue

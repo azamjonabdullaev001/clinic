@@ -2816,7 +2816,17 @@ async function savePayEdit(order) {
       .filter(s => s.amount > 0)
     if (splits.length === 0) {
       return
-    } else if (splits.length === 1) {
+    }
+    // A combined payment must add up to the order total, otherwise the per-method
+    // analytics (cash) would not match the money actually taken.
+    if (splits.length > 1) {
+      const entered = splits.reduce((s, x) => s + x.amount, 0)
+      if (Math.round(entered) !== Math.round(orderTotal(order))) {
+        alert(txt.value.pay_sum_error)
+        return
+      }
+    }
+    if (splits.length === 1) {
       paymentMethod = splits[0].method
     } else {
       paymentMethod = 'mixed'
